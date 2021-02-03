@@ -83,3 +83,19 @@ class LowestCommonAncestor:
             or descendant of `b` (i.e., `a` and `b` are comparable)
         """
         return self.is_ancestor_of(a, b) or self.is_ancestor_of(b, a)
+
+    def level(self, node):
+        """
+        Find the level of a node in the tree.
+
+        Complexity: O(1).
+        """
+        return self.traversal[self.traversal_index[node]][0]
+
+    def distance(self, a, b):
+        """
+        Find the distance between two nodes in the tree.
+
+        Complexity: O(1).
+        """
+        return self.level(a) + self.level(b) - 2 * self.level(self(a, b))
