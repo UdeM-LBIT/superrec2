@@ -71,6 +71,20 @@ class LowestCommonAncestor:
         """
         return self(a, b) == a
 
+    def is_strict_ancestor_of(self, a, b):
+        """
+        Check whether a node is a strict an ancestor of another
+        (i.e. is an ancestor distinct from the other node).
+
+        Complexity: O(1).
+
+        :param a: ancestor node
+        :param b: descendant node
+        :returns: True if and only if `b` is on the path from the tree root
+            to `a` (i.e., `a` is an ancestor of `b`)
+        """
+        return self(a, b) == a and a != b
+
     def is_comparable(self, a, b):
         """
         Check whether two nodes are in the same subtree.
