@@ -1,7 +1,7 @@
 from collections import defaultdict, namedtuple
 from enum import Enum, auto
 from itertools import product
-from typing import List, Mapping, Optional, Tuple, Union
+from typing import List, Mapping, Tuple, Union
 from numbers import Integral
 from ete3 import PhyloTree, PhyloNode
 from infinity import Infinity
