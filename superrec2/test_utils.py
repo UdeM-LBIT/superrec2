@@ -19,6 +19,11 @@ class TestInvertMapping(unittest.TestCase):
             {1: ['A', 'B', 'D'], 2: ['C', 'E'], 3: ['Z']}
         )
 
+    def test_invert_outside_domain(self):
+        mapping = {'A': 1, 'B': 2}
+        invert = invert_mapping(mapping)
+        self.assertEqual(invert[3], [])
+
     def test_invert_treenodes(self):
         tree_1 = Tree("((x_1,y_1)2,(((x_2,y_2)5,z_1)4,z_2)3)1;", format=8)
         tree_2 = Tree("((x,y)xy,z)xyz;", format=8)

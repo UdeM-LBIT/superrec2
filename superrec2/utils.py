@@ -1,12 +1,13 @@
+from collections import defaultdict
 from ete3 import TreeNode
 import graphlib
-from typing import Iterable, List, Mapping, Sequence, TypeVar
+from typing import DefaultDict, Iterable, List, Mapping, Sequence, TypeVar
 
 A = TypeVar('A')
 B = TypeVar('B')
 
 
-def invert_mapping(mapping: Mapping[A, B]) -> Mapping[B, List[A]]:
+def invert_mapping(mapping: Mapping[A, B]) -> DefaultDict[B, List[A]]:
     """
     Compute the reciprocal of a mapping.
 
@@ -14,12 +15,10 @@ def invert_mapping(mapping: Mapping[A, B]) -> Mapping[B, List[A]]:
     :returns: for each value of the input mapping, a list of
         keys for which that value is used
     """
-    result = {}
+    result = defaultdict(list)
 
     for key, value in mapping.items():
-        acc: List[A] = result.get(value, [])
-        acc.append(key)
-        result[value] = acc
+        result[value].append(key)
 
     return result
 
