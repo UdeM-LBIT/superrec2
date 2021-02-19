@@ -12,6 +12,7 @@ class BranchKind(Enum):
     FullLoss = auto()
     Speciation = auto()
     Duplication = auto()
+    HorizontalGeneTransfer = auto()
 
 
 class Branch(NamedTuple):
@@ -117,7 +118,6 @@ def layout(
                 "branches": {},
                 "anchors": {},
                 "next_x": params.branch_spacing,
-                "next_y": 0,
             }
 
             for root_gene in sort_tree_nodes(rev_rec[root_species]):
@@ -149,8 +149,10 @@ def layout(
                     left_pos = state["branches"][left_gene].pos
                     right_pos = state["branches"][right_gene].pos
                     x_pos = (left_pos.x + right_pos.x) / 2
-                    y_pos = state["next_y"]
-                    state["next_y"] -= params.branch_spacing
+                    y_pos = (
+                        min(params.branch_spacing, left_pos.y, right_pos.y)
+                        - params.branch_spacing
+                    )
                     state["anchors"][root_gene] = x_pos
 
                     del state["anchors"][left_gene]
@@ -162,6 +164,34 @@ def layout(
                         left=left_gene,
                         right=right_gene,
                     )
+                elif event == Event.HorizontalGeneTransfer:
+                    conserv_gene, foreign_gene = (
+                        (left_gene, right_gene)
+                        if species_lca.is_ancestor_of(
+                            root_species, rec[left_gene]
+                        )
+                        else (right_gene, left_gene)
+                    )
+                    conserv_gene = add_losses(
+                        conserv_gene, rec[conserv_gene], root_species.up)
+                    conserv_pos = state["branches"][conserv_gene].pos
+
+                    x_pos = conserv_pos.x
+                    y_pos = (
+                        min(params.branch_spacing, conserv_pos.y)
+                        - params.branch_spacing
+                    )
+                    state["anchors"][root_gene] = x_pos
+                    del state["anchors"][conserv_gene]
+
+                    state["branches"][root_gene] = Branch(
+                        kind=BranchKind.HorizontalGeneTransfer,
+                        pos=Position(x_pos, y_pos),
+                        left=conserv_gene,
+                        right=foreign_gene,
+                    )
+                else:
+                    raise ValueError("Invalid event")
 
     # Second pass: Compute the individual size and layout of each subtree
     for root_species in species_tree.traverse("postorder"):
@@ -187,9 +217,12 @@ def layout(
             state = work_state[root_species]
 
             trunk_width = state["next_x"]
-            trunk_height = abs(state["next_y"])
+            trunk_height = (
+                max(-branch.pos.y for branch in state["branches"].values())
+                + params.branch_spacing
+            )
+
             del state["next_x"]
-            del state["next_y"]
 
             left_info = work_state[left_species]
             right_info = work_state[right_species]
@@ -266,6 +299,7 @@ class RenderParams(NamedTuple):
 
 def render_to_tikz(
     species_tree: PhyloTree,
+    rec: Reconciliation,
     layout: Layout,
     params: RenderParams = RenderParams(),
 ):
@@ -282,11 +316,15 @@ def render_to_tikz(
             branch/.style={{
                 line width={{{params.branch_thickness}}},
                 preaction={{
-                    draw, white,
+                    draw, white, -{{}},
                     line width={{{params.branch_outer_thickness}}},
                     shorten <={{{params.branch_thickness}}},
                     shorten >={{{params.branch_thickness}}},
                 }},
+            }},
+            transfer branch/.style={{
+                branch,
+                -Stealth,
             }},
             loss/.style={{
                 branch, dashed,
@@ -310,6 +348,11 @@ def render_to_tikz(
             }},
             duplication/.style={{
                 branch node, rectangle,
+                minimum width={{{params.duplication_size}}},
+                minimum height={{{params.duplication_size}}},
+            }},
+            horizontal gene transfer/.style={{
+                branch node, diamond,
                 minimum width={{{params.duplication_size}}},
                 minimum height={{{params.duplication_size}}},
             }},
@@ -402,6 +445,20 @@ def render_to_tikz(
                     });""")
                     branching_nodes.append(
                         rf"\node[duplication] at ({branch_pos}) {{}};"
+                    )
+                elif branch.kind == BranchKind.HorizontalGeneTransfer:
+                    foreign_layout = layout[rec[right_gene]]
+                    result.append(rf"""\draw[branch] ({
+                        trunk_offset + node_layout.branches[left_gene].pos
+                    }) |- ({branch_pos});""")
+                    result.append(rf"""\draw[transfer branch] ({
+                        branch_pos
+                    }) to[bend left=45] ({
+                        foreign_layout.get_anchor_pos(right_gene)
+                    });""")
+                    branching_nodes.append(
+                        r"\node[horizontal gene transfer] at "
+                        rf"({branch_pos}) {{}};"
                     )
 
             result.extend(branching_nodes)
