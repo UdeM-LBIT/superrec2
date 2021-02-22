@@ -416,15 +416,36 @@ def layout(
 
 
 class RenderParams(NamedTuple):
+    """Parameters for drawing subtrees of a reconciliation."""
+    # Horizontal unit scale
     x_unit: str = "1pt"
+
+    # Vertical unit scale
     y_unit: str = "1pt"
+
+    # Thickness of the lines around the outer species tree
     species_border_thickness: str = "1pt"
+
+    # Thickness of the lines that make up the inner gene tree
     branch_thickness: str = "0.5pt"
+
+    # Reserved space around branches of the gene tree when two lines cross
     branch_outer_thickness: str = "4pt"
+
+    # Size of the filled circles that represent extant genes
     extant_gene_diameter: str = "3pt"
+
+    # Length of the dashed line that represent lost genes
     full_loss_size: str = "20pt"
+
+    # Size of the hollow circles that represent speciation events
     speciation_diameter: str = "10pt"
+
+    # Size of the square that represent duplication events
     duplication_size: str = "9pt"
+
+    # Size of the sideways square that represent transfer events
+    transfer_size: str = "10pt"
 
 
 def render_to_tikz(
@@ -433,6 +454,31 @@ def render_to_tikz(
     layout: Layout,
     params: RenderParams = RenderParams(),
 ):
+    r"""
+    Generate TikZ code for drawing a laid out reconciliation.
+
+    The `tikz` LaTeX package and the `shapes` and `arrows.meta` TikZ libraries
+    need to be loaded for the generated code to compile. Here’s a basic
+    skeleton in which the generated code can be inserted:
+
+    ```
+    \documentclass[crop, tikz, border=.1cm]{standalone}
+
+    \usepackage{tikz}
+    \usetikzlibrary{arrows.meta}
+    \usetikzlibrary{shapes}
+
+    \begin{document}
+        <generated code>
+    \end{document}
+    ```
+
+    :param species_tree: host species tree
+    :param rec: mapping of the gene tree onto the species tree
+    :param layout: reconciliation layout as computed by :meth:`layout`
+    :param params: render parameters
+    :returns: generated TikZ code
+    """
     result = []
     result.append(textwrap.dedent(rf"""
         \begin{{tikzpicture}}[
@@ -483,8 +529,8 @@ def render_to_tikz(
             }},
             horizontal gene transfer/.style={{
                 branch node, diamond,
-                minimum width={{{params.duplication_size}}},
-                minimum height={{{params.duplication_size}}},
+                minimum width={{{params.transfer_size}}},
+                minimum height={{{params.transfer_size}}},
             }},
         ]
     """))
