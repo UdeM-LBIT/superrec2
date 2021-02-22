@@ -561,7 +561,7 @@ def render_to_tikz(
                 minimum height={{{params.transfer_size}}},
             }},
         ]"""
-    ))
+    ).lstrip())
 
     layers = {
         "species": [],
@@ -697,5 +697,5 @@ def render_to_tikz(
         result.append(f"% {name}")
         result.extend(layer)
 
-    result.append("\end{tikzpicture}")
+    result.append("\\end{tikzpicture}\n")
     return "\n".join(result)
