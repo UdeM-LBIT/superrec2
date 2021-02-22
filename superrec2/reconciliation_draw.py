@@ -417,7 +417,7 @@ def layout(
 
 class RenderParams(NamedTuple):
     x_unit: str = "1pt"
-    y_unit: str = "-1pt"
+    y_unit: str = "1pt"
     species_border_thickness: str = "1pt"
     branch_thickness: str = "0.5pt"
     branch_outer_thickness: str = "4pt"
@@ -437,7 +437,7 @@ def render_to_tikz(
     result.append(textwrap.dedent(rf"""
         \begin{{tikzpicture}}[
             x={{{params.x_unit}}},
-            y={{{params.y_unit}}},
+            y={{-{params.y_unit}}},
             species border/.style={{
                 line width={{{params.species_border_thickness}}},
                 shorten <={{-{params.species_border_thickness} / 2 + 0.05pt}},
@@ -592,14 +592,18 @@ def render_to_tikz(
                 )
             elif branch.kind == BranchKind.HorizontalGeneTransfer:
                 foreign_layout = layout[rec[right_gene]]
+                foreign_pos = foreign_layout.get_anchor_pos(right_gene)
+                bend_direction = (
+                    "bend left" if branch_pos.x < foreign_pos.x
+                    else "bend right"
+                )
+
                 result.append(rf"""\draw[branch] ({
                     trunk_offset + node_layout.branches[left_gene].pos
                 }) |- ({branch_pos});""")
                 result.append(rf"""\draw[transfer branch] ({
                     branch_pos
-                }) to[bend left=45] ({
-                    foreign_layout.get_anchor_pos(right_gene)
-                });""")
+                }) to[{bend_direction}=35] ({foreign_pos});""")
                 branching_nodes.append(
                     r"\node[horizontal gene transfer] at "
                     rf"({branch_pos}) {{}};"
