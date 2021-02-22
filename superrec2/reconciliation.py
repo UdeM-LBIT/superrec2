@@ -17,13 +17,17 @@ class Event(Enum):
     """Evolutionary events affecting genes."""
     # Sentinel for extant (current) genes
     Leaf = auto()
+
     # Sentinel for scenarios that are invalid wrt our evolutionary model
     Invalid = auto()
-    # The gene diverged into two copies as part of a speciation event
+
+    # Transmission of the parent gene to both children species
     Speciation = auto()
-    # The gene was duplicated in the same genome
+
+    # Duplication of the parent gene in the same genome
     Duplication = auto()
-    # A copy of the gene was transfered to another genome
+
+    # Transfer of the parent gene to a foreign genome
     HorizontalGeneTransfer = auto()
 
 
