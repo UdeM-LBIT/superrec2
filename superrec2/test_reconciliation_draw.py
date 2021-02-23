@@ -32,16 +32,10 @@ class TestReconciliationDraw(unittest.TestCase):
                     shorten <={-1pt / 2 + 0.05pt},
                     shorten >={-1pt / 2 + 0.05pt},
                 },
-                species brace/.style={
-                    decorate,
-                    decoration={brace},
-                    line width={1pt},
-                    yshift={-16pt},
-                },
-                species brace label/.style={
-                    midway,
-                    above={-18pt},
+                species label/.style={
                     font=\bfseries,
+                    midway,
+                    yshift=-10pt,
                 },
                 branch/.style={
                     line width={0.5pt},
@@ -94,12 +88,9 @@ class TestReconciliationDraw(unittest.TestCase):
             \draw[species border] (0,120) |- (40,80) -- (40,60);
             \draw[species border] (120,120) |- (80,80) -- (80,60);
             \draw[species border] (40,120) |- (40,120) -| (80,120);
-            \draw[species border] (0,120) -- (0,140) -- (40,140) -- (40,120);
-            \draw[species brace] (40,140) -- node [species brace label] {X} (0,140);
-            \draw[species border] (80,120) -- (80,140) -- (120,140) -- (120,120);
-            \draw[species brace] (120,140) -- node [species brace label] {Y} (80,140);
-            \draw[species border] (160,120) -- (160,140) -- (200,140) -- (200,120);
-            \draw[species brace] (200,140) -- node [species brace label] {Z} (160,140);
+            \draw[species border] (0,120) -- ([yshift=-16pt]0,140) -- node[species label] {X} ([yshift=-16pt]40,140) -- (40,120);
+            \draw[species border] (80,120) -- ([yshift=-16pt]80,140) -- node[species label] {Y} ([yshift=-16pt]120,140) -- (120,120);
+            \draw[species border] (160,120) -- ([yshift=-16pt]160,140) -- node[species label] {Z} ([yshift=-16pt]200,140) -- (200,120);
             % gene branches
             \draw[branch] (140,40) -- (140,0);
             \draw[branch] (60,60) |- (140,40) -| (180,120);
@@ -150,16 +141,10 @@ class TestReconciliationDraw(unittest.TestCase):
                     shorten <={-1pt / 2 + 0.05pt},
                     shorten >={-1pt / 2 + 0.05pt},
                 },
-                species brace/.style={
-                    decorate,
-                    decoration={brace},
-                    line width={1pt},
-                    yshift={-16pt},
-                },
-                species brace label/.style={
-                    midway,
-                    above={-18pt},
+                species label/.style={
                     font=\bfseries,
+                    midway,
+                    yshift=-10pt,
                 },
                 branch/.style={
                     line width={0.5pt},
@@ -212,12 +197,9 @@ class TestReconciliationDraw(unittest.TestCase):
             \draw[species border] (0,195) |- (70,125) -- (70,105);
             \draw[species border] (210,195) |- (140,125) -- (140,105);
             \draw[species border] (70,195) |- (70,195) -| (140,195);
-            \draw[species border] (0,195) -- (0,215) -- (70,215) -- (70,195);
-            \draw[species brace] (70,215) -- node [species brace label] {X} (0,215);
-            \draw[species border] (140,195) -- (140,215) -- (210,215) -- (210,195);
-            \draw[species brace] (210,215) -- node [species brace label] {Y} (140,215);
-            \draw[species border] (280,195) -- (280,215) -- (350,215) -- (350,195);
-            \draw[species brace] (350,215) -- node [species brace label] {Z} (280,215);
+            \draw[species border] (0,195) -- ([yshift=-16pt]0,215) -- node[species label] {X} ([yshift=-16pt]70,215) -- (70,195);
+            \draw[species border] (140,195) -- ([yshift=-16pt]140,215) -- node[species label] {Y} ([yshift=-16pt]210,215) -- (210,195);
+            \draw[species border] (280,195) -- ([yshift=-16pt]280,215) -- node[species label] {Z} ([yshift=-16pt]350,215) -- (350,195);
             % gene branches
             \draw[branch] (120,105) |- (230,55) -| (300,195);
             \draw[branch] (90,105) |- (245,70) -| (315,195);
@@ -287,16 +269,10 @@ class TestReconciliationDraw(unittest.TestCase):
                     shorten <={-1pt / 2 + 0.05pt},
                     shorten >={-1pt / 2 + 0.05pt},
                 },
-                species brace/.style={
-                    decorate,
-                    decoration={brace},
-                    line width={1pt},
-                    yshift={-16pt},
-                },
-                species brace label/.style={
-                    midway,
-                    above={-18pt},
+                species label/.style={
                     font=\bfseries,
+                    midway,
+                    yshift=-10pt,
                 },
                 branch/.style={
                     line width={0.5pt},
@@ -346,20 +322,16 @@ class TestReconciliationDraw(unittest.TestCase):
             \draw[species border] (0,180) |- (40,20) -- (40,0);
             \draw[species border] (160,60) |- (80,20) -- (80,0);
             \draw[species border] (40,180) |- (40,60) -| (120,60);
-            \draw[species border] (0,180) -- (0,200) -- (40,200) -- (40,180);
-            \draw[species brace] (40,200) -- node [species brace label] {X} (0,200);
+            \draw[species border] (0,180) -- ([yshift=-16pt]0,200) -- node[species label] {X} ([yshift=-16pt]40,200) -- (40,180);
             \draw[species border] (80,180) |- (120,80) -- (120,60);
             \draw[species border] (240,120) |- (160,80) -- (160,60);
             \draw[species border] (120,180) |- (120,120) -| (200,120);
-            \draw[species border] (80,180) -- (80,200) -- (120,200) -- (120,180);
-            \draw[species brace] (120,200) -- node [species brace label] {Y} (80,200);
+            \draw[species border] (80,180) -- ([yshift=-16pt]80,200) -- node[species label] {Y} ([yshift=-16pt]120,200) -- (120,180);
             \draw[species border] (160,180) |- (200,140) -- (200,120);
             \draw[species border] (280,180) |- (240,140) -- (240,120);
             \draw[species border] (200,180) |- (200,180) -| (240,180);
-            \draw[species border] (160,180) -- (160,200) -- (200,200) -- (200,180);
-            \draw[species brace] (200,200) -- node [species brace label] {Z} (160,200);
-            \draw[species border] (240,180) -- (240,200) -- (280,200) -- (280,180);
-            \draw[species brace] (280,200) -- node [species brace label] {W} (240,200);
+            \draw[species border] (160,180) -- ([yshift=-16pt]160,200) -- node[species label] {Z} ([yshift=-16pt]200,200) -- (200,180);
+            \draw[species border] (240,180) -- ([yshift=-16pt]240,200) -- node[species label] {W} ([yshift=-16pt]280,200) -- (280,180);
             % gene branches
             \draw[branch] (60,40) -- (60,0);
             \draw[branch] (20,180) |- (60,40) -| (140,60);
@@ -409,16 +381,10 @@ class TestReconciliationDraw(unittest.TestCase):
                     shorten <={-1pt / 2 + 0.05pt},
                     shorten >={-1pt / 2 + 0.05pt},
                 },
-                species brace/.style={
-                    decorate,
-                    decoration={brace},
-                    line width={1pt},
-                    yshift={-16pt},
-                },
-                species brace label/.style={
-                    midway,
-                    above={-18pt},
+                species label/.style={
                     font=\bfseries,
+                    midway,
+                    yshift=-10pt,
                 },
                 branch/.style={
                     line width={0.5pt},
@@ -471,12 +437,9 @@ class TestReconciliationDraw(unittest.TestCase):
             \draw[species border] (0,180) |- (55,125) -- (55,105);
             \draw[species border] (165,180) |- (110,125) -- (110,105);
             \draw[species border] (55,180) |- (55,180) -| (110,180);
-            \draw[species border] (0,180) -- (0,200) -- (55,200) -- (55,180);
-            \draw[species brace] (55,200) -- node [species brace label] {X} (0,200);
-            \draw[species border] (110,180) -- (110,200) -- (165,200) -- (165,180);
-            \draw[species brace] (165,200) -- node [species brace label] {Y} (110,200);
-            \draw[species border] (235,180) -- (235,200) -- (305,200) -- (305,180);
-            \draw[species brace] (305,200) -- node [species brace label] {Z} (235,200);
+            \draw[species border] (0,180) -- ([yshift=-16pt]0,200) -- node[species label] {X} ([yshift=-16pt]55,200) -- (55,180);
+            \draw[species border] (110,180) -- ([yshift=-16pt]110,200) -- node[species label] {Y} ([yshift=-16pt]165,200) -- (165,180);
+            \draw[species border] (235,180) -- ([yshift=-16pt]235,200) -- node[species label] {Z} ([yshift=-16pt]305,200) -- (305,180);
             % gene branches
             \draw[branch] (75,105) |- (185,55) -| (270,180);
             \draw[branch] (90,105) |- (200,70) -| (285,180);
@@ -545,16 +508,10 @@ class TestReconciliationDraw(unittest.TestCase):
                     shorten <={-1pt / 2 + 0.05pt},
                     shorten >={-1pt / 2 + 0.05pt},
                 },
-                species brace/.style={
-                    decorate,
-                    decoration={brace},
-                    line width={1pt},
-                    yshift={-16pt},
-                },
-                species brace label/.style={
-                    midway,
-                    above={-18pt},
+                species label/.style={
                     font=\bfseries,
+                    midway,
+                    yshift=-10pt,
                 },
                 branch/.style={
                     line width={0.5pt},
@@ -604,10 +561,8 @@ class TestReconciliationDraw(unittest.TestCase):
             \draw[species border] (0,120) |- (85,35) -- (85,0);
             \draw[species border] (255,120) |- (170,35) -- (170,0);
             \draw[species border] (85,120) |- (85,120) -| (170,120);
-            \draw[species border] (0,120) -- (0,140) -- (85,140) -- (85,120);
-            \draw[species brace] (85,140) -- node [species brace label] {X} (0,140);
-            \draw[species border] (170,120) -- (170,140) -- (255,140) -- (255,120);
-            \draw[species brace] (255,140) -- node [species brace label] {Y} (170,140);
+            \draw[species border] (0,120) -- ([yshift=-16pt]0,140) -- node[species label] {X} ([yshift=-16pt]85,140) -- (85,120);
+            \draw[species border] (170,120) -- ([yshift=-16pt]170,140) -- node[species label] {Y} ([yshift=-16pt]255,140) -- (255,120);
             % gene branches
             \draw[branch] (20,120) |- (105,55) -| (190,120);
             \draw[branch] (35,120) |- (120,70) -| (205,120);
@@ -664,6 +619,7 @@ class TestReconciliationDraw(unittest.TestCase):
 
         layout_info = layout(gene_tree, species_tree, rec)
         out = render_to_tikz(species_tree, rec, layout_info)
+
         self.assertEqual(out, textwrap.dedent(r"""
             \begin{tikzpicture}[
                 x={1pt},
@@ -673,16 +629,10 @@ class TestReconciliationDraw(unittest.TestCase):
                     shorten <={-1pt / 2 + 0.05pt},
                     shorten >={-1pt / 2 + 0.05pt},
                 },
-                species brace/.style={
-                    decorate,
-                    decoration={brace},
-                    line width={1pt},
-                    yshift={-16pt},
-                },
-                species brace label/.style={
-                    midway,
-                    above={-18pt},
+                species label/.style={
                     font=\bfseries,
+                    midway,
+                    yshift=-10pt,
                 },
                 branch/.style={
                     line width={0.5pt},
@@ -735,12 +685,9 @@ class TestReconciliationDraw(unittest.TestCase):
             \draw[species border] (0,150) |- (55,95) -- (55,75);
             \draw[species border] (165,150) |- (110,95) -- (110,75);
             \draw[species border] (55,150) |- (55,150) -| (110,150);
-            \draw[species border] (0,150) -- (0,170) -- (55,170) -- (55,150);
-            \draw[species brace] (55,170) -- node [species brace label] {X} (0,170);
-            \draw[species border] (110,150) -- (110,170) -- (165,170) -- (165,150);
-            \draw[species brace] (165,170) -- node [species brace label] {Y} (110,170);
-            \draw[species border] (220,150) -- (220,170) -- (275,170) -- (275,150);
-            \draw[species brace] (275,170) -- node [species brace label] {Z} (220,170);
+            \draw[species border] (0,150) -- ([yshift=-16pt]0,170) -- node[species label] {X} ([yshift=-16pt]55,170) -- (55,150);
+            \draw[species border] (110,150) -- ([yshift=-16pt]110,170) -- node[species label] {Y} ([yshift=-16pt]165,170) -- (165,150);
+            \draw[species border] (220,150) -- ([yshift=-16pt]220,170) -- node[species label] {Z} ([yshift=-16pt]275,170) -- (275,150);
             % gene branches
             \draw[branch] (90,75) |- (185,40) -| (255,150);
             \draw[loss] (200,55) -- ++(20pt, 0);
@@ -821,16 +768,10 @@ class TestReconciliationDraw(unittest.TestCase):
                     shorten <={-1pt / 2 + 0.05pt},
                     shorten >={-1pt / 2 + 0.05pt},
                 },
-                species brace/.style={
-                    decorate,
-                    decoration={brace},
-                    line width={1pt},
-                    yshift={-16pt},
-                },
-                species brace label/.style={
-                    midway,
-                    above={-18pt},
+                species label/.style={
                     font=\bfseries,
+                    midway,
+                    yshift=-10pt,
                 },
                 branch/.style={
                     line width={0.5pt},
@@ -886,19 +827,14 @@ class TestReconciliationDraw(unittest.TestCase):
             \draw[species border] (0,285) |- (70,185) -- (70,165);
             \draw[species border] (225,255) |- (140,185) -- (140,165);
             \draw[species border] (70,285) |- (70,255) -| (140,255);
-            \draw[species border] (0,285) -- (0,305) -- (70,305) -- (70,285);
-            \draw[species brace] (70,305) -- node [species brace label] {X} (0,305);
-            \draw[species border] (140,255) -- (140,305) -- (225,305) -- (225,255);
-            \draw[species brace] (225,305) -- node [species brace label] {Y} (140,305);
-            \draw[species border] (295,285) -- (295,305) -- (365,305) -- (365,285);
-            \draw[species brace] (365,305) -- node [species brace label] {Z} (295,305);
+            \draw[species border] (0,285) -- ([yshift=-16pt]0,305) -- node[species label] {X} ([yshift=-16pt]70,305) -- (70,285);
+            \draw[species border] (140,255) -- ([yshift=-16pt]140,305) -- node[species label] {Y} ([yshift=-16pt]225,305) -- (225,255);
+            \draw[species border] (295,285) -- ([yshift=-16pt]295,305) -- node[species label] {Z} ([yshift=-16pt]365,305) -- (365,285);
             \draw[species border] (420,270) |- (490,215) -- (490,195);
             \draw[species border] (585,255) |- (530,215) -- (530,195);
             \draw[species border] (490,270) |- (490,255) -| (530,255);
-            \draw[species border] (420,270) -- (420,305) -- (490,305) -- (490,270);
-            \draw[species brace] (490,305) -- node [species brace label] {W} (420,305);
-            \draw[species border] (530,255) -- (530,305) -- (585,305) -- (585,255);
-            \draw[species brace] (585,305) -- node [species brace label] {T} (530,305);
+            \draw[species border] (420,270) -- ([yshift=-16pt]420,305) -- node[species label] {W} ([yshift=-16pt]490,305) -- (490,270);
+            \draw[species border] (530,255) -- ([yshift=-16pt]530,305) -- node[species label] {T} ([yshift=-16pt]585,305) -- (585,255);
             % gene branches
             \draw[branch] (267.5,75) |- (385,40) -| (510,195);
             \draw[loss] (400,55) -- ++(20pt, 0);

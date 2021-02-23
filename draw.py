@@ -77,7 +77,6 @@ elif args.output.endswith(".pdf"):
                 \usepackage{tikz}
                 \usetikzlibrary{arrows.meta}
                 \usetikzlibrary{shapes}
-                \usetikzlibrary{decorations.pathreplacing}
 
                 \begin{document}
             """).lstrip())

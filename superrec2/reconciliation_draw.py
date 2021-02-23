@@ -426,11 +426,11 @@ class RenderParams(NamedTuple):
     # Thickness of the lines around the outer species tree
     species_border_thickness: str = "1pt"
 
-    # Distance of species brace to end of species branch
-    species_brace_distance: str = "16pt"
+    # Space between extant genes and the end of species branches
+    species_leaf_distance: str = "16pt"
 
-    # Distance of species label to the species brace
-    species_brace_label_distance: str = "18pt"
+    # Distance of the species labels from the species leaves
+    species_label_distance: str = "10pt"
 
     # Thickness of the lines that make up the inner gene tree
     branch_thickness: str = "0.5pt"
@@ -471,7 +471,6 @@ def render_to_tikz(
 
     - `shapes`
     - `arrows.meta`
-    - `decorations.pathreplacing`
 
     Here’s a basic skeleton in which the generated code can be inserted:
 
@@ -481,7 +480,6 @@ def render_to_tikz(
     \usepackage{tikz}
     \usetikzlibrary{arrows.meta}
     \usetikzlibrary{shapes}
-    \usetikzlibrary{decorations.pathreplacing}
 
     \begin{document}
         <generated code>
@@ -504,16 +502,10 @@ def render_to_tikz(
                 shorten <={{-{params.species_border_thickness} / 2 + 0.05pt}},
                 shorten >={{-{params.species_border_thickness} / 2 + 0.05pt}},
             }},
-            species brace/.style={{
-                decorate,
-                decoration={{brace}},
-                line width={{{params.species_border_thickness}}},
-                yshift={{-{params.species_brace_distance}}},
-            }},
-            species brace label/.style={{
-                midway,
-                above={{-{params.species_brace_label_distance}}},
+            species label/.style={{
                 font=\bfseries,
+                midway,
+                yshift=-{params.species_label_distance},
             }},
             branch/.style={{
                 line width={{{params.branch_thickness}}},
@@ -605,17 +597,14 @@ def render_to_tikz(
             # Draw leaf
             layers["species"].append(rf"""\draw[species border] ({
                 node_layout.rect.top_left() + node_layout.trunk.top_left()
-            }) -- ({
+            }) -- ([yshift=-{params.species_leaf_distance}]{
                 node_layout.rect.top_left() + node_layout.trunk.bottom_left()
-            }) -- ({
+            }) -- node[species label] {{{
+                species_node.name
+            }}} ([yshift=-{params.species_leaf_distance}]{
                 node_layout.rect.top_left() + node_layout.trunk.bottom_right()
             }) -- ({
                 node_layout.rect.top_left() + node_layout.trunk.top_right()
-            });""")
-            layers["species"].append(rf"""\draw[species brace] ({
-                node_layout.rect.top_left() + node_layout.trunk.bottom_right()
-            }) -- node [species brace label] {{{species_node.name}}} ({
-                node_layout.rect.top_left() + node_layout.trunk.bottom_left()
             });""")
 
         # Draw branches
