@@ -1,7 +1,9 @@
 from typing import Generic, List, Tuple, TypeVar, Union
 from collections.abc import Sequence
 
+
 T = TypeVar('T')
+
 
 class MinSequence(Generic[T], Sequence[T]):
     """Receive ordered elements and keep only the minimal ones."""

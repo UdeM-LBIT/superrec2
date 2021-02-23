@@ -3,6 +3,7 @@ from ete3 import TreeNode
 import graphlib
 from typing import DefaultDict, Iterable, List, Mapping, Sequence, TypeVar
 
+
 A = TypeVar('A')
 B = TypeVar('B')
 

@@ -1,8 +1,8 @@
 import unittest
 import textwrap
 from ete3 import PhyloTree
-from .reconciliation import get_species_name, reconcile_leaves
-from .reconciliation_draw import layout, render_to_tikz
+from .tools import get_species_name, reconcile_leaves
+from .draw import layout, render_to_tikz
 
 
 class TestReconciliationDraw(unittest.TestCase):

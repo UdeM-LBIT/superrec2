@@ -1,7 +1,7 @@
 import unittest
 from .min_sequence import MinSequence
 
-class TestMinSequence(unittest.TestCase):
+class TestUtilsMinSequence(unittest.TestCase):
     def test_empty(self):
         seq = MinSequence()
         self.assertEqual(seq.min, float('inf'))

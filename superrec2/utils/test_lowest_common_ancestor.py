@@ -54,7 +54,7 @@ def _distance_naive(start, stop, visited=None):
     return distance
 
 
-class TestLowestCommonAncestor(unittest.TestCase):
+class TestUtilsLowestCommonAncestor(unittest.TestCase):
     def test_lca(self):
         tree = Tree("((2,(4,5)3)1,(7,8,(10)9)6)0;", format=8)
         lca = LowestCommonAncestor(tree)

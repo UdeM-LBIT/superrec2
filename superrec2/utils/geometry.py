@@ -1,5 +1,6 @@
 from typing import NamedTuple
 
+
 class Position(NamedTuple):
     """Vector or point on the 2D plane."""
     x: int

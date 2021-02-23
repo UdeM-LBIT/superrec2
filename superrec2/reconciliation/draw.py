@@ -2,10 +2,10 @@ from ete3 import PhyloTree, PhyloNode
 from enum import Enum, auto
 import textwrap
 from typing import Dict, Mapping, NamedTuple, Optional, Union
-from .geometry import Position, Rect, Size
-from .lowest_common_ancestor import LowestCommonAncestor
-from .reconciliation import Event, get_event, Reconciliation
-from .utils import invert_mapping, sort_tree_nodes
+from ..utils.geometry import Position, Rect, Size
+from ..utils.lowest_common_ancestor import LowestCommonAncestor
+from ..utils.toposort import invert_mapping, sort_tree_nodes
+from ..reconciliation.tools import Event, get_event, Reconciliation
 
 
 class BranchKind(Enum):

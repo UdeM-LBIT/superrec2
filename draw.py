@@ -7,8 +7,8 @@ import tempfile
 import textwrap
 import shutil
 from ete3 import PhyloTree
-from superrec2.reconciliation_draw import layout, render_to_tikz
-from superrec2.reconciliation import (
+from superrec2.reconciliation.draw import layout, render_to_tikz
+from superrec2.reconciliation.tools import (
     get_species_name,
     reconcile_leaves,
     parse_reconciliation,

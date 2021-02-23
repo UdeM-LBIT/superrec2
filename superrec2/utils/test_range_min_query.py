@@ -27,7 +27,7 @@ def compute_all_rmq(data):
     return results
 
 
-class TestRangeMinQuery(unittest.TestCase):
+class TestUtilsRangeMinQuery(unittest.TestCase):
     def test_valid(self):
         data = [3, 1, 5, 3, 4, 7, 6, 1]
         rmq = RangeMinQuery(data)

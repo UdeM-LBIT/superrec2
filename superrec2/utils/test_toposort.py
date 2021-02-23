@@ -1,8 +1,8 @@
 from ete3 import Tree
 import unittest
-from .utils import invert_mapping, sort_tree_nodes
+from .toposort import invert_mapping, sort_tree_nodes
 
-class TestInvertMapping(unittest.TestCase):
+class TestUtilsToposort(unittest.TestCase):
     def test_invert_injective(self):
         mapping = {'A': 1, 'Z': 0, 'B': 2, 'C': 3}
         invert = invert_mapping(mapping)
@@ -50,8 +50,7 @@ class TestInvertMapping(unittest.TestCase):
             tree_2 & "z": [tree_1 & "z_1", tree_1 & "z_2"],
         })
 
-class TestSortTreeNodes(unittest.TestCase):
-    def test_sort(self):
+    def test_sort_tree_nodes(self):
         tree = Tree("(z_3,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;", format=8)
 
         nodes_1 = [tree & "1", tree & "2", tree & "3", tree & "5"]

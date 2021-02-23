@@ -2,6 +2,7 @@ def _ilog2(integer):
     """Integral part of the base-2 logarithm of a positive integer."""
     return integer.bit_length() - 1
 
+
 class RangeMinQuery:
     """
     Fast answering of repeated range-minimum queries using a sparse table.
