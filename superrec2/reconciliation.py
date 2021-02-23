@@ -404,9 +404,9 @@ def parse_reconciliation(
     """
     result: Reconciliation = {}
 
-    for pair in source.split(";"):
+    for pair in source.split(","):
         if pair.strip():
-            gene, species = pair.split(",")
+            gene, species = pair.split(":")
             result[gene_tree & gene.strip()] = species_tree & species.strip()
 
     return result
