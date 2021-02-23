@@ -13,6 +13,19 @@ ExtendedIntegral = Union[Integral, Infinity]
 Reconciliation = Mapping[PhyloNode, PhyloNode]
 
 
+def get_species_name(gene_name):
+    """
+    Extract the species name out of a gene name.
+
+    >>> get_species_name("x_21")
+    "X"
+
+    :param gene_name: full gene name
+    :returns: first part of the gene name in uppercase
+    """
+    return gene_name.split("_")[0].upper()
+
+
 class Event(Enum):
     """Evolutionary events affecting genes."""
     # Sentinel for extant (current) genes
@@ -303,6 +316,23 @@ def _decode_thl_table(root, solutions, min_costs):
     return results
 
 
+def reconcile_leaves(
+    gene_tree: PhyloTree,
+    species_tree: PhyloTree,
+) -> Reconciliation:
+    """
+    Compute a partial reconciliation containing forced leaves assignments.
+
+    :param gene_tree: gene tree to reconcile
+    :param species_tree: species tree to reconcile
+    :returns: mapping of the leaf genes onto leaf species
+    """
+    return {
+        gene_leaf: species_tree & gene_leaf.species
+        for gene_leaf in gene_tree.get_leaves()
+    }
+
+
 def reconcile_lca(
     gene_tree: PhyloTree,
     species_tree: PhyloTree,
@@ -357,3 +387,26 @@ def reconcile_thl(
             solutions.update((min_costs[(gene_tree, u)].min, option))
 
     return solutions.min, _decode_thl_table(gene_tree, solutions, min_costs)
+
+
+def parse_reconciliation(
+    gene_tree: PhyloTree,
+    species_tree: PhyloTree,
+    source: str
+) -> Reconciliation:
+    """
+    Parse a string representation of a reconciliation.
+
+    :param gene_tree: gene tree of the reconciliation
+    :param species_tree: species tree of the reconciliation
+    :param source: string to parse
+    :returns: parsed reconciliation
+    """
+    result: Reconciliation = {}
+
+    for pair in source.split(";"):
+        if pair.strip():
+            gene, species = pair.split(",")
+            result[gene_tree & gene.strip()] = species_tree & species.strip()
+
+    return result

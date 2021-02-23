@@ -1,31 +1,21 @@
 import unittest
 import textwrap
 from ete3 import PhyloTree
+from .reconciliation import get_species_name, reconcile_leaves
 from .reconciliation_draw import layout, render_to_tikz
-
-
-def _get_species_name(node_name_string):
-    return node_name_string.split("_")[0].upper()
-
-
-def _rec_leaves(gene_tree, species_tree):
-    return {
-        gene_leaf: species_tree & gene_leaf.species
-        for gene_leaf in gene_tree.get_leaves()
-    }
 
 
 class TestReconciliationDraw(unittest.TestCase):
     def test_speciations(self):
         gene_tree = PhyloTree(
             "((x_1,y_1)2,z_1)1;",
-            sp_naming_function=_get_species_name, format=8
+            sp_naming_function=get_species_name, format=1
         )
 
-        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=8)
+        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=1)
 
         rec = {
-            **_rec_leaves(gene_tree, species_tree),
+            **reconcile_leaves(gene_tree, species_tree),
             gene_tree & "1": species_tree & "XYZ",
             gene_tree & "2": species_tree & "XY",
         }
@@ -131,13 +121,13 @@ class TestReconciliationDraw(unittest.TestCase):
     def test_duplications(self):
         gene_tree = PhyloTree(
             "(((x_3,y_3)8,z_3)7,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;",
-            sp_naming_function=_get_species_name, format=8
+            sp_naming_function=get_species_name, format=1
         )
 
-        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=8)
+        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=1)
 
         rec = {
-            **_rec_leaves(gene_tree, species_tree),
+            **reconcile_leaves(gene_tree, species_tree),
             gene_tree & "1": species_tree & "XYZ",
             gene_tree & "2": species_tree & "XYZ",
             gene_tree & "3": species_tree & "XYZ",
@@ -275,13 +265,13 @@ class TestReconciliationDraw(unittest.TestCase):
     def test_speciations_losses(self):
         gene_tree = PhyloTree(
             "(x_1,z_1)1;",
-            sp_naming_function=_get_species_name, format=8
+            sp_naming_function=get_species_name, format=1
         )
 
-        species_tree = PhyloTree("(X,(Y,(Z,W)ZW)YZW)XYZW;", format=8)
+        species_tree = PhyloTree("(X,(Y,(Z,W)ZW)YZW)XYZW;", format=1)
 
         rec = {
-            **_rec_leaves(gene_tree, species_tree),
+            **reconcile_leaves(gene_tree, species_tree),
             gene_tree & "1": species_tree & "XYZW",
         }
 
@@ -392,13 +382,13 @@ class TestReconciliationDraw(unittest.TestCase):
     def test_duplications_losses(self):
         gene_tree = PhyloTree(
             "(z_3,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;",
-            sp_naming_function=_get_species_name, format=8
+            sp_naming_function=get_species_name, format=1
         )
 
-        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=8)
+        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=1)
 
         rec = {
-            **_rec_leaves(gene_tree, species_tree),
+            **reconcile_leaves(gene_tree, species_tree),
             gene_tree & "1": species_tree & "XYZ",
             gene_tree & "2": species_tree & "XYZ",
             gene_tree & "3": species_tree & "XYZ",
@@ -527,13 +517,13 @@ class TestReconciliationDraw(unittest.TestCase):
     def test_nested_duplications(self):
         gene_tree = PhyloTree(
             "(((x_1,y_1)4,(x_2,y_2)5)2,((x_3,y_3)6,(x_4,y_4)7)3)1;",
-            sp_naming_function=_get_species_name, format=8
+            sp_naming_function=get_species_name, format=1
         )
 
-        species_tree = PhyloTree("(X,Y)XY;", format=8)
+        species_tree = PhyloTree("(X,Y)XY;", format=1)
 
         rec = {
-            **_rec_leaves(gene_tree, species_tree),
+            **reconcile_leaves(gene_tree, species_tree),
             gene_tree & "1": species_tree & "XY",
             gene_tree & "2": species_tree & "XY",
             gene_tree & "3": species_tree & "XY",
@@ -658,13 +648,13 @@ class TestReconciliationDraw(unittest.TestCase):
     def test_transfers(self):
         gene_tree = PhyloTree(
             "((x_1,y_1)2,(((x_2,y_2)5,z_1)4,z_2)3)1;",
-            sp_naming_function=_get_species_name, format=8
+            sp_naming_function=get_species_name, format=1
         )
 
-        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=8)
+        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=1)
 
         rec = {
-            **_rec_leaves(gene_tree, species_tree),
+            **reconcile_leaves(gene_tree, species_tree),
             gene_tree & "1": species_tree,
             gene_tree & "2": species_tree & "XY",
             gene_tree & "3": species_tree,
@@ -797,12 +787,12 @@ class TestReconciliationDraw(unittest.TestCase):
                     (w_3,(z_3,(t_1,t_2)14)13)12
                 )5
             )1;
-        """, sp_naming_function=_get_species_name, format=8)
+        """, sp_naming_function=get_species_name, format=1)
 
-        species_tree = PhyloTree("(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;", format=8)
+        species_tree = PhyloTree("(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;", format=1)
 
         rec = {
-            **_rec_leaves(gene_tree, species_tree),
+            **reconcile_leaves(gene_tree, species_tree),
             gene_tree & "1": species_tree,
             gene_tree & "2": species_tree & "XYZ",
             gene_tree & "3": species_tree & "XYZ",
