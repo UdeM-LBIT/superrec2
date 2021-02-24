@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import textwrap
 import shutil
+import sys
 from ete3 import PhyloTree
 from superrec2.reconciliation.draw import layout, render_to_tikz
 from superrec2.reconciliation.tools import (
@@ -73,22 +74,34 @@ elif args.output.endswith(".pdf"):
         with open(tex_source_path, "w") as tex_source:
             tex_source.write(textwrap.dedent(r"""
                 \documentclass[crop, tikz, border=20pt]{standalone}
-
                 \usepackage{tikz}
                 \usetikzlibrary{arrows.meta}
                 \usetikzlibrary{shapes}
-
                 \begin{document}
+                \scrollmode
             """).lstrip())
             tex_source.write(tikz)
-            tex_source.write("\\end{document}\n")
+            tex_source.write(textwrap.dedent(r"""
+                \batchmode
+                \end{document}
+            """).lstrip())
 
         result = subprocess.run(
-            ["xelatex", tex_source_path],
+            ["xelatex", "-interaction", "batchmode", tex_source_path],
             cwd=tmpdir,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
         )
 
         if result.returncode == 0:
             shutil.move(pdf_gen_path, args.output)
+        else:
+            print(f"XeLaTeX returned an error (code: {result.returncode})")
+            print("Output from the compiler:")
+
+            for line in result.stdout.splitlines():
+                print(f"> {line.decode()}")
+
+            sys.exit(1)
 else:
     raise RuntimeError(f"Unrecognized file extension: {args.output}")
