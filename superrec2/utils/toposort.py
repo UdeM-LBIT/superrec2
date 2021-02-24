@@ -1,44 +1,132 @@
-from collections import defaultdict
 from ete3 import TreeNode
-import graphlib
-from typing import DefaultDict, Iterable, List, Mapping, Sequence, TypeVar
+from collections import deque
+from typing import (
+    Deque,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    TypeVar,
+)
 
 
-A = TypeVar('A')
-B = TypeVar('B')
+Node = TypeVar('Node')
 
 
-def invert_mapping(mapping: Mapping[A, B]) -> DefaultDict[B, List[A]]:
+def toposort(graph: Mapping[Node, Sequence[Node]]) -> Optional[List[Node]]:
     """
-    Compute the reciprocal of a mapping.
+    Sort nodes of a graph in topological order.
 
-    :param mapping: initial mapping to invert
-    :returns: for each value of the input mapping, a list of
-        keys for which that value is used
+    See also :meth:`toposort_all` to get a list of all topological orderings.
+
+    :param graph: a dict mapping nodes of the graph to their successor nodes
+    :returns: a topological ordering of the graph if such an ordering exists,
+        None otherwise (i.e., when the graph has a directed cycle)
     """
-    result = defaultdict(list)
+    starts: Deque[Node] = deque(graph)
+    indeg: Dict[Node, int] = {node: 0 for node in graph}
+    result: List[Node] = []
 
-    for key, value in mapping.items():
-        result[value].append(key)
+    for node, succs in graph.items():
+        for succ in succs:
+            if indeg[succ] == 0:
+                starts.remove(succ)
+            indeg[succ] += 1
 
-    return result
+    while starts:
+        node_from = starts.popleft()
+        result.append(node_from)
+
+        for node_to in graph[node_from]:
+            indeg[node_to] -= 1
+
+            if indeg[node_to] == 0:
+                starts.append(node_to)
+
+    if len(result) == len(graph):
+        return result
+
+    return None
 
 
-def sort_tree_nodes(nodes: Sequence[TreeNode]) -> Iterable[TreeNode]:
+def tree_nodes_toposort(nodes: Sequence[TreeNode]) -> Optional[List[TreeNode]]:
     """
     Sort a set of tree nodes so that no node comes before its children.
 
     :param nodes: set of nodes to sort
     :returns: topologically sorted set of nodes
     """
-    toposort = graphlib.TopologicalSorter()
-    nodes_set = set(nodes)
+    subgraph = {node: [] for node in nodes}
 
     for node in nodes:
-        toposort.add(node)
-
         for child in node.children:
-            if child in nodes_set:
-                toposort.add(node, child)
+            if child in subgraph:
+                subgraph[child].append(node)
 
-    return toposort.static_order()
+    return toposort(subgraph)
+
+
+def _toposort_all_bt(
+    starts: Set[Node],
+    graph: Mapping[Node, Sequence[Node]],
+    indeg: Dict[Node, int],
+) -> List[List[Node]]:
+    """
+    Enumerate all topological orderings of a sub-graph.
+
+    :param starts: nodes of the graph that have no more predecessors
+    :param graph: original graph
+    :param indeg: number of remaining predecessors of each node
+    :returns: list of valid orderings for the considered sub-graph
+    """
+    if not starts:
+        return [[]]
+
+    results = []
+
+    for node_from in starts:
+        next_starts = set(starts)
+        next_starts.remove(node_from)
+
+        for node_to in graph[node_from]:
+            indeg[node_to] -= 1
+
+            if indeg[node_to] == 0:
+                next_starts.add(node_to)
+
+        for subresult in _toposort_all_bt(next_starts, graph, indeg):
+            subresult.append(node_from)
+            results.append(subresult)
+
+        for node_to in graph[node_from]:
+            indeg[node_to] += 1
+
+    return results
+
+
+def toposort_all(graph: Mapping[Node, Sequence[Node]]) -> List[List[Node]]:
+    """
+    Enumerate all topological orderings of the vertices of a graph.
+
+    :param graph: a dict mapping nodes of the graph to their successor nodes
+    :returns: list of valid orderings
+    """
+    starts: Set[Node] = set(graph)
+    indeg: Dict[Node, int] = {node: 0 for node in graph}
+
+    for node, succs in graph.items():
+        for succ in succs:
+            starts.discard(succ)
+            indeg[succ] += 1
+
+    results = _toposort_all_bt(starts, graph, indeg)
+
+    for subresult in results:
+        if len(subresult) != len(graph):
+            return []
+        subresult.reverse()
+
+    return results

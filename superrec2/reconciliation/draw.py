@@ -4,7 +4,8 @@ import textwrap
 from typing import Dict, Mapping, NamedTuple, Optional, Union
 from ..utils.geometry import Position, Rect, Size
 from ..utils.lowest_common_ancestor import LowestCommonAncestor
-from ..utils.toposort import invert_mapping, sort_tree_nodes
+from ..utils.mappings import invert_mapping
+from ..utils.toposort import tree_nodes_toposort
 from ..reconciliation.tools import Event, get_event, Reconciliation
 
 
@@ -201,7 +202,7 @@ def _layout_compute_branches(
                 )
 
         # Create branches for actual internal nodes
-        internal_genes = sort_tree_nodes([
+        internal_genes = tree_nodes_toposort([
             gene for gene in rev_rec[root_species]
             if not gene.is_leaf()
         ])
