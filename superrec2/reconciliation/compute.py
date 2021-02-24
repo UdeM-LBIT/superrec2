@@ -12,7 +12,7 @@ MappingInfo = namedtuple('MappingInfo', ['species', 'left', 'right'])
 
 def reconcile_lca(
     gene_tree: PhyloTree,
-    species_tree: PhyloTree,
+    species_lca: LowestCommonAncestor,
 ) -> Reconciliation:
     """
     Compute the minimum-cost reconciliation between species tree and a gene
@@ -20,15 +20,14 @@ def reconcile_lca(
     costs the same as loss.
 
     :param gene_tree: gene tree to reconcile
-    :param species_tree: species tree to reconcile
+    :param species_lca: species ancestry information
     :returns: the reconciliation result
     """
     rec = {}
-    species_lca = LowestCommonAncestor(species_tree)
 
     for gene in gene_tree.traverse("postorder"):
         if gene.is_leaf():
-            species = species_tree.get_leaves_by_name(gene.species)[0]
+            species = species_lca.tree.get_leaves_by_name(gene.species)[0]
             rec[gene] = species
         else:
             left, right = gene.children
@@ -39,19 +38,17 @@ def reconcile_lca(
 
 def _compute_thl_table(
     gene_tree: PhyloTree,
-    species_tree: PhyloTree,
+    species_lca: LowestCommonAncestor,
     costs: CostVector
 ) -> MinSequence[MappingInfo]:
     dup_cost = costs[CostType.Duplication]
     hgt_cost = costs[CostType.HorizontalGeneTransfer]
     loss_cost = costs[CostType.Loss]
-
     min_costs = defaultdict(MinSequence)
-    species_lca = LowestCommonAncestor(species_tree)
 
     for v in gene_tree.traverse("postorder"):
         if v.is_leaf():
-            s = species_tree.get_leaves_by_name(v.species)[0]
+            s = species_lca.tree.get_leaves_by_name(v.species)[0]
             min_costs[(v, s)].update((0, MappingInfo(
                 species=s,
                 left=None,
@@ -60,7 +57,7 @@ def _compute_thl_table(
         else:
             vl, vr = v.children
 
-            for u in species_tree.traverse("postorder"):
+            for u in species_lca.tree.traverse("postorder"):
                 options = min_costs[(v, u)]
 
                 # Try mapping as a speciation
@@ -114,7 +111,7 @@ def _compute_thl_table(
                 min_vr_u_ch = MinSequence()
                 min_vr_u_inc = MinSequence()
 
-                for w in species_tree.traverse():
+                for w in species_lca.tree.traverse():
                     if species_lca.is_ancestor_of(u, w):
                         min_vl_u_ch.update((min_costs[(vl, w)].min, w))
                         min_vr_u_ch.update((min_costs[(vr, w)].min, w))
@@ -198,7 +195,7 @@ def _decode_thl_table(root, solutions, min_costs):
 
 def reconcile_thl(
     gene_tree: PhyloTree,
-    species_tree: PhyloTree,
+    species_lca: LowestCommonAncestor,
     costs: CostVector
 ) -> Tuple[ExtendedIntegral, List[Reconciliation]]:
     """
@@ -210,15 +207,15 @@ def reconcile_thl(
     to infinity.
 
     :param gene_tree: gene tree to reconcile
-    :param species_tree: species tree to reconcile
+    :param species_lca: species ancestry information
     :param costs: cost of each evolutionary event
     :returns: minimum cost of each reconciliation and list of reconciliations
         with such costs
     """
-    min_costs = _compute_thl_table(gene_tree, species_tree, costs or {})
+    min_costs = _compute_thl_table(gene_tree, species_lca, costs or {})
     solutions = MinSequence()
 
-    for u in species_tree.traverse("postorder"):
+    for u in species_lca.tree.traverse("postorder"):
         for option in min_costs[(gene_tree, u)]:
             solutions.update((min_costs[(gene_tree, u)].min, option))
 

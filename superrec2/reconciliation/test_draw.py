@@ -1,29 +1,31 @@
 import unittest
 import textwrap
 from ete3 import PhyloTree
-from .tools import get_species_name, reconcile_leaves
+from .tools import get_species_name, reconcile_leaves, parse_reconciliation
 from .draw import layout, render_to_tikz
 
 
 class TestReconciliationDraw(unittest.TestCase):
-    def test_speciations(self):
+    def assertRender(self, gene_text, species_text, rec_text, expect):
         gene_tree = PhyloTree(
-            "((x_1,y_1)2,z_1)1;",
+            gene_text,
             sp_naming_function=get_species_name, format=1
         )
-
-        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=1)
-
+        species_tree = PhyloTree(species_text, format=1)
         rec = {
             **reconcile_leaves(gene_tree, species_tree),
-            gene_tree & "1": species_tree & "XYZ",
-            gene_tree & "2": species_tree & "XY",
+            **parse_reconciliation(gene_tree, species_tree, rec_text),
         }
-
         layout_info = layout(gene_tree, species_tree, rec)
         out = render_to_tikz(species_tree, rec, layout_info)
+        self.assertEqual(out, expect)
 
-        self.assertEqual(out, textwrap.dedent(r"""
+    def test_speciations(self):
+        self.assertRender(
+            "((x_1,y_1)2,z_1)1;",
+            "((X,Y)XY,Z)XYZ;",
+            "1:XYZ,2:XY",
+            textwrap.dedent(r"""
             \begin{tikzpicture}[
                 x={1pt},
                 y={-1pt},
@@ -107,32 +109,15 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[extant gene={\(y_1\)}] at (100,140) {};
             \node[extant gene={\(z_1\)}] at (180,140) {};
             \end{tikzpicture}
-        """).lstrip())
-
-    def test_duplications(self):
-        gene_tree = PhyloTree(
-            "(((x_3,y_3)8,z_3)7,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;",
-            sp_naming_function=get_species_name, format=1
+            """).lstrip(),
         )
 
-        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=1)
-
-        rec = {
-            **reconcile_leaves(gene_tree, species_tree),
-            gene_tree & "1": species_tree & "XYZ",
-            gene_tree & "2": species_tree & "XYZ",
-            gene_tree & "3": species_tree & "XYZ",
-            gene_tree & "4": species_tree & "XY",
-            gene_tree & "5": species_tree & "XYZ",
-            gene_tree & "6": species_tree & "XY",
-            gene_tree & "7": species_tree & "XYZ",
-            gene_tree & "8": species_tree & "XY",
-        }
-
-        layout_info = layout(gene_tree, species_tree, rec)
-        out = render_to_tikz(species_tree, rec, layout_info)
-
-        self.assertEqual(out, textwrap.dedent(r"""
+    def test_duplications(self):
+        self.assertRender(
+            "(((x_3,y_3)8,z_3)7,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;",
+            "((X,Y)XY,Z)XYZ;",
+            "1:XYZ,2:XYZ,3:XYZ,4:XY,5:XYZ,6:XY,7:XYZ,8:XY",
+            textwrap.dedent(r"""
             \begin{tikzpicture}[
                 x={1pt},
                 y={-1pt},
@@ -201,12 +186,12 @@ class TestReconciliationDraw(unittest.TestCase):
             \draw[species border] (140,195) -- ([yshift=-16pt]140,215) -- node[species label] {Y} ([yshift=-16pt]210,215) -- (210,195);
             \draw[species border] (280,195) -- ([yshift=-16pt]280,215) -- node[species label] {Z} ([yshift=-16pt]350,215) -- (350,195);
             % gene branches
-            \draw[branch] (120,105) |- (230,55) -| (300,195);
-            \draw[branch] (90,105) |- (245,70) -| (315,195);
-            \draw[branch] (105,105) |- (260,85) -| (330,195);
-            \draw[branch] (245,70) |- (252.5,35) -| (260,85);
-            \draw[branch] (241.25,20) -- (241.25,0);
-            \draw[branch] (230,55) |- (241.25,20) -| (252.5,35);
+            \draw[branch] (90,105) |- (230,55) -| (315,195);
+            \draw[branch] (105,105) |- (245,70) -| (330,195);
+            \draw[branch] (120,105) |- (260,85) -| (300,195);
+            \draw[branch] (230,55) |- (237.5,35) -| (245,70);
+            \draw[branch] (248.75,20) -- (248.75,0);
+            \draw[branch] (260,85) |- (248.75,20) -| (237.5,35);
             \draw[branch] (90,145) -- (90,105);
             \draw[branch] (35,195) |- (90,145) -| (175,195);
             \draw[branch] (105,160) -- (105,105);
@@ -227,8 +212,8 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[speciation] at (230,55) {};
             \node[speciation] at (245,70) {};
             \node[speciation] at (260,85) {};
-            \node[duplication] at (252.5,35) {};
-            \node[duplication] at (241.25,20) {};
+            \node[duplication] at (237.5,35) {};
+            \node[duplication] at (248.75,20) {};
             \node[speciation] at (90,145) {};
             \node[speciation] at (105,160) {};
             \node[speciation] at (120,175) {};
@@ -242,25 +227,15 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[extant gene={\(z_2\)}] at (315,215) {};
             \node[extant gene={\(z_1\)}] at (330,215) {};
             \end{tikzpicture}
-        """).lstrip())
-
-    def test_speciations_losses(self):
-        gene_tree = PhyloTree(
-            "(x_1,z_1)1;",
-            sp_naming_function=get_species_name, format=1
+            """).lstrip(),
         )
 
-        species_tree = PhyloTree("(X,(Y,(Z,W)ZW)YZW)XYZW;", format=1)
-
-        rec = {
-            **reconcile_leaves(gene_tree, species_tree),
-            gene_tree & "1": species_tree & "XYZW",
-        }
-
-        layout_info = layout(gene_tree, species_tree, rec)
-        out = render_to_tikz(species_tree, rec, layout_info)
-
-        self.assertEqual(out, textwrap.dedent(r"""
+    def test_speciations_losses(self):
+        self.assertRender(
+            "(x_1,z_1)1;",
+            "(X,(Y,(Z,W)ZW)YZW)XYZW;",
+            "1:XYZW",
+            textwrap.dedent(r"""
             \begin{tikzpicture}[
                 x={1pt},
                 y={-1pt},
@@ -349,30 +324,15 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[extant gene={\(x_1\)}] at (20,200) {};
             \node[extant gene={\(z_1\)}] at (180,200) {};
             \end{tikzpicture}
-        """).lstrip())
-
-    def test_duplications_losses(self):
-        gene_tree = PhyloTree(
-            "(z_3,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;",
-            sp_naming_function=get_species_name, format=1
+            """).lstrip(),
         )
 
-        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=1)
-
-        rec = {
-            **reconcile_leaves(gene_tree, species_tree),
-            gene_tree & "1": species_tree & "XYZ",
-            gene_tree & "2": species_tree & "XYZ",
-            gene_tree & "3": species_tree & "XYZ",
-            gene_tree & "4": species_tree & "XY",
-            gene_tree & "5": species_tree & "XYZ",
-            gene_tree & "6": species_tree & "XY",
-        }
-
-        layout_info = layout(gene_tree, species_tree, rec)
-        out = render_to_tikz(species_tree, rec, layout_info)
-
-        self.assertEqual(out, textwrap.dedent(r"""
+    def test_duplications_losses(self):
+        self.assertRender(
+            "(z_3,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;",
+            "((X,Y)XY,Z)XYZ;",
+            "1:XYZ,2:XYZ,3:XYZ,4:XY,5:XYZ,6:XY",
+            textwrap.dedent(r"""
             \begin{tikzpicture}[
                 x={1pt},
                 y={-1pt},
@@ -475,31 +435,15 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[extant gene={\(z_2\)}] at (270,200) {};
             \node[extant gene={\(z_1\)}] at (285,200) {};
             \end{tikzpicture}
-        """).lstrip())
-
-    def test_nested_duplications(self):
-        gene_tree = PhyloTree(
-            "(((x_1,y_1)4,(x_2,y_2)5)2,((x_3,y_3)6,(x_4,y_4)7)3)1;",
-            sp_naming_function=get_species_name, format=1
+            """).lstrip(),
         )
 
-        species_tree = PhyloTree("(X,Y)XY;", format=1)
-
-        rec = {
-            **reconcile_leaves(gene_tree, species_tree),
-            gene_tree & "1": species_tree & "XY",
-            gene_tree & "2": species_tree & "XY",
-            gene_tree & "3": species_tree & "XY",
-            gene_tree & "4": species_tree & "XY",
-            gene_tree & "5": species_tree & "XY",
-            gene_tree & "6": species_tree & "XY",
-            gene_tree & "7": species_tree & "XY",
-        }
-
-        layout_info = layout(gene_tree, species_tree, rec)
-        out = render_to_tikz(species_tree, rec, layout_info)
-
-        self.assertEqual(out, textwrap.dedent(r"""
+    def test_nested_duplications(self):
+        self.assertRender(
+            "(((x_1,y_1)4,(x_2,y_2)5)2,((x_3,y_3)6,(x_4,y_4)7)3)1;",
+            "(X,Y)XY;",
+            "1:XY,2:XY,3:XY,4:XY,5:XY,6:XY,7:XY",
+            textwrap.dedent(r"""
             \begin{tikzpicture}[
                 x={1pt},
                 y={-1pt},
@@ -598,29 +542,15 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[extant gene={\(y_3\)}] at (220,140) {};
             \node[extant gene={\(y_4\)}] at (235,140) {};
             \end{tikzpicture}
-        """).lstrip())
-
-    def test_transfers(self):
-        gene_tree = PhyloTree(
-            "((x_1,y_1)2,(((x_2,y_2)5,z_1)4,z_2)3)1;",
-            sp_naming_function=get_species_name, format=1
+            """).lstrip(),
         )
 
-        species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=1)
-
-        rec = {
-            **reconcile_leaves(gene_tree, species_tree),
-            gene_tree & "1": species_tree,
-            gene_tree & "2": species_tree & "XY",
-            gene_tree & "3": species_tree,
-            gene_tree & "4": species_tree & "XY",
-            gene_tree & "5": species_tree & "XY",
-        }
-
-        layout_info = layout(gene_tree, species_tree, rec)
-        out = render_to_tikz(species_tree, rec, layout_info)
-
-        self.assertEqual(out, textwrap.dedent(r"""
+    def test_transfers(self):
+        self.assertRender(
+            "((x_1,y_1)2,(((x_2,y_2)5,z_1)4,z_2)3)1;",
+            "((X,Y)XY,Z)XYZ;",
+            "1:XYZ,2:XY,3:XYZ,4:XY,5:XY",
+            textwrap.dedent(r"""
             \begin{tikzpicture}[
                 x={1pt},
                 y={-1pt},
@@ -720,46 +650,24 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[extant gene={\(z_1\)}] at (240,170) {};
             \node[extant gene={\(z_2\)}] at (255,170) {};
             \end{tikzpicture}
-        """).lstrip())
+            """).lstrip(),
+        )
 
     def test_all(self):
-        gene_tree = PhyloTree("""
+        self.assertRender(
+            """
             (
                 ((x_1,z_1)3,(w_1,w_2)4)2,
                 (
-                    (
-                        (x_2,y_4)7,
-                        ((x_3,(y_1,(y_2,y_3)11)10)9,z_2)8
-                    )6,
+                    ((x_2,y_4)7,((x_3,(y_1,(y_2,y_3)11)10)9,z_2)8)6,
                     (w_3,(z_3,(t_1,t_2)14)13)12
                 )5
             )1;
-        """, sp_naming_function=get_species_name, format=1)
-
-        species_tree = PhyloTree("(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;", format=1)
-
-        rec = {
-            **reconcile_leaves(gene_tree, species_tree),
-            gene_tree & "1": species_tree,
-            gene_tree & "2": species_tree & "XYZ",
-            gene_tree & "3": species_tree & "XYZ",
-            gene_tree & "4": species_tree & "W",
-            gene_tree & "5": species_tree,
-            gene_tree & "6": species_tree & "XYZ",
-            gene_tree & "7": species_tree & "XY",
-            gene_tree & "8": species_tree & "XYZ",
-            gene_tree & "9": species_tree & "XY",
-            gene_tree & "10": species_tree & "Y",
-            gene_tree & "11": species_tree & "Y",
-            gene_tree & "12": species_tree & "WT",
-            gene_tree & "13": species_tree & "T",
-            gene_tree & "14": species_tree & "T",
-        }
-
-        layout_info = layout(gene_tree, species_tree, rec)
-        out = render_to_tikz(species_tree, rec, layout_info)
-
-        self.assertEqual(out, textwrap.dedent(r"""
+            """,
+            "(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;",
+            "1:XYZWT,2:XYZ,3:XYZ,4:W,5:XYZWT,6:XYZ,7:XY,"
+            "8:XYZ,9:XY,10:Y,11:Y,12:WT,13:T,14:T",
+            textwrap.dedent(r"""
             \begin{tikzpicture}[
                 x={1pt},
                 y={-1pt},
@@ -908,4 +816,5 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[duplication] at (557.5,290) {};
             \node[horizontal gene transfer] at (557.5,275) {};
             \end{tikzpicture}
-        """).lstrip())
+            """).lstrip(),
+        )
