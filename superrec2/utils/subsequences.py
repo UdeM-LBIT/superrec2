@@ -4,7 +4,11 @@ from typing import List, Sequence, TypeVar
 T = TypeVar('T')
 
 
-def mask_from_subsequence(
+def subseq_complete(sequence: Sequence[T]) -> int:
+    return (1 << len(sequence)) - 1
+
+
+def mask_from_subseq(
     child: Sequence[T],
     parent: Sequence[T],
 ) -> int:
@@ -33,7 +37,7 @@ def mask_from_subsequence(
     return mask
 
 
-def subsequence_from_mask(
+def subseq_from_mask(
     child: int,
     parent: Sequence[T],
 ) -> List[T]:
@@ -60,7 +64,7 @@ def subsequence_from_mask(
     return result
 
 
-def subsequence_segment_dist(
+def subseq_segment_dist(
     child: int,
     parent: int,
     edges: bool,
@@ -72,7 +76,8 @@ def subsequence_segment_dist(
     :param parent: parent subsequence bitmask
     :param edges: if True, count lost sequences on the edges of
         :param:`parent`, if False, ignore them
-    :returns: number of lost segments from :param:`parent` to :param:`child`
+    :returns: number of lost segments from :param:`parent` to :param:`child`,
+        or -1 if :param:`child` is not a subsequence of :param:`parent`
     """
     in_segm = not edges
     dist = 0
