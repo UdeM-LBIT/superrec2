@@ -1,6 +1,7 @@
 import random
 import time
 import unittest
+from infinity import inf
 from .range_min_query import RangeMinQuery
 
 
@@ -37,7 +38,7 @@ class TestUtilsRangeMinQuery(unittest.TestCase):
                 if i < j:
                     self.assertEqual(rmq(i, j), min(data[i : j]))
                 else:
-                    self.assertEqual(rmq(i, j), float('inf'))
+                    self.assertEqual(rmq(i, j), inf)
 
     def test_change_source(self):
         data = [8, 8, 8]

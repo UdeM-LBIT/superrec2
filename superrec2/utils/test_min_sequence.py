@@ -1,10 +1,12 @@
 import unittest
+from infinity import inf
 from .min_sequence import MinSequence
+
 
 class TestUtilsMinSequence(unittest.TestCase):
     def test_empty(self):
         seq = MinSequence()
-        self.assertEqual(seq.min, float('inf'))
+        self.assertEqual(seq.min, inf)
         self.assertEqual(list(seq), [])
 
     def test_replace(self):

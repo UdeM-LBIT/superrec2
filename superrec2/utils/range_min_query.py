@@ -1,3 +1,7 @@
+from infinity import inf
+from .min_sequence import ExtendedIntegral
+
+
 def _ilog2(integer):
     """Integral part of the base-2 logarithm of a positive integer."""
     return integer.bit_length() - 1
@@ -34,7 +38,7 @@ class RangeMinQuery:
                     self.sparse_table[depth - 1][i + 2 ** (depth - 1)],
                 )
 
-    def __call__(self, start, stop):
+    def __call__(self, start, stop) -> ExtendedIntegral:
         """
         Find the minimum value in a range of the input data.
 
@@ -45,7 +49,7 @@ class RangeMinQuery:
         :returns: minimum value
         """
         if start >= stop:
-            return float('inf')
+            return inf
 
         depth = _ilog2(stop - start)
         return min(

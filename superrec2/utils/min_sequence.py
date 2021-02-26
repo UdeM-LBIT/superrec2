@@ -1,21 +1,24 @@
 from typing import Generic, List, Tuple, TypeVar, Union
 from collections.abc import Sequence
+from numbers import Integral
+from infinity import Infinity, inf
 
 
 T = TypeVar('T')
+ExtendedIntegral = Union[Integral, Infinity]
 
 
 class MinSequence(Generic[T], Sequence[T]):
     """Receive ordered elements and keep only the minimal ones."""
 
     def __init__(self) -> None:
-        self.min: Union[int, float] = float('inf')
+        self.min: ExtendedIntegral = inf
         self._items: List[T] = []
 
-    def update(self, *elements: Tuple[int, T]) -> None:
+    def update(self, *elements: Tuple[ExtendedIntegral, T]) -> None:
         """Receive a set of elements."""
         for element in elements:
-            if element[0] < float('inf'):
+            if element[0] < inf:
                 if self.min > element[0]:
                     self.min = element[0]
                     self._items = [element[1]]

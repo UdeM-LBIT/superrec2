@@ -1,5 +1,6 @@
 import unittest
 from ete3 import Tree
+from infinity import inf
 from .lowest_common_ancestor import LowestCommonAncestor
 
 
@@ -42,7 +43,7 @@ def _distance_naive(start, stop, visited=None):
     if start == stop:
         return 0
 
-    distance = float('inf')
+    distance = inf
 
     if start.up is not None and start.up not in visited:
         distance = min(distance, 1 + _distance_naive(start.up, stop, visited))

@@ -1,12 +1,11 @@
 from enum import Enum, auto
-from typing import Mapping, Union
-from numbers import Integral
+from typing import Mapping
 from ete3 import PhyloTree, PhyloNode
-from infinity import Infinity
+from infinity import inf
 from ..utils.lowest_common_ancestor import LowestCommonAncestor
+from ..utils.min_sequence import ExtendedIntegral
 
 
-ExtendedIntegral = Union[Integral, Infinity]
 Reconciliation = Mapping[PhyloNode, PhyloNode]
 
 
@@ -114,7 +113,7 @@ def get_cost(
     event = get_event(gene_tree, species_lca, rec)
 
     if event == Event.Invalid:
-        return float('inf')
+        return inf
 
     if event == Event.Leaf:
         return 0
