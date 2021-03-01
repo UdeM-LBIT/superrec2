@@ -23,18 +23,27 @@ class TestUtilsMinSequence(unittest.TestCase):
     def test_accumulate(self):
         seq = MinSequence()
 
-        print(seq._items)
         seq.update((100, 'hundred'))
-        print(seq._items)
         seq.update((50, 'fifty'))
-        print(seq._items)
         seq.update((50, 'second'))
-        print(seq._items)
         seq.update((50, 'third'))
-        print(seq._items)
         self.assertEqual(seq.min, 50)
         self.assertEqual(list(seq), ['fifty', 'second', 'third'])
 
         seq.update((25, 'twenty-five'))
         self.assertEqual(seq.min, 25)
         self.assertEqual(list(seq), ['twenty-five'])
+
+    def test_accumulate_max(self):
+        seq = MinSequence(max_keep=1)
+
+        seq.update((75, 'twenty-five'))
+        self.assertEqual(seq.min, 75)
+        self.assertEqual(list(seq), ['twenty-five'])
+
+        seq.update((100, 'hundred'))
+        seq.update((50, 'fifty'))
+        seq.update((50, 'second'))
+        seq.update((50, 'third'))
+        self.assertEqual(seq.min, 50)
+        self.assertEqual(list(seq), ['fifty'])
