@@ -115,3 +115,51 @@ class TestReconciliationSyntenies(unittest.TestCase):
             expected_cost=inf,
             expected_labelings=[],
         )
+
+    def test_duplications(self):
+        gene_tree = PhyloTree(
+            "((x_1,x_2)2,y_1)1;",
+            format=1, sp_naming_function=rec.tools.get_species_name
+        )
+
+        species_tree = PhyloTree("(X,Y)XY;", format=1)
+        species_lca = LowestCommonAncestor(species_tree)
+        rec_result = rec.compute.reconcile_lca(gene_tree, species_lca)
+
+        # Test 1: Single optimal solution, conserved root
+        input_1 = {
+            gene_tree & "x_1": list("ab"),
+            gene_tree & "x_2": list("de"),
+            gene_tree & "y_1": list("abcde"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, input_1,
+            expected_cost=1,
+            expected_labelings=[
+                {
+                    **input_1,
+                    gene_tree & "2": list("abcde"),
+                    gene_tree & "1": list("abcde"),
+                }
+            ]
+        )
+
+        # Test 2: Single optimal solution, altered root
+        input_2 = {
+            gene_tree & "x_1": list("abd"),
+            gene_tree & "x_2": list("bde"),
+            gene_tree & "y_1": list("abcde"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, input_2,
+            expected_cost=2,
+            expected_labelings=[
+                {
+                    **input_2,
+                    gene_tree & "2": list("abde"),
+                    gene_tree & "1": list("abcde"),
+                }
+            ]
+        )

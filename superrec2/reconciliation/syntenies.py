@@ -23,52 +23,91 @@ def _compute_spfs_table(
     rec: Reconciliation,
     known_syntenies: Syntenies,
 ) -> Dict[PhyloNode, DefaultDict[int, ExtendedIntegral]]:
-    root_synteny = known_syntenies[gene_tree]
-    subseq_count = 2 ** len(root_synteny)
+    root_synt = known_syntenies[gene_tree]
+    subseq_count = 2 ** len(root_synt)
     costs: Dict[DefaultDict[int, ExtendedIntegral]] = {}
 
     for sub_gene in gene_tree.traverse("postorder"):
         costs[sub_gene] = defaultdict(lambda: (inf, None, None))
 
         if sub_gene.is_leaf():
-            sub_synteny = known_syntenies[sub_gene]
-            costs[sub_gene][mask_from_subseq(sub_synteny, root_synteny)] = (
+            sub_synt = known_syntenies[sub_gene]
+            costs[sub_gene][mask_from_subseq(sub_synt, root_synt)] = (
                 0, None, None
             )
         else:
             left_gene, right_gene = sub_gene.children
-            # event = get_event(sub_gene, species_lca, rec)
-            sub_syntenies = (
-                (subseq_count - 1,) if sub_gene == gene_tree
+            event = get_event(sub_gene, species_lca, rec)
+            sub_synts = (
+                (subseq_complete(root_synt),)
+                if sub_gene == gene_tree
                 else range(1, subseq_count)
             )
 
-            for sub_synteny in sub_syntenies:
-                min_syntenies = [None, None]
-                min_costs = [inf, inf]
+            # Test all possible subsequences for the current node’s synteny
+            for sub_synt in sub_synts:
+                # Find optimal syntenies for the node’s two children
+                min_synt_full = [MinSequence(1), MinSequence(1)]
+                min_synt_segm = [MinSequence(1), MinSequence(1)]
 
                 for i in (0, 1):
                     gene = sub_gene.children[i]
 
-                    for synteny, (cost, _, _) in costs[gene].items():
-                        dist = subseq_segment_dist(
-                            synteny, sub_synteny, edges=True
-                        )
+                    for synt, (cost, _, _) in costs[gene].items():
+                        full = subseq_segment_dist(synt, sub_synt, edges=True)
 
-                        if dist == -1:
+                        if full == -1:
+                            # Not a subsequence of the parent synteny
                             continue
 
-                        cost += dist
+                        segm = subseq_segment_dist(synt, sub_synt, edges=False)
 
-                        if cost < min_costs[i]:
-                            min_syntenies[i] = synteny
-                            min_costs[i] = cost
+                        min_synt_full[i].update((cost + full, synt))
+                        min_synt_segm[i].update((cost + segm, synt))
 
-                if inf not in min_costs:
-                    costs[sub_gene][sub_synteny] = (
-                        sum(min_costs),
-                        *min_syntenies,
+                if any(min_synt.min == inf for min_synt in min_synt_full):
+                    continue
+
+                keep_left_cost = min_synt_full[0].min + min_synt_segm[1].min
+                keep_right_cost = min_synt_segm[0].min + min_synt_full[1].min
+
+                if event == Event.Speciation:
+                    costs[sub_gene][sub_synt] = (
+                        min_synt_full[0].min + min_synt_full[1].min,
+                        min_synt_full[0][0],
+                        min_synt_full[1][0],
                     )
+                elif event == Event.Duplication:
+                    if keep_left_cost <= keep_right_cost:
+                        costs[sub_gene][sub_synt] = (
+                            keep_left_cost,
+                            min_synt_full[0][0],
+                            min_synt_segm[1][0],
+                        )
+                    else:
+                        costs[sub_gene][sub_synt] = (
+                            keep_right_cost,
+                            min_synt_segm[0][0],
+                            min_synt_full[1][0],
+                        )
+                elif event == Event.HorizontalGeneTransfer:
+                    keep_left = species_lca.is_comparable(
+                        rec[sub_gene], rec[left_gene]
+                    )
+                    if keep_left:
+                        costs[sub_gene][sub_synt] = (
+                            keep_left_cost,
+                            min_synt_full[0][0],
+                            min_synt_segm[1][0],
+                        )
+                    else:
+                        costs[sub_gene][sub_synt] = (
+                            keep_right_cost,
+                            min_synt_segm[0][0],
+                            min_synt_full[1][0],
+                        )
+                else:
+                    raise ValueError("Invalid event")
 
     return costs
 
@@ -155,12 +194,12 @@ def get_labeling_cost(
                     )
                 )
             elif event == Event.HorizontalGeneTransfer:
-                left_cons = species_lca.is_comparable(
+                keep_left = species_lca.is_comparable(
                     rec[sub_gene], rec[left_gene]
                 )
                 total_cost += (
-                    subseq_segment_dist(left_mask, sub_mask, left_cons)
-                    + subseq_segment_dist(right_mask, sub_mask, not left_cons)
+                    subseq_segment_dist(left_mask, sub_mask, keep_left)
+                    + subseq_segment_dist(right_mask, sub_mask, not keep_left)
                 )
             else:
                 raise ValueError("Invalid event")
