@@ -17,6 +17,70 @@ from typing import Any, DefaultDict, Dict, List, Mapping, Sequence, Set, Tuple
 Syntenies = Mapping[PhyloNode, Sequence[Any]]
 
 
+def get_cost(
+    gene_tree: PhyloTree,
+    species_lca: LowestCommonAncestor,
+    rec: Reconciliation,
+    labeling: Syntenies,
+) -> int:
+    """
+    Compute the cost of a synteny labeling.
+
+    :param gene_tree: reconciled gene tree
+    :param species_lca: ancestry information about the reconciled species tree
+    :param rec: reconciliation to use
+    :param labeling: synteny labeling
+    """
+    total_cost = 0
+    root_syn = labeling[gene_tree]
+    masks = {
+        gene_tree: subseq_complete(root_syn)
+    }
+
+    for sub_gene in gene_tree.traverse("preorder"):
+        if not sub_gene.is_leaf():
+            event = get_event(sub_gene, species_lca, rec)
+            sub_mask = masks[sub_gene]
+            left_gene, right_gene = sub_gene.children
+
+            left_syn = labeling[left_gene]
+            left_mask = masks[left_gene] = \
+                mask_from_subseq(left_syn, root_syn)
+
+            right_syn = labeling[right_gene]
+            right_mask = masks[right_gene] = \
+                mask_from_subseq(right_syn, root_syn)
+
+            if event == Event.Speciation:
+                total_cost += (
+                    subseq_segment_dist(left_mask, sub_mask, True)
+                    + subseq_segment_dist(right_mask, sub_mask, True)
+                )
+            elif event == Event.Duplication:
+                total_cost += min(
+                    (
+                        subseq_segment_dist(left_mask, sub_mask, True)
+                        + subseq_segment_dist(right_mask, sub_mask, False)
+                    ),
+                    (
+                        subseq_segment_dist(left_mask, sub_mask, False)
+                        + subseq_segment_dist(right_mask, sub_mask, True)
+                    )
+                )
+            elif event == Event.HorizontalGeneTransfer:
+                keep_left = species_lca.is_comparable(
+                    rec[sub_gene], rec[left_gene]
+                )
+                total_cost += (
+                    subseq_segment_dist(left_mask, sub_mask, keep_left)
+                    + subseq_segment_dist(right_mask, sub_mask, not keep_left)
+                )
+            else:
+                raise ValueError("Invalid event")
+
+    return total_cost
+
+
 def _compute_spfs_table(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
@@ -151,74 +215,36 @@ def _label_with_root_order(
     )
 
 
-def get_labeling_cost(
-    gene_tree: PhyloTree,
-    species_lca: LowestCommonAncestor,
-    rec: Reconciliation,
-    labeling: Syntenies,
-) -> int:
-    total_cost = 0
-    root_syn = labeling[gene_tree]
-    masks = {
-        gene_tree: subseq_complete(root_syn)
-    }
-
-    for sub_gene in gene_tree.traverse("preorder"):
-        if not sub_gene.is_leaf():
-            event = get_event(sub_gene, species_lca, rec)
-            sub_mask = masks[sub_gene]
-            left_gene, right_gene = sub_gene.children
-
-            left_syn = labeling[left_gene]
-            left_mask = masks[left_gene] = \
-                mask_from_subseq(left_syn, root_syn)
-
-            right_syn = labeling[right_gene]
-            right_mask = masks[right_gene] = \
-                mask_from_subseq(right_syn, root_syn)
-
-            if event == Event.Speciation:
-                total_cost += (
-                    subseq_segment_dist(left_mask, sub_mask, True)
-                    + subseq_segment_dist(right_mask, sub_mask, True)
-                )
-            elif event == Event.Duplication:
-                total_cost += min(
-                    (
-                        subseq_segment_dist(left_mask, sub_mask, True)
-                        + subseq_segment_dist(left_mask, sub_mask, False)
-                    ),
-                    (
-                        subseq_segment_dist(left_mask, sub_mask, False)
-                        + subseq_segment_dist(left_mask, sub_mask, True)
-                    )
-                )
-            elif event == Event.HorizontalGeneTransfer:
-                keep_left = species_lca.is_comparable(
-                    rec[sub_gene], rec[left_gene]
-                )
-                total_cost += (
-                    subseq_segment_dist(left_mask, sub_mask, keep_left)
-                    + subseq_segment_dist(right_mask, sub_mask, not keep_left)
-                )
-            else:
-                raise ValueError("Invalid event")
-
-    return total_cost
-
-
 def label_ancestral_syntenies(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
     rec: Reconciliation,
-    input_labeling: Syntenies,
+    leaf_labeling: Syntenies,
 ) -> Tuple[ExtendedIntegral, List[Syntenies]]:
+    """
+    Find a minimum-cost ancestral synteny labeling for a super-reconciliation.
+
+    The :param:`leaf_labeling` must assign a synteny to each leaf of the
+    gene tree. It can also assign a synteny to the root node. If no assignment
+    of the root synteny is defined, this function will consider all possible
+    orderings of the root synteny.
+
+    The cost of a labeling is the total number of segments that are lost from
+    each synteny to its children.
+
+    :param gene_tree: gene tree to reconcile
+    :param species_lca: species ancestry information
+    :param rec: mapping of the gene tree onto the species tree
+    :param leaf_labeling: syntenies assigned to the leaves of the gene tree
+    :returns: a tuple containing the minimum cost of a labeling and a
+        list of all labelings with such a cost
+    """
     results = MinSequence()
 
-    if gene_tree not in input_labeling:
+    if gene_tree not in leaf_labeling:
         prec: Dict[Any, Set[Any]] = {}
 
-        for leaf_synteny in input_labeling.values():
+        for leaf_synteny in leaf_labeling.values():
             for gene_1, gene_2 in zip(leaf_synteny[0:-1], leaf_synteny[1:]):
                 if gene_1 not in prec: prec[gene_1] = set()
                 if gene_2 not in prec: prec[gene_2] = set()
@@ -231,7 +257,7 @@ def label_ancestral_syntenies(
                     species_lca,
                     rec,
                     {
-                        **input_labeling,
+                        **leaf_labeling,
                         gene_tree: order
                     },
                 )
@@ -242,7 +268,7 @@ def label_ancestral_syntenies(
                 gene_tree,
                 species_lca,
                 rec,
-                input_labeling,
+                leaf_labeling,
             )
         )
 

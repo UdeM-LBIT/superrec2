@@ -209,8 +209,8 @@ def reconcile_thl(
     :param gene_tree: gene tree to reconcile
     :param species_lca: species ancestry information
     :param costs: cost of each evolutionary event
-    :returns: minimum cost of each reconciliation and list of reconciliations
-        with such costs
+    :returns: a tuple containing the minimum cost of a reconciliation and a
+        list of all reconciliations with such a cost
     """
     min_costs = _compute_thl_table(gene_tree, species_lca, costs or {})
     solutions = MinSequence()

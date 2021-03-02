@@ -24,7 +24,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
 
         for labeling in expected_labelings:
             self.assertEqual(
-                rec.syntenies.get_labeling_cost(
+                rec.syntenies.get_cost(
                     gene_tree, species_lca, rec_result, labeling
                 ),
                 expected_cost,
@@ -158,6 +158,172 @@ class TestReconciliationSyntenies(unittest.TestCase):
             expected_labelings=[
                 {
                     **input_2,
+                    gene_tree & "2": list("abde"),
+                    gene_tree & "1": list("abcde"),
+                }
+            ]
+        )
+
+        # Test 3: Single optimal solution, conserved root (exchanged children)
+        input_3 = {
+            gene_tree & "x_1": list("de"),
+            gene_tree & "x_2": list("ab"),
+            gene_tree & "y_1": list("abcde"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, input_3,
+            expected_cost=1,
+            expected_labelings=[
+                {
+                    **input_3,
+                    gene_tree & "2": list("abcde"),
+                    gene_tree & "1": list("abcde"),
+                }
+            ]
+        )
+
+        # Test 4: Single optimal solution, altered root (exchanged children)
+        input_4 = {
+            gene_tree & "x_1": list("bde"),
+            gene_tree & "x_2": list("abd"),
+            gene_tree & "y_1": list("abcde"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, input_4,
+            expected_cost=2,
+            expected_labelings=[
+                {
+                    **input_4,
+                    gene_tree & "2": list("abde"),
+                    gene_tree & "1": list("abcde"),
+                }
+            ]
+        )
+
+        # Test 5: Multiple possible root labelings to examine
+        input_5 = {
+            gene_tree & "x_1": list("ab"),
+            gene_tree & "x_2": list("cd"),
+            gene_tree & "y_1": list("be"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, input_5,
+            expected_cost=2,
+            expected_labelings=[
+                {
+                    **input_5,
+                    gene_tree & "2": list("cdabe"),
+                    gene_tree & "1": list("cdabe"),
+                },
+            ]
+        )
+
+        # Test 6: No solution
+        input_6 = {
+            gene_tree & "x_1": list("ab"),
+            gene_tree & "x_2": list("cd"),
+            gene_tree & "y_1": list("ba"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, input_6,
+            expected_cost=inf,
+            expected_labelings=[],
+        )
+
+    def test_transfer(self):
+        gene_tree = PhyloTree(
+            "((x_1,y_1)2,y_2)1;",
+            format=1, sp_naming_function=rec.tools.get_species_name
+        )
+
+        species_tree = PhyloTree("(X,Y)XY;", format=1)
+        species_lca = LowestCommonAncestor(species_tree)
+        rec_cost, rec_results = rec.compute.reconcile_thl(
+            gene_tree, species_lca, costs={
+                rec.tools.CostType.Duplication: 1,
+                rec.tools.CostType.HorizontalGeneTransfer: 1,
+                rec.tools.CostType.Loss: 1,
+            }
+        )
+
+        self.assertEqual(rec_cost, 1)
+        self.assertEqual(len(rec_results), 1)
+        rec_result = rec_results[0]
+
+        # Test 1: Single optimal solution, conserved root
+        input_1 = {
+            gene_tree & "x_1": list("ab"),
+            gene_tree & "y_1": list("de"),
+            gene_tree & "y_2": list("abcde"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, input_1,
+            expected_cost=1,
+            expected_labelings=[
+                {
+                    **input_1,
+                    gene_tree & "2": list("abcde"),
+                    gene_tree & "1": list("abcde"),
+                }
+            ]
+        )
+
+        # Test 2: Single optimal solution, altered root
+        input_2 = {
+            gene_tree & "x_1": list("abd"),
+            gene_tree & "y_1": list("bde"),
+            gene_tree & "y_2": list("abcde"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, input_2,
+            expected_cost=2,
+            expected_labelings=[
+                {
+                    **input_2,
+                    gene_tree & "2": list("abde"),
+                    gene_tree & "1": list("abcde"),
+                }
+            ]
+        )
+
+        # Test 3: Single optimal solution, conserved root (exchanged children)
+        input_3 = {
+            gene_tree & "x_1": list("ab"),
+            gene_tree & "y_1": list("de"),
+            gene_tree & "y_2": list("abcde"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, input_3,
+            expected_cost=1,
+            expected_labelings=[
+                {
+                    **input_3,
+                    gene_tree & "2": list("abcde"),
+                    gene_tree & "1": list("abcde"),
+                }
+            ]
+        )
+
+        # Test 4: Single optimal solution, altered root (exchanged children)
+        input_4 = {
+            gene_tree & "x_1": list("abd"),
+            gene_tree & "y_1": list("bde"),
+            gene_tree & "y_2": list("abcde"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, input_4,
+            expected_cost=2,
+            expected_labelings=[
+                {
+                    **input_4,
                     gene_tree & "2": list("abde"),
                     gene_tree & "1": list("abcde"),
                 }
