@@ -24,7 +24,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
 
         for labeling in expected_labelings:
             self.assertEqual(
-                rec.syntenies.get_cost(
+                rec.tools.get_labeling_cost(
                     gene_tree, species_lca, rec_result, labeling
                 ),
                 expected_cost,
@@ -326,6 +326,74 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     **input_4,
                     gene_tree & "2": list("abde"),
                     gene_tree & "1": list("abcde"),
+                }
+            ]
+        )
+
+    def test_all(self):
+        gene_tree = PhyloTree(
+            """(
+                ((x_1,z_1)3,(w_1,w_2)4)2,
+                (
+                    ((x_2,y_4)7,((x_3,(y_1,(y_2,y_3)11)10)9,z_2)8)6,
+                    (w_3,(z_3,(t_1,t_2)14)13)12
+                )5
+            )1;""",
+            format=1, sp_naming_function=rec.tools.get_species_name
+        )
+
+        species_tree = PhyloTree("(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;", format=1)
+        species_lca = LowestCommonAncestor(species_tree)
+        rec_cost, rec_results = rec.compute.reconcile_thl(
+            gene_tree, species_lca, costs={
+                rec.tools.CostType.Duplication: 1,
+                rec.tools.CostType.HorizontalGeneTransfer: 1,
+                rec.tools.CostType.Loss: 1,
+            }
+        )
+
+        self.assertEqual(rec_cost, 9)
+        self.assertEqual(len(rec_results), 2)
+        rec_result = rec_results[0]
+
+        leaf_labeling = {
+            gene_tree & "x_1": list("abcd"),
+            gene_tree & "x_2": list("defg"),
+            gene_tree & "x_3": list("cdef"),
+            gene_tree & "y_1": list("cef"),
+            gene_tree & "y_2": list("cde"),
+            gene_tree & "y_3": list("cde"),
+            gene_tree & "y_4": list("def"),
+            gene_tree & "z_1": list("abcd"),
+            gene_tree & "z_2": list("cef"),
+            gene_tree & "z_3": list("defg"),
+            gene_tree & "w_1": list("ab"),
+            gene_tree & "w_2": list("abc"),
+            gene_tree & "w_3": list("defg"),
+            gene_tree & "t_1": list("def"),
+            gene_tree & "t_2": list("defg"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, leaf_labeling,
+            expected_cost=7,
+            expected_labelings=[
+                {
+                    **leaf_labeling,
+                    gene_tree & "1": list("abcdefg"),
+                    gene_tree & "2": list("abcd"),
+                    gene_tree & "3": list("abcd"),
+                    gene_tree & "4": list("abc"),
+                    gene_tree & "5": list("abcdefg"),
+                    gene_tree & "6": list("cdefg"),
+                    gene_tree & "7": list("defg"),
+                    gene_tree & "8": list("cdef"),
+                    gene_tree & "9": list("cdef"),
+                    gene_tree & "10": list("cdef"),
+                    gene_tree & "11": list("cde"),
+                    gene_tree & "12": list("defg"),
+                    gene_tree & "13": list("defg"),
+                    gene_tree & "14": list("defg"),
                 }
             ]
         )

@@ -1,30 +1,38 @@
 import unittest
 import textwrap
 from ete3 import PhyloTree
-from .tools import get_species_name, reconcile_leaves, parse_reconciliation
+from .tools import (
+    get_species_name,
+    reconcile_leaves,
+    parse_labeling,
+    parse_reconciliation,
+)
 from .draw import layout, render_to_tikz
 
 
 class TestReconciliationDraw(unittest.TestCase):
-    def assertRender(self, gene_text, species_text, rec_text, expect):
+    def assertRender(
+        self,
+        gene_text,
+        species_text,
+        rec_text,
+        labeling_text,
+        expect
+    ):
         gene_tree = PhyloTree(
             gene_text,
             sp_naming_function=get_species_name, format=1
         )
         species_tree = PhyloTree(species_text, format=1)
+        labeling = parse_labeling(gene_tree, labeling_text)
         rec = {
             **reconcile_leaves(gene_tree, species_tree),
             **parse_reconciliation(gene_tree, species_tree, rec_text),
         }
         layout_info = layout(gene_tree, species_tree, rec)
-        out = render_to_tikz(species_tree, rec, layout_info)
-        self.assertEqual(out, expect)
-
-    def test_speciations(self):
-        self.assertRender(
-            "((x_1,y_1)2,z_1)1;",
-            "((X,Y)XY,Z)XYZ;",
-            "1:XYZ,2:XY",
+        out = render_to_tikz(species_tree, rec, layout_info, labeling)
+        self.assertEqual(
+            out,
             textwrap.dedent(r"""
             \begin{tikzpicture}[
                 x={1pt},
@@ -64,11 +72,11 @@ class TestReconciliationDraw(unittest.TestCase):
                 },
                 branch node/.style={
                     draw, fill=white,
-                    outer sep=0pt, inner sep=0pt,
+                    outer sep=0pt, inner ysep=2pt,
                     line width={0.5pt},
                 },
                 speciation/.style={
-                    branch node, circle,
+                    branch node, rounded rectangle,
                     minimum width={10pt},
                     minimum height={10pt},
                 },
@@ -78,11 +86,25 @@ class TestReconciliationDraw(unittest.TestCase):
                     minimum height={9pt},
                 },
                 horizontal gene transfer/.style={
-                    branch node, diamond,
+                    branch node, signal, signal to=east and west,
+                    inner xsep=0pt,
                     minimum width={10pt},
                     minimum height={10pt},
                 },
             ]
+            """).lstrip()
+            + expect
+            + "\\end{tikzpicture}\n"
+        )
+
+    def test_speciations(self):
+        self.maxDiff = None
+        self.assertRender(
+            gene_text="((x_1,y_1)2,z_1)1;",
+            species_text="((X,Y)XY,Z)XYZ;",
+            rec_text="1:XYZ,2:XY",
+            labeling_text="",
+            expect=textwrap.dedent(r"""
             % species
             \draw[species border] (40,60) |- (120,20) -- (120,0);
             \draw[species border] (200,120) |- (160,20) -- (160,0);
@@ -105,76 +127,22 @@ class TestReconciliationDraw(unittest.TestCase):
             % events
             \node[speciation] at (140,40) {};
             \node[speciation] at (60,100) {};
-            \node[extant gene={\(x_1\)}] at (20,140) {};
-            \node[extant gene={\(y_1\)}] at (100,140) {};
-            \node[extant gene={\(z_1\)}] at (180,140) {};
-            \end{tikzpicture}
+            \node[extant gene={x\textsubscript{1}}] at (20,140) {};
+            \node[extant gene={y\textsubscript{1}}] at (100,140) {};
+            \node[extant gene={z\textsubscript{1}}] at (180,140) {};
             """).lstrip(),
         )
 
     def test_duplications(self):
         self.assertRender(
-            "(((x_3,y_3)8,z_3)7,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;",
-            "((X,Y)XY,Z)XYZ;",
-            "1:XYZ,2:XYZ,3:XYZ,4:XY,5:XYZ,6:XY,7:XYZ,8:XY",
-            textwrap.dedent(r"""
-            \begin{tikzpicture}[
-                x={1pt},
-                y={-1pt},
-                species border/.style={
-                    line width={1pt},
-                    shorten <={-1pt / 2 + 0.05pt},
-                    shorten >={-1pt / 2 + 0.05pt},
-                },
-                species label/.style={
-                    font=\bfseries,
-                    midway,
-                    yshift=-10pt,
-                },
-                branch/.style={
-                    line width={0.5pt},
-                    preaction={
-                        draw, white, -{},
-                        line width={4pt},
-                        shorten <={0.5pt},
-                        shorten >={0.5pt},
-                    },
-                },
-                transfer branch/.style={
-                    branch,
-                    -Stealth,
-                },
-                loss/.style={
-                    branch, dashed,
-                },
-                extant gene/.style={
-                    circle, fill,
-                    outer sep=0pt, inner sep=0pt,
-                    minimum width={3pt},
-                    minimum height={3pt},
-                    label={[label distance={0pt}]below:#1},
-                },
-                branch node/.style={
-                    draw, fill=white,
-                    outer sep=0pt, inner sep=0pt,
-                    line width={0.5pt},
-                },
-                speciation/.style={
-                    branch node, circle,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-                duplication/.style={
-                    branch node, rectangle,
-                    minimum width={9pt},
-                    minimum height={9pt},
-                },
-                horizontal gene transfer/.style={
-                    branch node, diamond,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-            ]
+            gene_text="""(
+                ((x_3,y_3)8,z_3)7,
+                (((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2
+            )1;""",
+            species_text="((X,Y)XY,Z)XYZ;",
+            rec_text="1:XYZ,2:XYZ,3:XYZ,4:XY,5:XYZ,6:XY,7:XYZ,8:XY",
+            labeling_text="",
+            expect=textwrap.dedent(r"""
             % species
             \draw[species border] (70,105) |- (210,35) -- (210,0);
             \draw[species border] (350,195) |- (280,35) -- (280,0);
@@ -217,82 +185,25 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[speciation] at (90,145) {};
             \node[speciation] at (105,160) {};
             \node[speciation] at (120,175) {};
-            \node[extant gene={\(x_3\)}] at (20,215) {};
-            \node[extant gene={\(x_1\)}] at (35,215) {};
-            \node[extant gene={\(x_2\)}] at (50,215) {};
-            \node[extant gene={\(y_3\)}] at (160,215) {};
-            \node[extant gene={\(y_2\)}] at (175,215) {};
-            \node[extant gene={\(y_1\)}] at (190,215) {};
-            \node[extant gene={\(z_3\)}] at (300,215) {};
-            \node[extant gene={\(z_2\)}] at (315,215) {};
-            \node[extant gene={\(z_1\)}] at (330,215) {};
-            \end{tikzpicture}
+            \node[extant gene={x\textsubscript{3}}] at (20,215) {};
+            \node[extant gene={x\textsubscript{1}}] at (35,215) {};
+            \node[extant gene={x\textsubscript{2}}] at (50,215) {};
+            \node[extant gene={y\textsubscript{3}}] at (160,215) {};
+            \node[extant gene={y\textsubscript{2}}] at (175,215) {};
+            \node[extant gene={y\textsubscript{1}}] at (190,215) {};
+            \node[extant gene={z\textsubscript{3}}] at (300,215) {};
+            \node[extant gene={z\textsubscript{2}}] at (315,215) {};
+            \node[extant gene={z\textsubscript{1}}] at (330,215) {};
             """).lstrip(),
         )
 
     def test_speciations_losses(self):
         self.assertRender(
-            "(x_1,z_1)1;",
-            "(X,(Y,(Z,W)ZW)YZW)XYZW;",
-            "1:XYZW",
-            textwrap.dedent(r"""
-            \begin{tikzpicture}[
-                x={1pt},
-                y={-1pt},
-                species border/.style={
-                    line width={1pt},
-                    shorten <={-1pt / 2 + 0.05pt},
-                    shorten >={-1pt / 2 + 0.05pt},
-                },
-                species label/.style={
-                    font=\bfseries,
-                    midway,
-                    yshift=-10pt,
-                },
-                branch/.style={
-                    line width={0.5pt},
-                    preaction={
-                        draw, white, -{},
-                        line width={4pt},
-                        shorten <={0.5pt},
-                        shorten >={0.5pt},
-                    },
-                },
-                transfer branch/.style={
-                    branch,
-                    -Stealth,
-                },
-                loss/.style={
-                    branch, dashed,
-                },
-                extant gene/.style={
-                    circle, fill,
-                    outer sep=0pt, inner sep=0pt,
-                    minimum width={3pt},
-                    minimum height={3pt},
-                    label={[label distance={0pt}]below:#1},
-                },
-                branch node/.style={
-                    draw, fill=white,
-                    outer sep=0pt, inner sep=0pt,
-                    line width={0.5pt},
-                },
-                speciation/.style={
-                    branch node, circle,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-                duplication/.style={
-                    branch node, rectangle,
-                    minimum width={9pt},
-                    minimum height={9pt},
-                },
-                horizontal gene transfer/.style={
-                    branch node, diamond,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-            ]
+            gene_text="(x_1,z_1)1;",
+            species_text="(X,(Y,(Z,W)ZW)YZW)XYZW;",
+            rec_text="1:XYZW",
+            labeling_text="",
+            expect=textwrap.dedent(r"""
             % species
             \draw[species border] (0,180) |- (40,20) -- (40,0);
             \draw[species border] (160,60) |- (80,20) -- (80,0);
@@ -321,75 +232,18 @@ class TestReconciliationDraw(unittest.TestCase):
             % gene transfers
             % events
             \node[speciation] at (60,40) {};
-            \node[extant gene={\(x_1\)}] at (20,200) {};
-            \node[extant gene={\(z_1\)}] at (180,200) {};
-            \end{tikzpicture}
+            \node[extant gene={x\textsubscript{1}}] at (20,200) {};
+            \node[extant gene={z\textsubscript{1}}] at (180,200) {};
             """).lstrip(),
         )
 
     def test_duplications_losses(self):
         self.assertRender(
-            "(z_3,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;",
-            "((X,Y)XY,Z)XYZ;",
-            "1:XYZ,2:XYZ,3:XYZ,4:XY,5:XYZ,6:XY",
-            textwrap.dedent(r"""
-            \begin{tikzpicture}[
-                x={1pt},
-                y={-1pt},
-                species border/.style={
-                    line width={1pt},
-                    shorten <={-1pt / 2 + 0.05pt},
-                    shorten >={-1pt / 2 + 0.05pt},
-                },
-                species label/.style={
-                    font=\bfseries,
-                    midway,
-                    yshift=-10pt,
-                },
-                branch/.style={
-                    line width={0.5pt},
-                    preaction={
-                        draw, white, -{},
-                        line width={4pt},
-                        shorten <={0.5pt},
-                        shorten >={0.5pt},
-                    },
-                },
-                transfer branch/.style={
-                    branch,
-                    -Stealth,
-                },
-                loss/.style={
-                    branch, dashed,
-                },
-                extant gene/.style={
-                    circle, fill,
-                    outer sep=0pt, inner sep=0pt,
-                    minimum width={3pt},
-                    minimum height={3pt},
-                    label={[label distance={0pt}]below:#1},
-                },
-                branch node/.style={
-                    draw, fill=white,
-                    outer sep=0pt, inner sep=0pt,
-                    line width={0.5pt},
-                },
-                speciation/.style={
-                    branch node, circle,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-                duplication/.style={
-                    branch node, rectangle,
-                    minimum width={9pt},
-                    minimum height={9pt},
-                },
-                horizontal gene transfer/.style={
-                    branch node, diamond,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-            ]
+            gene_text="(z_3,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;",
+            species_text="((X,Y)XY,Z)XYZ;",
+            rec_text="1:XYZ,2:XYZ,3:XYZ,4:XY,5:XYZ,6:XY",
+            labeling_text="",
+            expect=textwrap.dedent(r"""
             % species
             \draw[species border] (55,105) |- (165,35) -- (165,0);
             \draw[species border] (305,180) |- (235,35) -- (235,0);
@@ -427,80 +281,23 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[duplication] at (203.75,20) {};
             \node[speciation] at (75,145) {};
             \node[speciation] at (90,160) {};
-            \node[extant gene={\(x_1\)}] at (20,200) {};
-            \node[extant gene={\(x_2\)}] at (35,200) {};
-            \node[extant gene={\(y_2\)}] at (130,200) {};
-            \node[extant gene={\(y_1\)}] at (145,200) {};
-            \node[extant gene={\(z_3\)}] at (255,200) {};
-            \node[extant gene={\(z_2\)}] at (270,200) {};
-            \node[extant gene={\(z_1\)}] at (285,200) {};
-            \end{tikzpicture}
+            \node[extant gene={x\textsubscript{1}}] at (20,200) {};
+            \node[extant gene={x\textsubscript{2}}] at (35,200) {};
+            \node[extant gene={y\textsubscript{2}}] at (130,200) {};
+            \node[extant gene={y\textsubscript{1}}] at (145,200) {};
+            \node[extant gene={z\textsubscript{3}}] at (255,200) {};
+            \node[extant gene={z\textsubscript{2}}] at (270,200) {};
+            \node[extant gene={z\textsubscript{1}}] at (285,200) {};
             """).lstrip(),
         )
 
     def test_nested_duplications(self):
         self.assertRender(
-            "(((x_1,y_1)4,(x_2,y_2)5)2,((x_3,y_3)6,(x_4,y_4)7)3)1;",
-            "(X,Y)XY;",
-            "1:XY,2:XY,3:XY,4:XY,5:XY,6:XY,7:XY",
-            textwrap.dedent(r"""
-            \begin{tikzpicture}[
-                x={1pt},
-                y={-1pt},
-                species border/.style={
-                    line width={1pt},
-                    shorten <={-1pt / 2 + 0.05pt},
-                    shorten >={-1pt / 2 + 0.05pt},
-                },
-                species label/.style={
-                    font=\bfseries,
-                    midway,
-                    yshift=-10pt,
-                },
-                branch/.style={
-                    line width={0.5pt},
-                    preaction={
-                        draw, white, -{},
-                        line width={4pt},
-                        shorten <={0.5pt},
-                        shorten >={0.5pt},
-                    },
-                },
-                transfer branch/.style={
-                    branch,
-                    -Stealth,
-                },
-                loss/.style={
-                    branch, dashed,
-                },
-                extant gene/.style={
-                    circle, fill,
-                    outer sep=0pt, inner sep=0pt,
-                    minimum width={3pt},
-                    minimum height={3pt},
-                    label={[label distance={0pt}]below:#1},
-                },
-                branch node/.style={
-                    draw, fill=white,
-                    outer sep=0pt, inner sep=0pt,
-                    line width={0.5pt},
-                },
-                speciation/.style={
-                    branch node, circle,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-                duplication/.style={
-                    branch node, rectangle,
-                    minimum width={9pt},
-                    minimum height={9pt},
-                },
-                horizontal gene transfer/.style={
-                    branch node, diamond,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-            ]
+            gene_text="(((x_1,y_1)4,(x_2,y_2)5)2,((x_3,y_3)6,(x_4,y_4)7)3)1;",
+            species_text="(X,Y)XY;",
+            rec_text="1:XY,2:XY,3:XY,4:XY,5:XY,6:XY,7:XY",
+            labeling_text="",
+            expect=textwrap.dedent(r"""
             % species
             \draw[species border] (0,120) |- (85,35) -- (85,0);
             \draw[species border] (255,120) |- (170,35) -- (170,0);
@@ -533,81 +330,24 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[duplication] at (112.5,35) {};
             \node[duplication] at (142.5,35) {};
             \node[duplication] at (127.5,20) {};
-            \node[extant gene={\(x_1\)}] at (20,140) {};
-            \node[extant gene={\(x_2\)}] at (35,140) {};
-            \node[extant gene={\(x_3\)}] at (50,140) {};
-            \node[extant gene={\(x_4\)}] at (65,140) {};
-            \node[extant gene={\(y_1\)}] at (190,140) {};
-            \node[extant gene={\(y_2\)}] at (205,140) {};
-            \node[extant gene={\(y_3\)}] at (220,140) {};
-            \node[extant gene={\(y_4\)}] at (235,140) {};
-            \end{tikzpicture}
+            \node[extant gene={x\textsubscript{1}}] at (20,140) {};
+            \node[extant gene={x\textsubscript{2}}] at (35,140) {};
+            \node[extant gene={x\textsubscript{3}}] at (50,140) {};
+            \node[extant gene={x\textsubscript{4}}] at (65,140) {};
+            \node[extant gene={y\textsubscript{1}}] at (190,140) {};
+            \node[extant gene={y\textsubscript{2}}] at (205,140) {};
+            \node[extant gene={y\textsubscript{3}}] at (220,140) {};
+            \node[extant gene={y\textsubscript{4}}] at (235,140) {};
             """).lstrip(),
         )
 
     def test_transfers(self):
         self.assertRender(
-            "((x_1,y_1)2,(((x_2,y_2)5,z_1)4,z_2)3)1;",
-            "((X,Y)XY,Z)XYZ;",
-            "1:XYZ,2:XY,3:XYZ,4:XY,5:XY",
-            textwrap.dedent(r"""
-            \begin{tikzpicture}[
-                x={1pt},
-                y={-1pt},
-                species border/.style={
-                    line width={1pt},
-                    shorten <={-1pt / 2 + 0.05pt},
-                    shorten >={-1pt / 2 + 0.05pt},
-                },
-                species label/.style={
-                    font=\bfseries,
-                    midway,
-                    yshift=-10pt,
-                },
-                branch/.style={
-                    line width={0.5pt},
-                    preaction={
-                        draw, white, -{},
-                        line width={4pt},
-                        shorten <={0.5pt},
-                        shorten >={0.5pt},
-                    },
-                },
-                transfer branch/.style={
-                    branch,
-                    -Stealth,
-                },
-                loss/.style={
-                    branch, dashed,
-                },
-                extant gene/.style={
-                    circle, fill,
-                    outer sep=0pt, inner sep=0pt,
-                    minimum width={3pt},
-                    minimum height={3pt},
-                    label={[label distance={0pt}]below:#1},
-                },
-                branch node/.style={
-                    draw, fill=white,
-                    outer sep=0pt, inner sep=0pt,
-                    line width={0.5pt},
-                },
-                speciation/.style={
-                    branch node, circle,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-                duplication/.style={
-                    branch node, rectangle,
-                    minimum width={9pt},
-                    minimum height={9pt},
-                },
-                horizontal gene transfer/.style={
-                    branch node, diamond,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-            ]
+            gene_text="((x_1,y_1)2,(((x_2,y_2)5,z_1)4,z_2)3)1;",
+            species_text="((X,Y)XY,Z)XYZ;",
+            rec_text="1:XYZ,2:XY,3:XYZ,4:XY,5:XY",
+            labeling_text="",
+            expect=textwrap.dedent(r"""
             % species
             \draw[species border] (55,75) |- (165,20) -- (165,0);
             \draw[species border] (275,150) |- (220,20) -- (220,0);
@@ -643,88 +383,31 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[speciation] at (75,115) {};
             \node[speciation] at (90,130) {};
             \node[horizontal gene transfer] at (90,95) {};
-            \node[extant gene={\(x_1\)}] at (20,170) {};
-            \node[extant gene={\(x_2\)}] at (35,170) {};
-            \node[extant gene={\(y_1\)}] at (130,170) {};
-            \node[extant gene={\(y_2\)}] at (145,170) {};
-            \node[extant gene={\(z_1\)}] at (240,170) {};
-            \node[extant gene={\(z_2\)}] at (255,170) {};
-            \end{tikzpicture}
+            \node[extant gene={x\textsubscript{1}}] at (20,170) {};
+            \node[extant gene={x\textsubscript{2}}] at (35,170) {};
+            \node[extant gene={y\textsubscript{1}}] at (130,170) {};
+            \node[extant gene={y\textsubscript{2}}] at (145,170) {};
+            \node[extant gene={z\textsubscript{1}}] at (240,170) {};
+            \node[extant gene={z\textsubscript{2}}] at (255,170) {};
             """).lstrip(),
         )
 
     def test_all(self):
         self.assertRender(
-            """
-            (
+            gene_text="""(
                 ((x_1,z_1)3,(w_1,w_2)4)2,
                 (
                     ((x_2,y_4)7,((x_3,(y_1,(y_2,y_3)11)10)9,z_2)8)6,
                     (w_3,(z_3,(t_1,t_2)14)13)12
                 )5
-            )1;
-            """,
-            "(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;",
-            "1:XYZWT,2:XYZ,3:XYZ,4:W,5:XYZWT,6:XYZ,7:XY,"
-            "8:XYZ,9:XY,10:Y,11:Y,12:WT,13:T,14:T",
-            textwrap.dedent(r"""
-            \begin{tikzpicture}[
-                x={1pt},
-                y={-1pt},
-                species border/.style={
-                    line width={1pt},
-                    shorten <={-1pt / 2 + 0.05pt},
-                    shorten >={-1pt / 2 + 0.05pt},
-                },
-                species label/.style={
-                    font=\bfseries,
-                    midway,
-                    yshift=-10pt,
-                },
-                branch/.style={
-                    line width={0.5pt},
-                    preaction={
-                        draw, white, -{},
-                        line width={4pt},
-                        shorten <={0.5pt},
-                        shorten >={0.5pt},
-                    },
-                },
-                transfer branch/.style={
-                    branch,
-                    -Stealth,
-                },
-                loss/.style={
-                    branch, dashed,
-                },
-                extant gene/.style={
-                    circle, fill,
-                    outer sep=0pt, inner sep=0pt,
-                    minimum width={3pt},
-                    minimum height={3pt},
-                    label={[label distance={0pt}]below:#1},
-                },
-                branch node/.style={
-                    draw, fill=white,
-                    outer sep=0pt, inner sep=0pt,
-                    line width={0.5pt},
-                },
-                speciation/.style={
-                    branch node, circle,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-                duplication/.style={
-                    branch node, rectangle,
-                    minimum width={9pt},
-                    minimum height={9pt},
-                },
-                horizontal gene transfer/.style={
-                    branch node, diamond,
-                    minimum width={10pt},
-                    minimum height={10pt},
-                },
-            ]
+            )1;""",
+            species_text="(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;",
+            rec_text=(
+                "1:XYZWT,2:XYZ,3:XYZ,4:W,5:XYZWT,6:XYZ,7:XY,"
+                "8:XYZ,9:XY,10:Y,11:Y,12:WT,13:T,14:T"
+            ),
+            labeling_text="",
+            expect=textwrap.dedent(r"""
             % species
             \draw[species border] (225,75) |- (365,20) -- (365,0);
             \draw[species border] (530,195) |- (420,20) -- (420,0);
@@ -794,27 +477,141 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[duplication] at (267.5,95) {};
             \node[speciation] at (90,205) {};
             \node[speciation] at (105,220) {};
-            \node[extant gene={\(x_1\)}] at (20,305) {};
-            \node[extant gene={\(x_2\)}] at (35,305) {};
-            \node[extant gene={\(x_3\)}] at (50,305) {};
-            \node[extant gene={\(y_4\)}] at (160,305) {};
-            \node[extant gene={\(y_1\)}] at (175,305) {};
-            \node[extant gene={\(y_2\)}] at (190,305) {};
-            \node[extant gene={\(y_3\)}] at (205,305) {};
+            \node[extant gene={x\textsubscript{1}}] at (20,305) {};
+            \node[extant gene={x\textsubscript{2}}] at (35,305) {};
+            \node[extant gene={x\textsubscript{3}}] at (50,305) {};
+            \node[extant gene={y\textsubscript{4}}] at (160,305) {};
+            \node[extant gene={y\textsubscript{1}}] at (175,305) {};
+            \node[extant gene={y\textsubscript{2}}] at (190,305) {};
+            \node[extant gene={y\textsubscript{3}}] at (205,305) {};
             \node[duplication] at (197.5,290) {};
             \node[duplication] at (186.25,275) {};
-            \node[extant gene={\(z_1\)}] at (315,305) {};
-            \node[extant gene={\(z_2\)}] at (330,305) {};
-            \node[extant gene={\(z_3\)}] at (345,305) {};
+            \node[extant gene={z\textsubscript{1}}] at (315,305) {};
+            \node[extant gene={z\textsubscript{2}}] at (330,305) {};
+            \node[extant gene={z\textsubscript{3}}] at (345,305) {};
             \node[speciation] at (510,235) {};
-            \node[extant gene={\(w_1\)}] at (440,305) {};
-            \node[extant gene={\(w_2\)}] at (455,305) {};
-            \node[extant gene={\(w_3\)}] at (470,305) {};
+            \node[extant gene={w\textsubscript{1}}] at (440,305) {};
+            \node[extant gene={w\textsubscript{2}}] at (455,305) {};
+            \node[extant gene={w\textsubscript{3}}] at (470,305) {};
             \node[duplication] at (447.5,290) {};
-            \node[extant gene={\(t_1\)}] at (550,305) {};
-            \node[extant gene={\(t_2\)}] at (565,305) {};
+            \node[extant gene={t\textsubscript{1}}] at (550,305) {};
+            \node[extant gene={t\textsubscript{2}}] at (565,305) {};
             \node[duplication] at (557.5,290) {};
             \node[horizontal gene transfer] at (557.5,275) {};
-            \end{tikzpicture}
+            """).lstrip(),
+        )
+
+    def test_syntenies(self):
+        self.assertRender(
+            gene_text="""(
+                ((x_1,z_1)3,(w_1,w_2)4)2,
+                (
+                    ((x_2,y_4)7,((x_3,(y_1,(y_2,y_3)11)10)9,z_2)8)6,
+                    (w_3,(z_3,(t_1,t_2)14)13)12
+                )5
+            )1;""",
+            species_text="(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;",
+            rec_text=(
+                "1:XYZWT,2:XYZ,3:XYZ,4:W,5:XYZWT,6:XYZ,7:XY,"
+                "8:XYZ,9:XY,10:Y,11:Y,12:WT,13:T,14:T"
+            ),
+            labeling_text=(
+                "1:abcdefg,2:abcd,3:abcd,x_1:abcd,z_1:abcd,4:abc,w_1:ab,"
+                "w_2:abc,5:abcdefg,6:abcdefg,7:defg,x_2:defg,y_4:def,8:cdef,"
+                "9:cdef,x_3:cdef,10:cdef,y_1:cef,11:cde,y_2:cde,y_3:cde,"
+                "z_2:cef,12:defg,w_3:defg,13:defg,z_3:defg,14:defg,t_1:def,"
+                "t_2:defg"
+            ),
+            expect=textwrap.dedent(r"""
+            % species
+            \draw[species border] (225,75) |- (365,20) -- (365,0);
+            \draw[species border] (530,195) |- (420,20) -- (420,0);
+            \draw[species border] (295,75) |- (365,75) -| (490,195);
+            \draw[species border] (70,165) |- (225,95) -- (225,75);
+            \draw[species border] (365,285) |- (295,95) -- (295,75);
+            \draw[species border] (140,165) |- (225,165) -| (295,285);
+            \draw[species border] (0,285) |- (70,185) -- (70,165);
+            \draw[species border] (225,255) |- (140,185) -- (140,165);
+            \draw[species border] (70,285) |- (70,255) -| (140,255);
+            \draw[species border] (0,285) -- ([yshift=-16pt]0,305) -- node[species label] {X} ([yshift=-16pt]70,305) -- (70,285);
+            \draw[species border] (140,255) -- ([yshift=-16pt]140,305) -- node[species label] {Y} ([yshift=-16pt]225,305) -- (225,255);
+            \draw[species border] (295,285) -- ([yshift=-16pt]295,305) -- node[species label] {Z} ([yshift=-16pt]365,305) -- (365,285);
+            \draw[species border] (420,270) |- (490,215) -- (490,195);
+            \draw[species border] (585,255) |- (530,215) -- (530,195);
+            \draw[species border] (490,270) |- (490,255) -| (530,255);
+            \draw[species border] (420,270) -- ([yshift=-16pt]420,305) -- node[species label] {W} ([yshift=-16pt]490,305) -- (490,270);
+            \draw[species border] (530,255) -- ([yshift=-16pt]530,305) -- node[species label] {T} ([yshift=-16pt]585,305) -- (585,255);
+            % gene branches
+            \draw[branch] (267.5,75) |- (385,40) -| (510,195);
+            \draw[loss] (400,55) -- ++(20pt, 0);
+            \draw[branch] (400,55) -| (245,75);
+            \draw[branch] (392.5,20) -- (392.5,0);
+            \draw[branch] (400,55) |- (392.5,20) -| (385,40);
+            \draw[branch] (120,165) |- (245,115) -| (315,285);
+            \draw[branch] (105,165) |- (260,130) -| (330,285);
+            \draw[branch] (245,95) -- (245,75);
+            \draw[branch] (245,115) |- (245,95);
+            \draw[loss] (275,145) -- ++(20pt, 0);
+            \draw[branch] (275,145) -| (90,165);
+            \draw[branch] (267.5,95) -- (267.5,75);
+            \draw[branch] (275,145) |- (267.5,95) -| (260,130);
+            \draw[branch] (90,205) -- (90,165);
+            \draw[branch] (35,285) |- (90,205) -| (160,255);
+            \draw[branch] (105,220) -- (105,165);
+            \draw[branch] (50,285) |- (105,220) -| (186.25,255);
+            \draw[branch] (120,235) -- (120,165);
+            \draw[loss] (120,235) -- ++(20pt, 0);
+            \draw[branch] (120,235) -| (20,285);
+            \draw[branch] (20,305) -- (20,285);
+            \draw[branch] (35,305) -- (35,285);
+            \draw[branch] (50,305) -- (50,285);
+            \draw[branch] (160,305) -- (160,255);
+            \draw[branch] (190,305) |- (197.5,290) -| (205,305);
+            \draw[branch] (186.25,275) -- (186.25,255);
+            \draw[branch] (175,305) |- (186.25,275) -| (197.5,290);
+            \draw[branch] (315,305) -- (315,285);
+            \draw[branch] (330,305) -- (330,285);
+            \draw[branch] (345,305) -- (345,285);
+            \draw[branch] (510,235) -- (510,195);
+            \draw[branch] (470,270) |- (510,235) -| (557.5,255);
+            \draw[branch] (470,305) -- (470,270);
+            \draw[branch] (447.5,290) -- (447.5,270);
+            \draw[branch] (440,305) |- (447.5,290) -| (455,305);
+            \draw[branch] (550,305) |- (557.5,290) -| (565,305);
+            \draw[branch] (557.5,275) -- (557.5,255);
+            \draw[branch] (557.5,290) |- (557.5,275);
+            % gene transfers
+            \draw[transfer branch] (245,95) to[bend left=35] (447.5,270);
+            \draw[transfer branch] (557.5,275) to[bend right=35] (345,285);
+            % events
+            \node[speciation] at (385,40) {abcdefg};
+            \node[duplication] at (392.5,20) {abcdefg};
+            \node[speciation] at (245,115) {abcd};
+            \node[speciation] at (260,130) {cdef};
+            \node[horizontal gene transfer] at (245,95) {abcd};
+            \node[duplication] at (267.5,95) {abcdefg};
+            \node[speciation] at (90,205) {defg};
+            \node[speciation] at (105,220) {cdef};
+            \node[extant gene={abcd}] at (20,305) {};
+            \node[extant gene={defg}] at (35,305) {};
+            \node[extant gene={cdef}] at (50,305) {};
+            \node[extant gene={def}] at (160,305) {};
+            \node[extant gene={cef}] at (175,305) {};
+            \node[extant gene={cde}] at (190,305) {};
+            \node[extant gene={cde}] at (205,305) {};
+            \node[duplication] at (197.5,290) {cde};
+            \node[duplication] at (186.25,275) {cdef};
+            \node[extant gene={abcd}] at (315,305) {};
+            \node[extant gene={cef}] at (330,305) {};
+            \node[extant gene={defg}] at (345,305) {};
+            \node[speciation] at (510,235) {defg};
+            \node[extant gene={ab}] at (440,305) {};
+            \node[extant gene={abc}] at (455,305) {};
+            \node[extant gene={defg}] at (470,305) {};
+            \node[duplication] at (447.5,290) {abc};
+            \node[extant gene={def}] at (550,305) {};
+            \node[extant gene={defg}] at (565,305) {};
+            \node[duplication] at (557.5,290) {defg};
+            \node[horizontal gene transfer] at (557.5,275) {defg};
             """).lstrip(),
         )

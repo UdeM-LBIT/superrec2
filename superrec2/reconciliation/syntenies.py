@@ -7,85 +7,18 @@ from ..utils.subsequences import (
     subseq_from_mask,
     subseq_segment_dist,
 )
-from .tools import Event, get_event, Reconciliation
+from .tools import Labeling, Event, get_event, Reconciliation
 from collections import defaultdict
 from ete3 import PhyloTree, PhyloNode
 from infinity import inf
-from typing import Any, DefaultDict, Dict, List, Mapping, Sequence, Set, Tuple
-
-
-Syntenies = Mapping[PhyloNode, Sequence[Any]]
-
-
-def get_cost(
-    gene_tree: PhyloTree,
-    species_lca: LowestCommonAncestor,
-    rec: Reconciliation,
-    labeling: Syntenies,
-) -> int:
-    """
-    Compute the cost of a synteny labeling.
-
-    :param gene_tree: reconciled gene tree
-    :param species_lca: ancestry information about the reconciled species tree
-    :param rec: reconciliation to use
-    :param labeling: synteny labeling
-    """
-    total_cost = 0
-    root_syn = labeling[gene_tree]
-    masks = {
-        gene_tree: subseq_complete(root_syn)
-    }
-
-    for sub_gene in gene_tree.traverse("preorder"):
-        if not sub_gene.is_leaf():
-            event = get_event(sub_gene, species_lca, rec)
-            sub_mask = masks[sub_gene]
-            left_gene, right_gene = sub_gene.children
-
-            left_syn = labeling[left_gene]
-            left_mask = masks[left_gene] = \
-                mask_from_subseq(left_syn, root_syn)
-
-            right_syn = labeling[right_gene]
-            right_mask = masks[right_gene] = \
-                mask_from_subseq(right_syn, root_syn)
-
-            if event == Event.Speciation:
-                total_cost += (
-                    subseq_segment_dist(left_mask, sub_mask, True)
-                    + subseq_segment_dist(right_mask, sub_mask, True)
-                )
-            elif event == Event.Duplication:
-                total_cost += min(
-                    (
-                        subseq_segment_dist(left_mask, sub_mask, True)
-                        + subseq_segment_dist(right_mask, sub_mask, False)
-                    ),
-                    (
-                        subseq_segment_dist(left_mask, sub_mask, False)
-                        + subseq_segment_dist(right_mask, sub_mask, True)
-                    )
-                )
-            elif event == Event.HorizontalGeneTransfer:
-                keep_left = species_lca.is_comparable(
-                    rec[sub_gene], rec[left_gene]
-                )
-                total_cost += (
-                    subseq_segment_dist(left_mask, sub_mask, keep_left)
-                    + subseq_segment_dist(right_mask, sub_mask, not keep_left)
-                )
-            else:
-                raise ValueError("Invalid event")
-
-    return total_cost
+from typing import Any, DefaultDict, Dict, List, Sequence, Set, Tuple
 
 
 def _compute_spfs_table(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
     rec: Reconciliation,
-    known_syntenies: Syntenies,
+    known_syntenies: Labeling,
 ) -> Dict[PhyloNode, DefaultDict[int, ExtendedIntegral]]:
     root_synt = known_syntenies[gene_tree]
     subseq_count = 2 ** len(root_synt)
@@ -181,7 +114,7 @@ def _decode_spfs_table(
     root_synteny: Sequence[Any],
     sub_synteny: int,
     costs: Dict[PhyloNode, DefaultDict[int, ExtendedIntegral]],
-) -> Syntenies:
+) -> Labeling:
     resolv_synteny = subseq_from_mask(sub_synteny, root_synteny)
 
     if sub_gene.is_leaf():
@@ -201,8 +134,8 @@ def _label_with_root_order(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
     rec: Reconciliation,
-    known_syntenies: Syntenies,
-) -> Tuple[int, Syntenies]:
+    known_syntenies: Labeling,
+) -> Tuple[int, Labeling]:
     costs = _compute_spfs_table(gene_tree, species_lca, rec, known_syntenies)
 
     root_synteny = known_syntenies[gene_tree]
@@ -219,8 +152,8 @@ def label_ancestral_syntenies(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
     rec: Reconciliation,
-    leaf_labeling: Syntenies,
-) -> Tuple[ExtendedIntegral, List[Syntenies]]:
+    leaf_labeling: Labeling,
+) -> Tuple[ExtendedIntegral, List[Labeling]]:
     """
     Find a minimum-cost ancestral synteny labeling for a super-reconciliation.
 

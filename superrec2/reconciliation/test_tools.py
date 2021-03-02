@@ -4,7 +4,7 @@ from ..utils.lowest_common_ancestor import LowestCommonAncestor
 from .tools import (
     CostType,
     Event,
-    get_cost,
+    get_reconciliation_cost,
     get_event,
     get_species_name,
     parse_reconciliation,
@@ -121,7 +121,7 @@ class TestReconciliationTools(unittest.TestCase):
                 self.species_lca, self.rec,
             ), event)
 
-    def test_get_cost(self):
+    def test_get_reconciliation_cost(self):
         expected_costs = {
             (1, 0, 0): 6,
             (0, 1, 0): 2,
@@ -130,7 +130,7 @@ class TestReconciliationTools(unittest.TestCase):
         }
 
         for (dup, hgt, loss), value in expected_costs.items():
-            self.assertEqual(get_cost(
+            self.assertEqual(get_reconciliation_cost(
                 self.gene_tree,
                 self.species_lca,
                 self.rec,

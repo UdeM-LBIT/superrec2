@@ -28,7 +28,7 @@ class TestReconciliationCompute(unittest.TestCase):
         )
 
         self.assertEqual(
-            rec.tools.get_cost(
+            rec.tools.get_reconciliation_cost(
                 gene_tree,
                 species_lca,
                 result,
@@ -64,7 +64,7 @@ class TestReconciliationCompute(unittest.TestCase):
         self.assertEqual(len(results), 2)
 
         for result in results:
-            self.assertEqual(rec.tools.get_cost(
+            self.assertEqual(rec.tools.get_reconciliation_cost(
                 gene_tree,
                 species_lca,
                 result,

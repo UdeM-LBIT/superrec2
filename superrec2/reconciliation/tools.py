@@ -1,12 +1,18 @@
 from enum import Enum, auto
-from typing import Mapping
+from typing import Any, Mapping, Sequence
 from ete3 import PhyloTree, PhyloNode
 from infinity import inf
 from ..utils.lowest_common_ancestor import LowestCommonAncestor
 from ..utils.min_sequence import ExtendedIntegral
+from ..utils.subsequences import (
+    subseq_complete,
+    mask_from_subseq,
+    subseq_segment_dist,
+)
 
 
 Reconciliation = Mapping[PhyloNode, PhyloNode]
+Labeling = Mapping[PhyloNode, Sequence[Any]]
 
 
 def get_species_name(gene_name):
@@ -96,7 +102,7 @@ class CostType(Enum):
 CostVector = Mapping[CostType, ExtendedIntegral]
 
 
-def get_cost(
+def get_reconciliation_cost(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
     rec: Reconciliation,
@@ -119,9 +125,9 @@ def get_cost(
         return 0
 
     vl, vr = gene_tree.children
-    cost_vl = get_cost(vl, species_lca, rec, costs)
+    cost_vl = get_reconciliation_cost(vl, species_lca, rec, costs)
     dist_vl = species_lca.distance(rec[gene_tree], rec[vl])
-    cost_vr = get_cost(vr, species_lca, rec, costs)
+    cost_vr = get_reconciliation_cost(vr, species_lca, rec, costs)
     dist_vr = species_lca.distance(rec[gene_tree], rec[vr])
 
     if event == Event.Speciation:
@@ -148,6 +154,70 @@ def get_cost(
         + cost_vl + cost_vr
         + costs[CostType.Loss] * dist_conserved
     )
+
+
+def get_labeling_cost(
+    gene_tree: PhyloTree,
+    species_lca: LowestCommonAncestor,
+    rec: Reconciliation,
+    labeling: Labeling,
+) -> int:
+    """
+    Compute the cost of a synteny labeling.
+
+    :param gene_tree: reconciled gene tree
+    :param species_lca: ancestry information about the reconciled species tree
+    :param rec: reconciliation to use
+    :param labeling: synteny labeling
+    """
+    total_cost = 0
+    root_syn = labeling[gene_tree]
+    masks = {
+        gene_tree: subseq_complete(root_syn)
+    }
+
+    for sub_gene in gene_tree.traverse("preorder"):
+        if not sub_gene.is_leaf():
+            event = get_event(sub_gene, species_lca, rec)
+            sub_mask = masks[sub_gene]
+            left_gene, right_gene = sub_gene.children
+
+            left_syn = labeling[left_gene]
+            left_mask = masks[left_gene] = \
+                mask_from_subseq(left_syn, root_syn)
+
+            right_syn = labeling[right_gene]
+            right_mask = masks[right_gene] = \
+                mask_from_subseq(right_syn, root_syn)
+
+            if event == Event.Speciation:
+                total_cost += (
+                    subseq_segment_dist(left_mask, sub_mask, True)
+                    + subseq_segment_dist(right_mask, sub_mask, True)
+                )
+            elif event == Event.Duplication:
+                total_cost += min(
+                    (
+                        subseq_segment_dist(left_mask, sub_mask, True)
+                        + subseq_segment_dist(right_mask, sub_mask, False)
+                    ),
+                    (
+                        subseq_segment_dist(left_mask, sub_mask, False)
+                        + subseq_segment_dist(right_mask, sub_mask, True)
+                    )
+                )
+            elif event == Event.HorizontalGeneTransfer:
+                keep_left = species_lca.is_comparable(
+                    rec[sub_gene], rec[left_gene]
+                )
+                total_cost += (
+                    subseq_segment_dist(left_mask, sub_mask, keep_left)
+                    + subseq_segment_dist(right_mask, sub_mask, not keep_left)
+                )
+            else:
+                raise ValueError("Invalid event")
+
+    return total_cost
 
 
 def reconcile_leaves(
@@ -186,5 +256,25 @@ def parse_reconciliation(
         if pair.strip():
             gene, species = pair.split(":")
             result[gene_tree & gene.strip()] = species_tree & species.strip()
+
+    return result
+
+def parse_labeling(
+    gene_tree: PhyloTree,
+    source: str
+) -> Labeling:
+    """
+    Parse a string representation of a synteny labeling.
+
+    :param gene_tree: labeled gene tree
+    :param source: string to parse
+    :returns: parsed labeling
+    """
+    result: Labeling = {}
+
+    for pair in source.split(","):
+        if pair.strip():
+            node, synteny = pair.split(":")
+            result[gene_tree & node.strip()] = list(synteny.strip())
 
     return result

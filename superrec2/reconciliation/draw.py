@@ -6,7 +6,7 @@ from ..utils.geometry import Position, Rect, Size
 from ..utils.lowest_common_ancestor import LowestCommonAncestor
 from ..utils.mappings import invert_mapping
 from ..utils.toposort import tree_nodes_toposort
-from ..reconciliation.tools import Event, get_event, Reconciliation
+from ..reconciliation.tools import Event, get_event, Reconciliation, Labeling
 
 
 class BranchKind(Enum):
@@ -462,6 +462,7 @@ def render_to_tikz(
     species_tree: PhyloTree,
     rec: Reconciliation,
     layout: Layout,
+    labeling: Labeling = {},
     params: RenderParams = RenderParams(),
 ):
     r"""
@@ -490,6 +491,8 @@ def render_to_tikz(
     :param species_tree: host species tree
     :param rec: mapping of the gene tree onto the species tree
     :param layout: reconciliation layout as computed by :meth:`layout`
+    :param labeling: synteny labeling to display on the gene nodes
+        (leave empty to only show extant gene names)
     :param params: render parameters
     :returns: generated TikZ code
     """
@@ -535,11 +538,11 @@ def render_to_tikz(
             }},
             branch node/.style={{
                 draw, fill=white,
-                outer sep=0pt, inner sep=0pt,
+                outer sep=0pt, inner ysep=2pt,
                 line width={{{params.branch_thickness}}},
             }},
             speciation/.style={{
-                branch node, circle,
+                branch node, rounded rectangle,
                 minimum width={{{params.speciation_diameter}}},
                 minimum height={{{params.speciation_diameter}}},
             }},
@@ -549,7 +552,8 @@ def render_to_tikz(
                 minimum height={{{params.duplication_size}}},
             }},
             horizontal gene transfer/.style={{
-                branch node, diamond,
+                branch node, signal, signal to=east and west,
+                inner xsep=0pt,
                 minimum width={{{params.transfer_size}}},
                 minimum height={{{params.transfer_size}}},
             }},
@@ -628,11 +632,25 @@ def render_to_tikz(
                 });""")
 
             if branch.kind == BranchKind.Leaf:
+                if root_gene in labeling:
+                    name = "".join(labeling[root_gene])
+                else:
+                    species_name, gene_name = root_gene.name.split("_")
+                    name = rf"{species_name}\textsubscript{{{gene_name}}}"
+
                 layers["events"].append(
-                    rf"\node[extant gene={{\({root_gene.name}\)}}] "
+                    rf"\node[extant gene={{{name}}}] "
                     rf"at ({branch_pos}) {{}};"
                 )
-            elif branch.kind == BranchKind.FullLoss:
+                continue
+
+            name = (
+                rf"{''.join(labeling[root_gene])}"
+                if root_gene in labeling
+                else ""
+            )
+
+            if branch.kind == BranchKind.FullLoss:
                 if right_gene is None:
                     loss_pos = f"{params.full_loss_size}, 0"
                     keep_pos = left_layout.get_anchor_pos(left_gene)
@@ -653,7 +671,7 @@ def render_to_tikz(
                     right_layout.get_anchor_pos(right_gene)
                 });""")
                 layers["events"].append(
-                    rf"\node[speciation] at ({branch_pos}) {{}};"
+                    rf"\node[speciation] at ({branch_pos}) {{{name}}};"
                 )
             elif branch.kind == BranchKind.Duplication:
                 layers["gene branches"].append(rf"""\draw[branch] ({
@@ -662,7 +680,7 @@ def render_to_tikz(
                     trunk_offset + node_layout.branches[right_gene].pos
                 });""")
                 layers["events"].append(
-                    rf"\node[duplication] at ({branch_pos}) {{}};"
+                    rf"\node[duplication] at ({branch_pos}) {{{name}}};"
                 )
             elif branch.kind == BranchKind.HorizontalGeneTransfer:
                 foreign_layout = layout[rec[right_gene]]
@@ -680,7 +698,7 @@ def render_to_tikz(
                 }) to[{bend_direction}=35] ({foreign_pos});""")
                 layers["events"].append(
                     r"\node[horizontal gene transfer] at "
-                    rf"({branch_pos}) {{}};"
+                    rf"({branch_pos}) {{{name}}};"
                 )
 
     for name, layer in layers.items():
