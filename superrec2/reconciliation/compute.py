@@ -1,13 +1,16 @@
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from itertools import product
-from typing import List, Tuple
-from ete3 import PhyloTree
+from typing import List, NamedTuple, Tuple
+from ete3 import PhyloTree, PhyloNode
 from ..utils.lowest_common_ancestor import LowestCommonAncestor
 from ..utils.min_sequence import MinSequence
 from .tools import CostType, CostVector, ExtendedIntegral, Reconciliation
 
 
-MappingInfo = namedtuple('MappingInfo', ['species', 'left', 'right'])
+class MappingInfo(NamedTuple):
+    species: PhyloNode
+    left: PhyloNode
+    right: PhyloNode
 
 
 def reconcile_lca(
