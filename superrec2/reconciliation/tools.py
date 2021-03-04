@@ -1,5 +1,6 @@
 from enum import Enum, auto
-from typing import Any, Mapping, Sequence
+from itertools import product
+from typing import Any, Generator, Mapping, Sequence
 from ete3 import PhyloTree, PhyloNode
 from infinity import inf
 from ..utils.lowest_common_ancestor import LowestCommonAncestor
@@ -236,6 +237,57 @@ def reconcile_leaves(
         for gene_leaf in gene_tree.get_leaves()
     }
 
+
+def reconcile_all(
+    gene_tree: PhyloTree,
+    species_tree: PhyloTree,
+    species_lca: LowestCommonAncestor,
+) -> Generator[Reconciliation, None, None]:
+    """
+    Generate all valid reconciliations.
+
+    :param gene_tree: gene tree to reconcile
+    :param species_tree: species tree to reconcile
+    :param species_lca: species ancestry information
+    :returns: all valid mappings of the gene tree onto the species tree
+    """
+    if gene_tree.is_leaf():
+        yield {gene_tree: species_tree & gene_tree.species}
+        return
+
+    left_gene, right_gene = gene_tree.children
+
+    for map_left, map_right in product(
+        reconcile_all(left_gene, species_tree, species_lca),
+        reconcile_all(right_gene, species_tree, species_lca),
+    ):
+        left_species = map_left[left_gene]
+        right_species = map_right[right_gene]
+        lca = species_lca(left_species, right_species)
+
+        parent_species = lca
+        while parent_species != None:
+            yield {
+                gene_tree: parent_species,
+                **map_left, **map_right,
+            }
+            parent_species = parent_species.up
+
+        for (transfer_target, other_target) in (
+            (left_species, right_species),
+            (right_species, left_species),
+        ):
+            if species_lca.is_ancestor_of(other_target, transfer_target):
+                continue
+
+            transfer_species = transfer_target
+
+            while transfer_species != lca:
+                yield {
+                    gene_tree: transfer_species,
+                    **map_left, **map_right,
+                }
+                transfer_species = transfer_species.up
 
 def parse_reconciliation(
     gene_tree: PhyloTree,

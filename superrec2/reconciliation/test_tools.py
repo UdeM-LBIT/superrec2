@@ -9,6 +9,7 @@ from .tools import (
     get_species_name,
     parse_reconciliation,
     reconcile_leaves,
+    reconcile_all,
 )
 
 class TestReconciliationTools(unittest.TestCase):
@@ -140,3 +141,148 @@ class TestReconciliationTools(unittest.TestCase):
                     CostType.Loss: loss,
                 }
             ), value)
+
+    def test_reconcile_all(self):
+        gene_tree = PhyloTree(
+            "((x_1,x_2)2,(y_1,z_1)3)1;",
+            sp_naming_function=get_species_name, format=1
+        )
+
+        gene_1 = gene_tree & "1"
+        gene_2 = gene_tree & "2"
+        gene_3 = gene_tree & "3"
+
+        species_tree = PhyloTree("(X,(Y,Z)YZ)XYZ;", format=1)
+
+        species_x = species_tree & "X"
+        species_y = species_tree & "Y"
+        species_z = species_tree & "Z"
+        species_yz = species_tree & "YZ"
+        species_xyz = species_tree & "XYZ"
+
+        species_lca = LowestCommonAncestor(species_tree)
+
+        recs = list(reconcile_all(gene_tree, species_tree, species_lca))
+        leaves = reconcile_leaves(gene_tree, species_tree)
+
+        # Check that all valid reconciliations are generated
+        self.assertEqual(len(recs), 16)
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_yz,
+            gene_1: species_xyz,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_yz,
+            gene_1: species_x,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_yz,
+            gene_1: species_yz,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_xyz,
+            gene_1: species_xyz,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_y,
+            gene_1: species_yz,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_y,
+            gene_1: species_xyz,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_y,
+            gene_1: species_x,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_y,
+            gene_1: species_y,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_z,
+            gene_1: species_yz,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_z,
+            gene_1: species_xyz,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_z,
+            gene_1: species_x,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_x,
+            gene_3: species_z,
+            gene_1: species_z,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_xyz,
+            gene_3: species_yz,
+            gene_1: species_xyz,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_xyz,
+            gene_3: species_xyz,
+            gene_1: species_xyz,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_xyz,
+            gene_3: species_y,
+            gene_1: species_xyz,
+        }, recs)
+
+        self.assertIn({
+            **leaves,
+            gene_2: species_xyz,
+            gene_3: species_z,
+            gene_1: species_xyz,
+        }, recs)
+
+        # Check that all the generated reconciliations are valid
+        for rec in recs:
+            for gene in rec:
+                self.assertNotEqual(
+                    get_event(gene, species_lca, rec),
+                    Event.Invalid,
+                )
