@@ -180,8 +180,10 @@ def label_ancestral_syntenies(
         for leaf_synteny in leaf_labeling.values():
             for gene_1, gene_2 in zip(leaf_synteny[0:-1], leaf_synteny[1:]):
                 if gene_1 not in prec: prec[gene_1] = set()
-                if gene_2 not in prec: prec[gene_2] = set()
                 prec[gene_1].add(gene_2)
+
+            if leaf_synteny[-1] not in prec:
+                prec[leaf_synteny[-1]] = set()
 
         for order in toposort_all(prec):
             results.update(

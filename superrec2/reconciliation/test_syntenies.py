@@ -116,6 +116,30 @@ class TestReconciliationSyntenies(unittest.TestCase):
             expected_labelings=[],
         )
 
+        # Test 5: Single gene
+        input_5 = {
+            gene_tree & "x_1": list("a"),
+            gene_tree & "y_1": list("a"),
+            gene_tree & "z_1": list("b"),
+        }
+
+        self.assertLabelingEquals(
+            gene_tree, species_lca, rec_result, input_5,
+            expected_cost=2,
+            expected_labelings=[
+                {
+                    **input_5,
+                    gene_tree & "2": list("a"),
+                    gene_tree & "1": list("ab"),
+                },
+                {
+                    **input_5,
+                    gene_tree & "2": list("a"),
+                    gene_tree & "1": list("ba"),
+                },
+            ],
+        )
+
     def test_duplications(self):
         gene_tree = PhyloTree(
             "((x_1,x_2)2,y_1)1;",
