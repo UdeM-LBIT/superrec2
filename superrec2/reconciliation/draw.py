@@ -207,6 +207,9 @@ def _layout_compute_branches(
             if not gene.is_leaf()
         ])
 
+        if not root_species.is_leaf():
+            left_species, right_species = root_species.children
+
         for root_gene in internal_genes:
             left_gene, right_gene = root_gene.children
             event = get_event(root_gene, species_lca, rec)
@@ -214,6 +217,12 @@ def _layout_compute_branches(
             if event == Event.Speciation:
                 # Speciation nodes are located below the trunk
                 # and linked to child species’s gene anchors
+
+                if species_lca.is_ancestor_of(left_species, rec[right_gene]):
+                    # Left gene and right gene are swapped relative
+                    # to the left and right species
+                    left_gene, right_gene = right_gene, left_gene
+
                 left_gene = add_losses(
                     left_gene, rec[left_gene], root_species)
                 right_gene = add_losses(

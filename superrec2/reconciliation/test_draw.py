@@ -237,6 +237,46 @@ class TestReconciliationDraw(unittest.TestCase):
             """).lstrip(),
         )
 
+    def test_speciation_swapped(self):
+        self.assertRender(
+            gene_text="(w_1,x_1)1;",
+            species_text="((X,Y)XY,(Z,W)ZW)XYZW;",
+            rec_text="1:XYZW",
+            labeling_text="",
+            expect=textwrap.dedent(r"""
+            % species
+            \draw[species border] (40,60) |- (120,20) -- (120,0);
+            \draw[species border] (240,60) |- (160,20) -- (160,0);
+            \draw[species border] (80,60) |- (120,60) -| (200,60);
+            \draw[species border] (0,120) |- (40,80) -- (40,60);
+            \draw[species border] (120,120) |- (80,80) -- (80,60);
+            \draw[species border] (40,120) |- (40,120) -| (80,120);
+            \draw[species border] (0,120) -- ([yshift=-16pt]0,140) -- node[species label] {X} ([yshift=-16pt]40,140) -- (40,120);
+            \draw[species border] (80,120) -- ([yshift=-16pt]80,140) -- node[species label] {Y} ([yshift=-16pt]120,140) -- (120,120);
+            \draw[species border] (160,120) |- (200,80) -- (200,60);
+            \draw[species border] (280,120) |- (240,80) -- (240,60);
+            \draw[species border] (200,120) |- (200,120) -| (240,120);
+            \draw[species border] (160,120) -- ([yshift=-16pt]160,140) -- node[species label] {Z} ([yshift=-16pt]200,140) -- (200,120);
+            \draw[species border] (240,120) -- ([yshift=-16pt]240,140) -- node[species label] {W} ([yshift=-16pt]280,140) -- (280,120);
+            % gene branches
+            \draw[branch] (140,40) -- (140,0);
+            \draw[branch] (60,60) |- (140,40) -| (220,60);
+            \draw[branch] (60,100) -- (60,60);
+            \draw[loss] (60,100) -- ++(20pt, 0);
+            \draw[branch] (60,100) -| (20,120);
+            \draw[branch] (20,140) -- (20,120);
+            \draw[branch] (220,100) -- (220,60);
+            \draw[loss] (220,100) -- ++(-20pt, 0);
+            \draw[branch] (220,100) -| (260,120);
+            \draw[branch] (260,140) -- (260,120);
+            % gene transfers
+            % events
+            \node[speciation] at (140,40) {};
+            \node[extant gene={x\textsubscript{1}}] at (20,140) {};
+            \node[extant gene={w\textsubscript{1}}] at (260,140) {};
+            """).lstrip(),
+        )
+
     def test_duplications_losses(self):
         self.assertRender(
             gene_text="(z_3,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;",
@@ -338,6 +378,46 @@ class TestReconciliationDraw(unittest.TestCase):
             \node[extant gene={y\textsubscript{2}}] at (205,140) {};
             \node[extant gene={y\textsubscript{3}}] at (220,140) {};
             \node[extant gene={y\textsubscript{4}}] at (235,140) {};
+            """).lstrip(),
+        )
+
+    def test_duplication_swapped(self):
+        self.assertRender(
+            gene_text="(y_1,x_1)1;",
+            species_text="((X,Y)XY,Z)XYZ;",
+            rec_text="1:XYZ",
+            labeling_text="",
+            expect=textwrap.dedent(r"""
+            % species
+            \draw[species border] (40,75) |- (135,20) -- (135,0);
+            \draw[species border] (230,150) |- (190,20) -- (190,0);
+            \draw[species border] (95,75) |- (135,75) -| (190,150);
+            \draw[species border] (0,150) |- (40,95) -- (40,75);
+            \draw[species border] (135,150) |- (95,95) -- (95,75);
+            \draw[species border] (40,150) |- (40,150) -| (95,150);
+            \draw[species border] (0,150) -- ([yshift=-16pt]0,170) -- node[species label] {X} ([yshift=-16pt]40,170) -- (40,150);
+            \draw[species border] (95,150) -- ([yshift=-16pt]95,170) -- node[species label] {Y} ([yshift=-16pt]135,170) -- (135,150);
+            \draw[species border] (190,150) -- ([yshift=-16pt]190,170) -- node[species label] {Z} ([yshift=-16pt]230,170) -- (230,150);
+            % gene branches
+            \draw[loss] (155,40) -- ++(20pt, 0);
+            \draw[branch] (155,40) -| (60,75);
+            \draw[loss] (170,55) -- ++(20pt, 0);
+            \draw[branch] (170,55) -| (75,75);
+            \draw[branch] (162.5,20) -- (162.5,0);
+            \draw[branch] (155,40) |- (162.5,20) -| (170,55);
+            \draw[branch] (60,115) -- (60,75);
+            \draw[loss] (60,115) -- ++(-20pt, 0);
+            \draw[branch] (60,115) -| (115,150);
+            \draw[branch] (75,130) -- (75,75);
+            \draw[loss] (75,130) -- ++(20pt, 0);
+            \draw[branch] (75,130) -| (20,150);
+            \draw[branch] (20,170) -- (20,150);
+            \draw[branch] (115,170) -- (115,150);
+            % gene transfers
+            % events
+            \node[duplication] at (162.5,20) {};
+            \node[extant gene={x\textsubscript{1}}] at (20,170) {};
+            \node[extant gene={y\textsubscript{1}}] at (115,170) {};
             """).lstrip(),
         )
 
