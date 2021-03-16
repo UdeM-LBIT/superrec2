@@ -2,7 +2,8 @@ import os
 import subprocess
 import shutil
 import tempfile
-from typing import List, NamedTuple
+from typing import Iterable, List, NamedTuple
+from .geometry import Size
 
 
 class TeXError(Exception):
@@ -55,21 +56,26 @@ class MeasureBox(NamedTuple):
     :attr height: height of the box above its baseline in points
     :attr depth: height of the box below its baseline in points
     """
-    width: int
-    height: int
-    depth: int
+    width: float
+    height: float
+    depth: float
+
+    def overall_size(self) -> Size:
+        return Size(w=self.width, h=self.height + self.depth)
 
 
-def measure(texts: List[str]) -> List[MeasureBox]:
+def measure(texts: Iterable[str], preamble="") -> List[MeasureBox]:
     """
-    Measure dimensions of text pieces.
+    Measure dimensions of TeX boxes.
 
     :param texts: list of text strings to measure
+    :param preamble: modules to load and macro definitions
     :raises TeXError: if a TeX error occurs
     :returns: list of measurements for each input string
     """
     src = (
         r"\documentclass{standalone}" "\n"
+        + preamble + "\n"
         r"\newsavebox{\measurebox}" "\n"
         r"\scrollmode" "\n"
     )
@@ -91,6 +97,9 @@ def measure(texts: List[str]) -> List[MeasureBox]:
 
     for line in out.splitlines():
         if line.startswith("$$$"):
-            boxes.append(MeasureBox(*line[3:].split(",")))
+            boxes.append(MeasureBox(*map(
+                lambda value: float(value.removesuffix("pt")),
+                line[3:].split(",")
+            )))
 
     return boxes

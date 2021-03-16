@@ -69,8 +69,8 @@ labeling = (
 )
 
 # Generate TikZ code
-layout_info = layout(gene_tree, species_tree, rec)
-tikz = render_to_tikz(species_tree, rec, layout_info, labeling)
+layout_info = layout(gene_tree, species_tree, rec, labeling)
+tikz = render_to_tikz(species_tree, rec, layout_info)
 
 # Generate output
 if args.output == "-":

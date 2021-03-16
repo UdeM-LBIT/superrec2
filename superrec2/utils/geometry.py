@@ -61,3 +61,7 @@ class Rect(NamedTuple):
     def bottom_left(self) -> Position:
         """Position of the lower left corner."""
         return Position(self.x, self.y + self.h)
+
+    def center(self) -> Position:
+        """Position of the center."""
+        return Position(self.x + self.w / 2, self.y + self.h / 2)
