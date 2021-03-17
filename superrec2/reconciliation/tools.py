@@ -31,6 +31,7 @@ def get_species_name(gene_name):
 
 class Event(Enum):
     """Evolutionary events affecting genes."""
+
     # Sentinel for extant (current) genes
     Leaf = auto()
 
@@ -62,31 +63,33 @@ def get_event(
     """
     if gene_node.is_leaf():
         return (
-            Event.Leaf if rec[gene_node].name == gene_node.species
+            Event.Leaf
+            if rec[gene_node].name == gene_node.species
             else Event.Invalid
         )
 
     vl, vr = gene_node.children
 
-    if (
-        species_lca.is_strict_ancestor_of(rec[vl], rec[gene_node])
-        or species_lca.is_strict_ancestor_of(rec[vr], rec[gene_node])
-    ):
+    if species_lca.is_strict_ancestor_of(
+        rec[vl], rec[gene_node]
+    ) or species_lca.is_strict_ancestor_of(rec[vr], rec[gene_node]):
         return Event.Invalid
 
-    if (
-        species_lca.is_ancestor_of(rec[gene_node], rec[vl])
-        and species_lca.is_ancestor_of(rec[gene_node], rec[vr])
-    ):
-        return Event.Speciation if (
-            rec[gene_node] == species_lca(rec[vl], rec[vr])
-            and not species_lca.is_comparable(rec[vl], rec[vr])
-        ) else Event.Duplication
+    if species_lca.is_ancestor_of(
+        rec[gene_node], rec[vl]
+    ) and species_lca.is_ancestor_of(rec[gene_node], rec[vr]):
+        return (
+            Event.Speciation
+            if (
+                rec[gene_node] == species_lca(rec[vl], rec[vr])
+                and not species_lca.is_comparable(rec[vl], rec[vr])
+            )
+            else Event.Duplication
+        )
 
-    if (
-        species_lca.is_ancestor_of(rec[gene_node], rec[vl])
-        or species_lca.is_ancestor_of(rec[gene_node], rec[vr])
-    ):
+    if species_lca.is_ancestor_of(
+        rec[gene_node], rec[vl]
+    ) or species_lca.is_ancestor_of(rec[gene_node], rec[vr]):
         return Event.HorizontalGeneTransfer
 
     return Event.Invalid
@@ -94,6 +97,7 @@ def get_event(
 
 class CostType(Enum):
     """Evolutionary events to which a cost can be assigned."""
+
     Duplication = auto()
     HorizontalGeneTransfer = auto()
     Loss = auto()
@@ -107,7 +111,7 @@ def get_reconciliation_cost(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
     rec: Reconciliation,
-    costs: CostVector
+    costs: CostVector,
 ) -> ExtendedIntegral:
     """
     Compute the total cost of a reconciliation.
@@ -133,26 +137,28 @@ def get_reconciliation_cost(
 
     if event == Event.Speciation:
         return (
-            cost_vl + cost_vr
-            + costs[CostType.Loss] * (dist_vl + dist_vr - 2)
+            cost_vl + cost_vr + costs[CostType.Loss] * (dist_vl + dist_vr - 2)
         )
 
     if event == Event.Duplication:
         return (
             costs[CostType.Duplication]
-            + cost_vl + cost_vr
+            + cost_vl
+            + cost_vr
             + costs[CostType.Loss] * (dist_vl + dist_vr)
         )
 
     assert event == Event.HorizontalGeneTransfer
 
     dist_conserved = (
-        dist_vl if species_lca.is_ancestor_of(rec[gene_tree], rec[vl])
+        dist_vl
+        if species_lca.is_ancestor_of(rec[gene_tree], rec[vl])
         else dist_vr
     )
     return (
         costs[CostType.HorizontalGeneTransfer]
-        + cost_vl + cost_vr
+        + cost_vl
+        + cost_vr
         + costs[CostType.Loss] * dist_conserved
     )
 
@@ -173,9 +179,7 @@ def get_labeling_cost(
     """
     total_cost = 0
     root_syn = labeling[gene_tree]
-    masks = {
-        gene_tree: subseq_complete(root_syn)
-    }
+    masks = {gene_tree: subseq_complete(root_syn)}
 
     for sub_gene in gene_tree.traverse("preorder"):
         if not sub_gene.is_leaf():
@@ -184,18 +188,17 @@ def get_labeling_cost(
             left_gene, right_gene = sub_gene.children
 
             left_syn = labeling[left_gene]
-            left_mask = masks[left_gene] = \
-                mask_from_subseq(left_syn, root_syn)
+            left_mask = masks[left_gene] = mask_from_subseq(left_syn, root_syn)
 
             right_syn = labeling[right_gene]
-            right_mask = masks[right_gene] = \
-                mask_from_subseq(right_syn, root_syn)
+            right_mask = masks[right_gene] = mask_from_subseq(
+                right_syn, root_syn
+            )
 
             if event == Event.Speciation:
-                total_cost += (
-                    subseq_segment_dist(left_mask, sub_mask, True)
-                    + subseq_segment_dist(right_mask, sub_mask, True)
-                )
+                total_cost += subseq_segment_dist(
+                    left_mask, sub_mask, True
+                ) + subseq_segment_dist(right_mask, sub_mask, True)
             elif event == Event.Duplication:
                 total_cost += min(
                     (
@@ -205,16 +208,15 @@ def get_labeling_cost(
                     (
                         subseq_segment_dist(left_mask, sub_mask, False)
                         + subseq_segment_dist(right_mask, sub_mask, True)
-                    )
+                    ),
                 )
             elif event == Event.HorizontalGeneTransfer:
                 keep_left = species_lca.is_comparable(
                     rec[sub_gene], rec[left_gene]
                 )
-                total_cost += (
-                    subseq_segment_dist(left_mask, sub_mask, keep_left)
-                    + subseq_segment_dist(right_mask, sub_mask, not keep_left)
-                )
+                total_cost += subseq_segment_dist(
+                    left_mask, sub_mask, keep_left
+                ) + subseq_segment_dist(right_mask, sub_mask, not keep_left)
             else:
                 raise ValueError("Invalid event")
 
@@ -269,7 +271,8 @@ def reconcile_all(
         while parent_species != None:
             yield {
                 gene_tree: parent_species,
-                **map_left, **map_right,
+                **map_left,
+                **map_right,
             }
             parent_species = parent_species.up
 
@@ -285,14 +288,14 @@ def reconcile_all(
             while transfer_species != lca:
                 yield {
                     gene_tree: transfer_species,
-                    **map_left, **map_right,
+                    **map_left,
+                    **map_right,
                 }
                 transfer_species = transfer_species.up
 
+
 def parse_reconciliation(
-    gene_tree: PhyloTree,
-    species_tree: PhyloTree,
-    source: str
+    gene_tree: PhyloTree, species_tree: PhyloTree, source: str
 ) -> Reconciliation:
     """
     Parse a string representation of a reconciliation.
@@ -311,10 +314,8 @@ def parse_reconciliation(
 
     return result
 
-def parse_labeling(
-    gene_tree: PhyloTree,
-    source: str
-) -> Labeling:
+
+def parse_labeling(gene_tree: PhyloTree, source: str) -> Labeling:
     """
     Parse a string representation of a synteny labeling.
 

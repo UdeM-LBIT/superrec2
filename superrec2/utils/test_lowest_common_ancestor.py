@@ -24,6 +24,7 @@ def _get_common_ancestor_naive(a, b):
 
     return a
 
+
 def _level_naive(node):
     level = 0
 
@@ -81,31 +82,28 @@ class TestUtilsLowestCommonAncestor(unittest.TestCase):
                 self.assertEqual(lca.is_strict_ancestor_of(a, b), b in a)
                 self.assertEqual(lca.is_strict_ancestor_of(b, a), a in b)
                 self.assertEqual(
-                    lca.is_comparable(a, b),
-                    a in b or b in a or a == b
+                    lca.is_comparable(a, b), a in b or b in a or a == b
                 )
 
                 self.assertTrue(_is_ancestor_of_naive(ab_lca, a))
                 self.assertTrue(_is_ancestor_of_naive(ab_lca, b))
                 self.assertEqual(
-                    lca.is_ancestor_of(a, b),
-                    _is_ancestor_of_naive(a, b)
+                    lca.is_ancestor_of(a, b), _is_ancestor_of_naive(a, b)
                 )
                 self.assertEqual(
-                    lca.is_ancestor_of(b, a),
-                    _is_ancestor_of_naive(b, a)
+                    lca.is_ancestor_of(b, a), _is_ancestor_of_naive(b, a)
                 )
                 self.assertEqual(
                     lca.is_strict_ancestor_of(a, b),
-                    _is_ancestor_of_naive(a, b) and a != b
+                    _is_ancestor_of_naive(a, b) and a != b,
                 )
                 self.assertEqual(
                     lca.is_strict_ancestor_of(b, a),
-                    _is_ancestor_of_naive(b, a) and b != a
+                    _is_ancestor_of_naive(b, a) and b != a,
                 )
                 self.assertEqual(
                     lca.is_comparable(a, b),
-                    _is_ancestor_of_naive(a, b) or _is_ancestor_of_naive(b, a)
+                    _is_ancestor_of_naive(a, b) or _is_ancestor_of_naive(b, a),
                 )
 
     def test_level(self):

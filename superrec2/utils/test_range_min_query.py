@@ -11,7 +11,7 @@ def compute_all_naive(data):
 
     for i in range(size):
         for j in range(i + 1, size):
-            results[i][j] = min(data[i : j])
+            results[i][j] = min(data[i:j])
 
     return results
 
@@ -36,7 +36,7 @@ class TestUtilsRangeMinQuery(unittest.TestCase):
         for i in range(len(data)):
             for j in range(len(data)):
                 if i < j:
-                    self.assertEqual(rmq(i, j), min(data[i : j]))
+                    self.assertEqual(rmq(i, j), min(data[i:j]))
                 else:
                     self.assertEqual(rmq(i, j), inf)
 
@@ -65,6 +65,6 @@ class TestUtilsRangeMinQuery(unittest.TestCase):
             for j in range(i + 1, len(data)):
                 self.assertEqual(naive_results[i][j], rmq_results[i][j])
 
-        print('Naive time:', naive_dur)
-        print('RMQ time:', rmq_dur)
+        print("Naive time:", naive_dur)
+        print("RMQ time:", rmq_dur)
         self.assertLess(rmq_dur, naive_dur)

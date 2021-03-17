@@ -10,15 +10,18 @@ class TestReconciliationCompute(unittest.TestCase):
     def setUpClass(cls):
         cls.gene_tree = PhyloTree(
             "((x_1,(x_2,(y_1,z_1)5)4)3,(y_2,z_2)2)1;",
-            sp_naming_function=rec.tools.get_species_name, format=1
+            sp_naming_function=rec.tools.get_species_name,
+            format=1,
         )
 
         cls.species_tree = PhyloTree("(X,(Y,Z)YZ)XYZ;", format=1)
         cls.species_lca = LowestCommonAncestor(cls.species_tree)
 
-        cls.all_recs = list(rec.tools.reconcile_all(
-            cls.gene_tree, cls.species_tree, cls.species_lca
-        ))
+        cls.all_recs = list(
+            rec.tools.reconcile_all(
+                cls.gene_tree, cls.species_tree, cls.species_lca
+            )
+        )
 
     def test_all_recs(self):
         self.assertEqual(len(self.all_recs), 199)
@@ -42,7 +45,7 @@ class TestReconciliationCompute(unittest.TestCase):
                 self.gene_tree & "3": self.species_tree & "XYZ",
                 self.gene_tree & "4": self.species_tree & "XYZ",
                 self.gene_tree & "5": self.species_tree & "YZ",
-            }
+            },
         )
 
         result_cost = rec.tools.get_reconciliation_cost(
@@ -58,8 +61,7 @@ class TestReconciliationCompute(unittest.TestCase):
         # Check optimality
         for possible_rec in self.all_recs:
             cost = rec.tools.get_reconciliation_cost(
-                self.gene_tree, self.species_lca,
-                possible_rec, costs
+                self.gene_tree, self.species_lca, possible_rec, costs
             )
             self.assertTrue(cost >= result_cost)
 
@@ -74,21 +76,22 @@ class TestReconciliationCompute(unittest.TestCase):
         }
 
         result_cost, results = rec.compute.reconcile_thl(
-            self.gene_tree,
-            self.species_lca,
-            costs
+            self.gene_tree, self.species_lca, costs
         )
 
         # Check that all results have the same expected cost
         self.assertEqual(result_cost, 2)
 
         for result in results:
-            self.assertEqual(rec.tools.get_reconciliation_cost(
-                self.gene_tree,
-                self.species_lca,
-                result,
-                costs,
-            ), result_cost)
+            self.assertEqual(
+                rec.tools.get_reconciliation_cost(
+                    self.gene_tree,
+                    self.species_lca,
+                    result,
+                    costs,
+                ),
+                result_cost,
+            )
 
         # Check that all expected results are returned
         self.assertEqual(len(results), 2)
@@ -101,7 +104,7 @@ class TestReconciliationCompute(unittest.TestCase):
                 self.gene_tree & "4": self.species_tree & "X",
                 self.gene_tree & "5": self.species_tree & "YZ",
             },
-            results
+            results,
         )
 
         self.assertIn(
@@ -113,7 +116,7 @@ class TestReconciliationCompute(unittest.TestCase):
                 self.gene_tree & "4": self.species_tree & "YZ",
                 self.gene_tree & "5": self.species_tree & "YZ",
             },
-            results
+            results,
         )
 
         for result in results:
@@ -122,8 +125,7 @@ class TestReconciliationCompute(unittest.TestCase):
         # Check optimality
         for possible_rec in self.all_recs:
             cost = rec.tools.get_reconciliation_cost(
-                self.gene_tree, self.species_lca,
-                possible_rec, costs
+                self.gene_tree, self.species_lca, possible_rec, costs
             )
             self.assertTrue(cost >= result_cost)
 

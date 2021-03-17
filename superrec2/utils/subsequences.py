@@ -1,7 +1,7 @@
 from typing import List, Sequence, TypeVar
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def subseq_complete(sequence: Sequence[T]) -> int:
@@ -31,7 +31,7 @@ def mask_from_subseq(
             break
 
         if child[child_i] == parent[parent_i]:
-            mask |= (1 << parent_i)
+            mask |= 1 << parent_i
             child_i += 1
 
     return mask

@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from infinity import Infinity, inf
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 ExtendedIntegral = Union[int, Infinity]
 
 

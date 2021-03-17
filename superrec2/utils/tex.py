@@ -8,6 +8,7 @@ from .geometry import Size
 
 class TeXError(Exception):
     """Raised when a TeX compiler returns an error."""
+
     def __init__(self, code, message):
         self.code = code
         self.message = message
@@ -56,6 +57,7 @@ class MeasureBox(NamedTuple):
     :attr height: height of the box above its baseline in points
     :attr depth: height of the box below its baseline in points
     """
+
     width: float
     height: float
     depth: float
@@ -74,32 +76,37 @@ def measure(texts: Iterable[str], preamble="") -> List[MeasureBox]:
     :returns: list of measurements for each input string
     """
     src = (
-        r"\documentclass{standalone}" "\n"
-        + preamble + "\n"
-        r"\newsavebox{\measurebox}" "\n"
-        r"\scrollmode" "\n"
+        r"\documentclass{standalone}"
+        "\n" + preamble + "\n"
+        r"\newsavebox{\measurebox}"
+        "\n"
+        r"\scrollmode"
+        "\n"
     )
 
     for text in texts:
         src += (
-            rf"\savebox{{\measurebox}}{{{text}}}" "\n"
+            rf"\savebox{{\measurebox}}{{{text}}}"
+            "\n"
             r"\typeout{$$$"
-            r"\the\wd\measurebox,\the\ht\measurebox,\the\dp\measurebox}" "\n"
+            r"\the\wd\measurebox,\the\ht\measurebox,\the\dp\measurebox}"
+            "\n"
         )
 
-    src += (
-        r"\scrollmode" "\n"
-        r"\begin{document}\end{document}" "\n"
-    )
+    src += r"\scrollmode" "\n" r"\begin{document}\end{document}" "\n"
 
     out = xelatex_compile(src)
     boxes = []
 
     for line in out.splitlines():
         if line.startswith("$$$"):
-            boxes.append(MeasureBox(*map(
-                lambda value: float(value.removesuffix("pt")),
-                line[3:].split(",")
-            )))
+            boxes.append(
+                MeasureBox(
+                    *map(
+                        lambda value: float(value.removesuffix("pt")),
+                        line[3:].split(","),
+                    )
+                )
+            )
 
     return boxes

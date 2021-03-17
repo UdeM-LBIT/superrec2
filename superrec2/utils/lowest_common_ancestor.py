@@ -22,6 +22,7 @@ class LowestCommonAncestor:
     Note that the input tree cannot be changed after initialization.
     See <https://cp-algorithms.com/graph/lca.html>.
     """
+
     def __init__(self, tree):
         """
         Pre-compute the sparse table for lowest common ancestor queries.

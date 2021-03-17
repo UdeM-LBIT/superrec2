@@ -52,8 +52,7 @@ args = parser.parse_args()
 
 # Parse trees, reconciliation, and labeling
 gene_tree = PhyloTree(
-    args.gene_tree,
-    sp_naming_function=get_species_name, format=1
+    args.gene_tree, sp_naming_function=get_species_name, format=1
 )
 species_tree = PhyloTree(args.species_tree, format=1)
 
@@ -81,19 +80,23 @@ elif args.output.endswith(".tex"):
 elif args.output.endswith(".pdf"):
     try:
         xelatex_compile(
-            source=textwrap.dedent(r"""
+            source=textwrap.dedent(
+                r"""
                 \documentclass[crop, tikz, border=20pt]{standalone}
                 \usepackage{tikz}
                 \usetikzlibrary{arrows.meta}
                 \usetikzlibrary{shapes}
                 \begin{document}
                 \scrollmode
-            """).lstrip()
+            """
+            ).lstrip()
             + tikz
-            + textwrap.dedent(r"""
+            + textwrap.dedent(
+                r"""
                 \batchmode
                 \end{document}
-            """).lstrip(),
+            """
+            ).lstrip(),
             dest=args.output,
         )
     except TeXError as err:

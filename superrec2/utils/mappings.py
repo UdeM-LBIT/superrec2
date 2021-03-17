@@ -2,8 +2,8 @@ from collections import defaultdict
 from typing import DefaultDict, List, Mapping, TypeVar
 
 
-A = TypeVar('A')
-B = TypeVar('B')
+A = TypeVar("A")
+B = TypeVar("B")
 
 
 def invert_mapping(mapping: Mapping[A, B]) -> DefaultDict[B, List[A]]:

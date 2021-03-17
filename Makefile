@@ -4,4 +4,10 @@ test:
 lint:
 	mypy .
 
-.PHONY: test lint
+format:
+	black --line-length 80 --check --diff .
+
+format-fix:
+	black --line-length 80 .
+
+.PHONY: test lint format format-fix

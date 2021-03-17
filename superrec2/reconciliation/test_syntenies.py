@@ -34,7 +34,8 @@ class TestReconciliationSyntenies(unittest.TestCase):
     def test_speciations(self):
         gene_tree = PhyloTree(
             "((x_1,y_1)2,z_1)1;",
-            format=1, sp_naming_function=rec.tools.get_species_name
+            format=1,
+            sp_naming_function=rec.tools.get_species_name,
         )
 
         species_tree = PhyloTree("((X,Y)XY,Z)XYZ;", format=1)
@@ -49,7 +50,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_1,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_1,
             expected_cost=2,
             expected_labelings=[
                 {
@@ -57,7 +61,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("abcde"),
                     gene_tree & "1": list("abcde"),
                 }
-            ]
+            ],
         )
 
         # Test 2: Single optimal solution, altered root
@@ -68,7 +72,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_2,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_2,
             expected_cost=3,
             expected_labelings=[
                 {
@@ -76,7 +83,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("abde"),
                     gene_tree & "1": list("abcde"),
                 }
-            ]
+            ],
         )
 
         # Test 3: Multiple optimal solutions
@@ -87,7 +94,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_3,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_3,
             expected_cost=4,
             expected_labelings=[
                 {
@@ -100,7 +110,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("abecd"),
                     gene_tree & "1": list("abecd"),
                 },
-            ]
+            ],
         )
 
         # Test 4: No solution
@@ -111,7 +121,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_4,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_4,
             expected_cost=inf,
             expected_labelings=[],
         )
@@ -124,7 +137,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_5,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_5,
             expected_cost=2,
             expected_labelings=[
                 {
@@ -143,7 +159,8 @@ class TestReconciliationSyntenies(unittest.TestCase):
     def test_duplications(self):
         gene_tree = PhyloTree(
             "((x_1,x_2)2,y_1)1;",
-            format=1, sp_naming_function=rec.tools.get_species_name
+            format=1,
+            sp_naming_function=rec.tools.get_species_name,
         )
 
         species_tree = PhyloTree("(X,Y)XY;", format=1)
@@ -158,7 +175,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_1,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_1,
             expected_cost=1,
             expected_labelings=[
                 {
@@ -166,7 +186,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("abcde"),
                     gene_tree & "1": list("abcde"),
                 }
-            ]
+            ],
         )
 
         # Test 2: Single optimal solution, altered root
@@ -177,7 +197,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_2,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_2,
             expected_cost=2,
             expected_labelings=[
                 {
@@ -185,7 +208,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("abde"),
                     gene_tree & "1": list("abcde"),
                 }
-            ]
+            ],
         )
 
         # Test 3: Single optimal solution, conserved root (exchanged children)
@@ -196,7 +219,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_3,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_3,
             expected_cost=1,
             expected_labelings=[
                 {
@@ -204,7 +230,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("abcde"),
                     gene_tree & "1": list("abcde"),
                 }
-            ]
+            ],
         )
 
         # Test 4: Single optimal solution, altered root (exchanged children)
@@ -215,7 +241,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_4,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_4,
             expected_cost=2,
             expected_labelings=[
                 {
@@ -223,7 +252,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("abde"),
                     gene_tree & "1": list("abcde"),
                 }
-            ]
+            ],
         )
 
         # Test 5: Multiple possible root labelings to examine
@@ -234,7 +263,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_5,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_5,
             expected_cost=2,
             expected_labelings=[
                 {
@@ -242,7 +274,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("cdabe"),
                     gene_tree & "1": list("cdabe"),
                 },
-            ]
+            ],
         )
 
         # Test 6: No solution
@@ -253,7 +285,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_6,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_6,
             expected_cost=inf,
             expected_labelings=[],
         )
@@ -261,17 +296,20 @@ class TestReconciliationSyntenies(unittest.TestCase):
     def test_transfer(self):
         gene_tree = PhyloTree(
             "((x_1,y_1)2,y_2)1;",
-            format=1, sp_naming_function=rec.tools.get_species_name
+            format=1,
+            sp_naming_function=rec.tools.get_species_name,
         )
 
         species_tree = PhyloTree("(X,Y)XY;", format=1)
         species_lca = LowestCommonAncestor(species_tree)
         rec_cost, rec_results = rec.compute.reconcile_thl(
-            gene_tree, species_lca, costs={
+            gene_tree,
+            species_lca,
+            costs={
                 rec.tools.CostType.Duplication: 1,
                 rec.tools.CostType.HorizontalGeneTransfer: 1,
                 rec.tools.CostType.Loss: 1,
-            }
+            },
         )
 
         self.assertEqual(rec_cost, 1)
@@ -286,7 +324,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_1,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_1,
             expected_cost=1,
             expected_labelings=[
                 {
@@ -294,7 +335,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("abcde"),
                     gene_tree & "1": list("abcde"),
                 }
-            ]
+            ],
         )
 
         # Test 2: Single optimal solution, altered root
@@ -305,7 +346,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_2,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_2,
             expected_cost=2,
             expected_labelings=[
                 {
@@ -313,7 +357,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("abde"),
                     gene_tree & "1": list("abcde"),
                 }
-            ]
+            ],
         )
 
         # Test 3: Single optimal solution, conserved root (exchanged children)
@@ -324,7 +368,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_3,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_3,
             expected_cost=1,
             expected_labelings=[
                 {
@@ -332,7 +379,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("abcde"),
                     gene_tree & "1": list("abcde"),
                 }
-            ]
+            ],
         )
 
         # Test 4: Single optimal solution, altered root (exchanged children)
@@ -343,7 +390,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, input_4,
+            gene_tree,
+            species_lca,
+            rec_result,
+            input_4,
             expected_cost=2,
             expected_labelings=[
                 {
@@ -351,7 +401,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "2": list("abde"),
                     gene_tree & "1": list("abcde"),
                 }
-            ]
+            ],
         )
 
     def test_all(self):
@@ -363,17 +413,20 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     (w_3,(z_3,(t_1,t_2)14)13)12
                 )5
             )1;""",
-            format=1, sp_naming_function=rec.tools.get_species_name
+            format=1,
+            sp_naming_function=rec.tools.get_species_name,
         )
 
         species_tree = PhyloTree("(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;", format=1)
         species_lca = LowestCommonAncestor(species_tree)
         rec_cost, rec_results = rec.compute.reconcile_thl(
-            gene_tree, species_lca, costs={
+            gene_tree,
+            species_lca,
+            costs={
                 rec.tools.CostType.Duplication: 1,
                 rec.tools.CostType.HorizontalGeneTransfer: 1,
                 rec.tools.CostType.Loss: 1,
-            }
+            },
         )
 
         self.assertEqual(rec_cost, 9)
@@ -399,7 +452,10 @@ class TestReconciliationSyntenies(unittest.TestCase):
         }
 
         self.assertLabelingEquals(
-            gene_tree, species_lca, rec_result, leaf_labeling,
+            gene_tree,
+            species_lca,
+            rec_result,
+            leaf_labeling,
             expected_cost=7,
             expected_labelings=[
                 {
@@ -419,5 +475,5 @@ class TestReconciliationSyntenies(unittest.TestCase):
                     gene_tree & "13": list("defg"),
                     gene_tree & "14": list("defg"),
                 }
-            ]
+            ],
         )

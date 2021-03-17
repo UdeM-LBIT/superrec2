@@ -12,7 +12,7 @@ from typing import (
 )
 
 
-Node = TypeVar('Node')
+Node = TypeVar("Node")
 
 
 def toposort(graph: Mapping[Node, Set[Node]]) -> Optional[List[Node]]:

@@ -12,6 +12,7 @@ from ..reconciliation.tools import Event, get_event, Reconciliation, Labeling
 
 class BranchKind(Enum):
     """Type of branch event."""
+
     # Not actually a branch but a leaf node
     Leaf = auto()
 
@@ -30,6 +31,7 @@ class BranchKind(Enum):
 
 class Branch(NamedTuple):
     """Branch in a gene tree embedded in a species tree."""
+
     # Type of branch, i.e. the event that triggered the gene branching
     kind: BranchKind
 
@@ -50,8 +52,9 @@ class Branch(NamedTuple):
     right: Optional[PhyloNode] = None
 
 
-class PseudoGene():
+class PseudoGene:
     """Objects used as virtual nodes for lost genes."""
+
     pass
 
 
@@ -87,6 +90,7 @@ class SubtreeLayout(NamedTuple):
                (to left    branch    (to right
                 subtree)    nodes     subtree)
     """
+
     # Size and position of this subtree. This rect includes the
     # fork and the trunk but also the rects of the child subtrees
     rect: Rect
@@ -119,6 +123,7 @@ Layout = Mapping[PhyloNode, SubtreeLayout]
 
 class DrawParams(NamedTuple):
     """Parameters for drawing a reconciliation."""
+
     # Horizontal unit scale (unit-less parameters are multiples of this unit)
     x_unit: str = "1pt"
 
@@ -175,66 +180,67 @@ class DrawParams(NamedTuple):
 
     def get_tikz_definitions(self):
         """Get TikZ definitions matching a set of drawing parameters."""
-        return textwrap.dedent(rf"""
-        \tikzset{{
-            x={{{self.x_unit}}},
-            y={{-{self.y_unit}}},
-            species border/.style={{
-                line width={{{self.species_border_thickness}}},
-                shorten <={{-{self.species_border_thickness} / 2 + 0.05pt}},
-                shorten >={{-{self.species_border_thickness} / 2 + 0.05pt}},
-            }},
-            species label/.style={{
-                font=\bfseries,
-                midway,
-                yshift=-{self.species_label_spacing},
-            }},
-            branch/.style={{
-                line width={{{self.branch_thickness}}},
-                preaction={{
-                    draw, white, -{{}},
-                    line width={{{self.branch_outer_thickness}}},
-                    shorten <={{{self.branch_thickness}}},
-                    shorten >={{{self.branch_thickness}}},
+        return textwrap.dedent(
+            rf"""
+            \tikzset{{
+                x={{{self.x_unit}}},
+                y={{-{self.y_unit}}},
+                species border/.style={{
+                    line width={{{self.species_border_thickness}}},
+                    shorten <={{-{self.species_border_thickness} / 2 + 0.05pt}},
+                    shorten >={{-{self.species_border_thickness} / 2 + 0.05pt}},
                 }},
-            }},
-            transfer branch/.style={{
-                branch,
-                -Stealth,
-            }},
-            loss/.style={{
-                branch, dashed,
-            }},
-            extant gene/.style={{
-                circle, fill,
-                outer sep=0pt, inner sep=0pt,
-                minimum width={{{self.extant_gene_diameter}}},
-                minimum height={{{self.extant_gene_diameter}}},
-                label={{[font={{\strut}}, inner xsep=0pt]below:#1}},
-            }},
-            branch node/.style={{
-                draw, fill=white,
-                outer sep=0pt, inner sep=0pt,
-                line width={{{self.branch_thickness}}},
-                font={{\strut}},
-            }},
-            speciation/.style={{
-                branch node, rounded rectangle,
-                minimum width={{{self.speciation_size}}},
-                minimum height={{{self.speciation_size}}},
-            }},
-            duplication/.style={{
-                branch node, rectangle,
-                inner xsep=4pt,
-                minimum width={{{self.duplication_size}}},
-                minimum height={{{self.duplication_size}}},
-            }},
-            horizontal gene transfer/.style={{
-                branch node, signal, signal to=east and west,
-                minimum width={{{self.transfer_size}}},
-                minimum height={{{self.transfer_size}}},
-            }},
-        }}"""
+                species label/.style={{
+                    font=\bfseries,
+                    midway,
+                    yshift=-{self.species_label_spacing},
+                }},
+                branch/.style={{
+                    line width={{{self.branch_thickness}}},
+                    preaction={{
+                        draw, white, -{{}},
+                        line width={{{self.branch_outer_thickness}}},
+                        shorten <={{{self.branch_thickness}}},
+                        shorten >={{{self.branch_thickness}}},
+                    }},
+                }},
+                transfer branch/.style={{
+                    branch,
+                    -Stealth,
+                }},
+                loss/.style={{
+                    branch, dashed,
+                }},
+                extant gene/.style={{
+                    circle, fill,
+                    outer sep=0pt, inner sep=0pt,
+                    minimum width={{{self.extant_gene_diameter}}},
+                    minimum height={{{self.extant_gene_diameter}}},
+                    label={{[font={{\strut}}, inner xsep=0pt]below:#1}},
+                }},
+                branch node/.style={{
+                    draw, fill=white,
+                    outer sep=0pt, inner sep=0pt,
+                    line width={{{self.branch_thickness}}},
+                    font={{\strut}},
+                }},
+                speciation/.style={{
+                    branch node, rounded rectangle,
+                    minimum width={{{self.speciation_size}}},
+                    minimum height={{{self.speciation_size}}},
+                }},
+                duplication/.style={{
+                    branch node, rectangle,
+                    inner xsep=4pt,
+                    minimum width={{{self.duplication_size}}},
+                    minimum height={{{self.duplication_size}}},
+                }},
+                horizontal gene transfer/.style={{
+                    branch node, signal, signal to=east and west,
+                    minimum width={{{self.transfer_size}}},
+                    minimum height={{{self.transfer_size}}},
+                }},
+            }}"""
         ).lstrip()
 
 
@@ -244,7 +250,7 @@ def _compute_branches(
     rec: Reconciliation,
     rev_rec: Mapping,
     labeling: Labeling,
-    params: DrawParams
+    params: DrawParams,
 ) -> None:
     """Create the branching nodes for each species."""
     species_lca = LowestCommonAncestor(species_tree)
@@ -307,10 +313,9 @@ def _compute_branches(
                 }
 
         # Create branches for actual internal nodes
-        internal_genes = tree_nodes_toposort([
-            gene for gene in rev_rec[root_species]
-            if not gene.is_leaf()
-        ])
+        internal_genes = tree_nodes_toposort(
+            [gene for gene in rev_rec[root_species] if not gene.is_leaf()]
+        )
 
         # If we get none, then there’s a loop somewhere in the tree
         assert internal_genes is not None
@@ -336,10 +341,10 @@ def _compute_branches(
                     # to the left and right species
                     left_gene, right_gene = right_gene, left_gene
 
-                left_gene = add_losses(
-                    left_gene, rec[left_gene], root_species)
+                left_gene = add_losses(left_gene, rec[left_gene], root_species)
                 right_gene = add_losses(
-                    right_gene, rec[right_gene], root_species)
+                    right_gene, rec[right_gene], root_species
+                )
 
                 state["anchor_nodes"].add(root_gene)
                 state["branches"][root_gene] = {
@@ -352,9 +357,11 @@ def _compute_branches(
                 # Duplications are located in the trunk and linked
                 # to other nodes in the same species
                 left_gene = add_losses(
-                    left_gene, rec[left_gene], root_species.up)
+                    left_gene, rec[left_gene], root_species.up
+                )
                 right_gene = add_losses(
-                    right_gene, rec[right_gene], root_species.up)
+                    right_gene, rec[right_gene], root_species.up
+                )
 
                 state["anchor_nodes"].add(root_gene)
                 state["anchor_nodes"].remove(left_gene)
@@ -370,13 +377,12 @@ def _compute_branches(
                 # but are linked to a node outside the current subtree
                 conserv_gene, foreign_gene = (
                     (left_gene, right_gene)
-                    if species_lca.is_ancestor_of(
-                        root_species, rec[left_gene]
-                    )
+                    if species_lca.is_ancestor_of(root_species, rec[left_gene])
                     else (right_gene, left_gene)
                 )
                 conserv_gene = add_losses(
-                    conserv_gene, rec[conserv_gene], root_species.up)
+                    conserv_gene, rec[conserv_gene], root_species.up
+                )
 
                 state["anchor_nodes"].add(root_gene)
                 state["anchor_nodes"].remove(conserv_gene)
@@ -394,7 +400,7 @@ def _layout_branches(
     layout_state: Dict[PhyloNode, Dict],
     species_tree: PhyloTree,
     rev_rec: Mapping,
-    params: DrawParams
+    params: DrawParams,
 ):
     """Compute the size and relative position of each branch."""
     # Compute branching node sizes
@@ -405,9 +411,9 @@ def _layout_branches(
 
         for root_gene, branch in layout["branches"].items():
             if branch["kind"] == BranchKind.Leaf:
-                pending_measures[root_gene] = (
-                    rf"\tikz\node[extant gene={{{branch['name']}}}] {{}};"
-                )
+                pending_measures[
+                    root_gene
+                ] = rf"\tikz\node[extant gene={{{branch['name']}}}] {{}};"
             elif branch["kind"] == BranchKind.FullLoss:
                 continue
             else:
@@ -420,22 +426,23 @@ def _layout_branches(
                 else:
                     raise ValueError("Invalid node type")
 
-                pending_measures[root_gene] = (
-                    rf"\tikz\node{node_type} {{{branch['name']}}};"
-                )
+                pending_measures[
+                    root_gene
+                ] = rf"\tikz\node{node_type} {{{branch['name']}}};"
 
-    measures = dict(zip(
-        pending_measures.keys(),
-        tex.measure(
-            pending_measures.values(),
-            preamble=(
-                r"\usepackage{tikz}"
-                r"\usetikzlibrary{arrows.meta}"
-                r"\usetikzlibrary{shapes}"
-                + params.get_tikz_definitions()
-            )
-        ),
-    ))
+    measures = dict(
+        zip(
+            pending_measures.keys(),
+            tex.measure(
+                pending_measures.values(),
+                preamble=(
+                    r"\usepackage{tikz}"
+                    r"\usetikzlibrary{arrows.meta}"
+                    r"\usetikzlibrary{shapes}" + params.get_tikz_definitions()
+                ),
+            ),
+        )
+    )
 
     # Position the branching nodes relative to their associated subtree
     for root_species in species_tree.traverse():
@@ -447,7 +454,8 @@ def _layout_branches(
         for root_gene, branch in layout["branches"].items():
             size = (
                 measures[root_gene].overall_size()
-                if root_gene in measures else Size(0, 0)
+                if root_gene in measures
+                else Size(0, 0)
             )
 
             if branch["kind"] == BranchKind.Leaf:
@@ -462,21 +470,18 @@ def _layout_branches(
                 right_rect = layout["branches"][branch["right"]].rect
                 pos = Position(
                     x=((left_rect.center() + right_rect.center()).x) / 2
-                        - size.w / 2,
-                    y=min(
-                        params.gene_branch_spacing,
-                        left_rect.y,
-                        right_rect.y
-                    ) - params.gene_branch_spacing - size.h
+                    - size.w / 2,
+                    y=min(params.gene_branch_spacing, left_rect.y, right_rect.y)
+                    - params.gene_branch_spacing
+                    - size.h,
                 )
             elif branch["kind"] == BranchKind.HorizontalGeneTransfer:
                 cons_rect = layout["branches"][branch["left"]].rect
                 pos = Position(
                     x=cons_rect.center().x - size.w / 2,
-                    y=min(
-                        params.gene_branch_spacing,
-                        cons_rect.y
-                    ) - params.gene_branch_spacing - size.h
+                    y=min(params.gene_branch_spacing, cons_rect.y)
+                    - params.gene_branch_spacing
+                    - size.h,
                 )
             else:
                 raise ValueError("Invalid node type")
@@ -494,7 +499,7 @@ def _layout_branches(
 def _layout_subtrees(
     layout_state: Dict[PhyloNode, Dict],
     species_tree: PhyloTree,
-    params: DrawParams
+    params: DrawParams,
 ) -> Layout:
     """Compute the size and absolute position of each subtree."""
     # Compute the size of each subtree
@@ -502,18 +507,33 @@ def _layout_subtrees(
         state = layout_state[root_species]
 
         if state["branches"]:
-            trunk_width = max(
-                branch.rect.bottom_right().x
-                for branch in state["branches"].values()
-            ) + params.species_branch_padding
-            trunk_height = max((0,) + tuple(
-                -branch.rect.top_left().y
-                for branch in state["branches"].values()
-            )) + params.trunk_overhead
-            fork_thickness = max((0,) + tuple(
-                branch.rect.bottom_left().y
-                for branch in state["branches"].values()
-            )) + params.species_branch_padding
+            trunk_width = (
+                max(
+                    branch.rect.bottom_right().x
+                    for branch in state["branches"].values()
+                )
+                + params.species_branch_padding
+            )
+            trunk_height = (
+                max(
+                    (0,)
+                    + tuple(
+                        -branch.rect.top_left().y
+                        for branch in state["branches"].values()
+                    )
+                )
+                + params.trunk_overhead
+            )
+            fork_thickness = (
+                max(
+                    (0,)
+                    + tuple(
+                        branch.rect.bottom_left().y
+                        for branch in state["branches"].values()
+                    )
+                )
+                + params.species_branch_padding
+            )
         else:
             # Empty subtree
             trunk_width = 2 * params.species_branch_padding
@@ -539,20 +559,23 @@ def _layout_subtrees(
             )
 
             state["size"] = Size(
-                left_info["size"].w + params.subtree_spacing * 2
-                    + trunk_width + right_info["size"].w,
+                left_info["size"].w
+                + params.subtree_spacing * 2
+                + trunk_width
+                + right_info["size"].w,
                 height,
             )
 
             state["left_pos"] = Position(0, height - left_info["size"].h)
             state["right_pos"] = Position(
-                left_info["size"].w + params.subtree_spacing * 2
-                    + trunk_width,
+                left_info["size"].w + params.subtree_spacing * 2 + trunk_width,
                 height - right_info["size"].h,
             )
             state["trunk"] = Rect(
-                left_info["size"].w + params.subtree_spacing, 0,
-                trunk_width, trunk_height,
+                left_info["size"].w + params.subtree_spacing,
+                0,
+                trunk_width,
+                trunk_height,
             )
             state["fork_thickness"] = fork_thickness
 
@@ -571,7 +594,7 @@ def _layout_subtrees(
 
             layout_state[left_species]["rect"] = Rect.make_from(
                 position=this_rect.top_left()
-                    + layout_state[root_species]["left_pos"],
+                + layout_state[root_species]["left_pos"],
                 size=layout_state[left_species]["size"],
             )
             del layout_state[root_species]["left_pos"]
@@ -579,7 +602,7 @@ def _layout_subtrees(
 
             layout_state[right_species]["rect"] = Rect.make_from(
                 position=this_rect.top_left()
-                    + layout_state[root_species]["right_pos"],
+                + layout_state[root_species]["right_pos"],
                 size=layout_state[right_species]["size"],
             )
             del layout_state[root_species]["right_pos"]
@@ -595,7 +618,7 @@ def layout(
     species_tree: PhyloTree,
     rec: Reconciliation,
     labeling: Labeling = {},
-    params: DrawParams = DrawParams()
+    params: DrawParams = DrawParams(),
 ) -> Layout:
     """
     Compute the layout of a gene tree embedded in a species tree.
@@ -673,47 +696,62 @@ def render_to_tikz(
             left_layout = layout[left]
             right_layout = layout[right]
 
-            layers["species"].append(rf"""\draw[species border] ({
-                left_layout.rect.top_left() + left_layout.trunk.top_left()
-            }) |- ({
-                node_layout.rect.top_left() + node_layout.trunk.bottom_left()
-            }) -- ({
-                node_layout.rect.top_left() + node_layout.trunk.top_left()
-            });""")
-            layers["species"].append(rf"""\draw[species border] ({
-                right_layout.rect.top_left() + right_layout.trunk.top_right()
-            }) |- ({
-                node_layout.rect.top_left() + node_layout.trunk.bottom_right()
-            }) -- ({
-                node_layout.rect.top_left() + node_layout.trunk.top_right()
-            });""")
-            layers["species"].append(rf"""\draw[species border] ({
-                left_layout.rect.top_left() + left_layout.trunk.top_right()
-            }) |- ({
-                node_layout.rect.top_left() + node_layout.trunk.bottom_left()
-                    + Position(0, node_layout.fork_thickness)
-            }) -| ({
-                right_layout.rect.top_left() + right_layout.trunk.top_left()
-            });""")
+            layers["species"].append(
+                rf"""\draw[species border] ({
+                    left_layout.rect.top_left() + left_layout.trunk.top_left()
+                }) |- ({
+                    node_layout.rect.top_left()
+                        + node_layout.trunk.bottom_left()
+                }) -- ({
+                    node_layout.rect.top_left() + node_layout.trunk.top_left()
+                });"""
+            )
+            layers["species"].append(
+                rf"""\draw[species border] ({
+                    right_layout.rect.top_left()
+                        + right_layout.trunk.top_right()
+                }) |- ({
+                    node_layout.rect.top_left()
+                        + node_layout.trunk.bottom_right()
+                }) -- ({
+                    node_layout.rect.top_left()
+                        + node_layout.trunk.top_right()
+                });"""
+            )
+            layers["species"].append(
+                rf"""\draw[species border] ({
+                    left_layout.rect.top_left() + left_layout.trunk.top_right()
+                }) |- ({
+                    node_layout.rect.top_left()
+                        + node_layout.trunk.bottom_left()
+                        + Position(0, node_layout.fork_thickness)
+                }) -| ({
+                    right_layout.rect.top_left()
+                        + right_layout.trunk.top_left()
+                });"""
+            )
         else:
             # Draw leaf
             leaf_shift = Position(0, params.species_leaf_spacing)
-            layers["species"].append(rf"""\draw[species border] ({
-                node_layout.rect.top_left() + node_layout.trunk.top_left()
-            }) -- ({
-                node_layout.rect.top_left() + node_layout.trunk.bottom_left()
-                    + leaf_shift
-            }) -- node[species label] {{{species_node.name}}} ({
-                node_layout.rect.top_left() + node_layout.trunk.bottom_right()
-                    + leaf_shift
-            }) -- ({
-                node_layout.rect.top_left() + node_layout.trunk.top_right()
-            });""")
+            layers["species"].append(
+                rf"""\draw[species border] ({
+                    node_layout.rect.top_left() + node_layout.trunk.top_left()
+                }) -- ({
+                    node_layout.rect.top_left()
+                        + node_layout.trunk.bottom_left()
+                        + leaf_shift
+                }) -- node[species label] {{{species_node.name}}} ({
+                    node_layout.rect.top_left()
+                        + node_layout.trunk.bottom_right()
+                        + leaf_shift
+                }) -- ({
+                    node_layout.rect.top_left() + node_layout.trunk.top_right()
+                });"""
+            )
 
         # Draw branches
         trunk_offset = (
-            node_layout.rect.top_left()
-            + node_layout.trunk.bottom_left()
+            node_layout.rect.top_left() + node_layout.trunk.bottom_left()
         )
 
         for root_gene, branch in node_layout.branches.items():
@@ -723,11 +761,13 @@ def render_to_tikz(
             right_gene = branch.right
 
             if root_gene in node_layout.anchors:
-                layers["gene branches"].append(rf"""\draw[branch] ({
-                    branch_pos
-                }) -- ({
-                    node_layout.get_anchor_pos(root_gene)
-                });""")
+                layers["gene branches"].append(
+                    rf"""\draw[branch] ({
+                        branch_pos
+                    }) -- ({
+                        node_layout.get_anchor_pos(root_gene)
+                    });"""
+                )
 
             if branch.kind == BranchKind.Leaf:
                 layers["events"].append(
@@ -742,29 +782,33 @@ def render_to_tikz(
                     loss_pos = f"-{params.full_loss_size}, 0"
                     keep_pos = right_layout.get_anchor_pos(right_gene)
 
-                layers["gene branches"].append(rf"""\draw[loss] ({
-                    branch_pos
-                }) -- ++({loss_pos});""")
-                layers["gene branches"].append(rf"""\draw[branch] ({
-                    branch_pos
-                }) -| ({keep_pos});""")
+                layers["gene branches"].append(
+                    rf"""\draw[loss] ({branch_pos}) -- ++({loss_pos});"""
+                )
+                layers["gene branches"].append(
+                    rf"""\draw[branch] ({branch_pos}) -| ({keep_pos});"""
+                )
             elif branch.kind == BranchKind.Speciation:
-                layers["gene branches"].append(rf"""\draw[branch] ({
-                    left_layout.get_anchor_pos(left_gene)
-                }) |- ({branch_pos}) -| ({
-                    right_layout.get_anchor_pos(right_gene)
-                });""")
+                layers["gene branches"].append(
+                    rf"""\draw[branch] ({
+                        left_layout.get_anchor_pos(left_gene)
+                    }) |- ({branch_pos}) -| ({
+                        right_layout.get_anchor_pos(right_gene)
+                    });"""
+                )
                 layers["events"].append(
                     rf"\node[speciation] at ({branch_pos}) {{{branch.name}}};"
                 )
             elif branch.kind == BranchKind.Duplication:
-                layers["gene branches"].append(rf"""\draw[branch] ({
-                    trunk_offset
-                        + node_layout.branches[left_gene].rect.center()
-                }) |- ({branch_pos}) -| ({
-                    trunk_offset
-                        + node_layout.branches[right_gene].rect.center()
-                });""")
+                layers["gene branches"].append(
+                    rf"""\draw[branch] ({
+                        trunk_offset
+                            + node_layout.branches[left_gene].rect.center()
+                    }) |- ({branch_pos}) -| ({
+                        trunk_offset
+                            + node_layout.branches[right_gene].rect.center()
+                    });"""
+                )
                 layers["events"].append(
                     rf"\node[duplication] at ({branch_pos}) {{{branch.name}}};"
                 )
@@ -772,17 +816,22 @@ def render_to_tikz(
                 foreign_layout = layout[rec[right_gene]]
                 foreign_pos = foreign_layout.get_anchor_pos(right_gene)
                 bend_direction = (
-                    "bend left" if branch_pos.x < foreign_pos.x
+                    "bend left"
+                    if branch_pos.x < foreign_pos.x
                     else "bend right"
                 )
 
-                layers["gene branches"].append(rf"""\draw[branch] ({
-                    trunk_offset
-                        + node_layout.branches[left_gene].rect.center()
-                }) |- ({branch_pos});""")
-                layers["gene transfers"].append(rf"""\draw[transfer branch] ({
-                    branch_pos
-                }) to[{bend_direction}=35] ({foreign_pos});""")
+                layers["gene branches"].append(
+                    rf"""\draw[branch] ({
+                        trunk_offset
+                            + node_layout.branches[left_gene].rect.center()
+                    }) |- ({branch_pos});"""
+                )
+                layers["gene transfers"].append(
+                    rf"""\draw[transfer branch] ({
+                        branch_pos
+                    }) to[{bend_direction}=35] ({foreign_pos});"""
+                )
                 layers["events"].append(
                     r"\node[horizontal gene transfer] at "
                     rf"({branch_pos}) {{{branch.name}}};"

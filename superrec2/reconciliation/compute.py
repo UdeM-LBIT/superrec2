@@ -40,26 +40,21 @@ def reconcile_lca(
 
 
 def _compute_thl_table(
-    gene_tree: PhyloTree,
-    species_lca: LowestCommonAncestor,
-    costs: CostVector
+    gene_tree: PhyloTree, species_lca: LowestCommonAncestor, costs: CostVector
 ) -> DefaultDict[Tuple[PhyloNode, PhyloNode], MinSequence[MappingInfo]]:
     dup_cost = costs[CostType.Duplication]
     hgt_cost = costs[CostType.HorizontalGeneTransfer]
     loss_cost = costs[CostType.Loss]
     min_costs: DefaultDict[
-        Tuple[PhyloNode, PhyloNode],
-        MinSequence[MappingInfo]
+        Tuple[PhyloNode, PhyloNode], MinSequence[MappingInfo]
     ] = defaultdict(MinSequence)
 
     for v in gene_tree.traverse("postorder"):
         if v.is_leaf():
             s = species_lca.tree.get_leaves_by_name(v.species)[0]
-            min_costs[(v, s)].update((0, MappingInfo(
-                species=s,
-                left=None,
-                right=None
-            )))
+            min_costs[(v, s)].update(
+                (0, MappingInfo(species=s, left=None, right=None))
+            )
         else:
             vl, vr = v.children
 
@@ -84,33 +79,43 @@ def _compute_thl_table(
 
                     # Map left gene to left species and right gene to right
                     for ul_ch, ur_ch in product(min_vl_ul_ch, min_vr_ur_ch):
-                        options.update((
-                            min_vl_ul_ch.min + min_vr_ur_ch.min
-                            + loss_cost * (
-                                species_lca.distance(u, ul_ch)
-                                + species_lca.distance(u, ur_ch) - 2
-                            ),
-                            MappingInfo(
-                                species=u,
-                                left=ul_ch,
-                                right=ur_ch,
+                        options.update(
+                            (
+                                min_vl_ul_ch.min
+                                + min_vr_ur_ch.min
+                                + loss_cost
+                                * (
+                                    species_lca.distance(u, ul_ch)
+                                    + species_lca.distance(u, ur_ch)
+                                    - 2
+                                ),
+                                MappingInfo(
+                                    species=u,
+                                    left=ul_ch,
+                                    right=ur_ch,
+                                ),
                             )
-                        ))
+                        )
 
                     # Map right gene to left species and left gene to right
                     for ul_ch, ur_ch in product(min_vr_ul_ch, min_vl_ur_ch):
-                        options.update((
-                            min_vr_ul_ch.min + min_vl_ur_ch.min
-                            + loss_cost * (
-                                species_lca.distance(u, ul_ch)
-                                + species_lca.distance(u, ur_ch) - 2
-                            ),
-                            MappingInfo(
-                                species=u,
-                                left=ur_ch,
-                                right=ul_ch,
+                        options.update(
+                            (
+                                min_vr_ul_ch.min
+                                + min_vl_ur_ch.min
+                                + loss_cost
+                                * (
+                                    species_lca.distance(u, ul_ch)
+                                    + species_lca.distance(u, ur_ch)
+                                    - 2
+                                ),
+                                MappingInfo(
+                                    species=u,
+                                    left=ur_ch,
+                                    right=ul_ch,
+                                ),
                             )
-                        ))
+                        )
 
                 min_vl_u_ch: MinSequence[PhyloNode] = MinSequence()
                 min_vl_u_inc: MinSequence[PhyloNode] = MinSequence()
@@ -127,43 +132,56 @@ def _compute_thl_table(
 
                 # Try mapping as a duplication
                 for l_u_ch, r_u_ch in product(min_vl_u_ch, min_vr_u_ch):
-                    options.update((
-                        dup_cost + min_vl_u_ch.min + min_vr_u_ch.min
-                        + loss_cost * (
-                            species_lca.distance(u, l_u_ch)
-                            + species_lca.distance(u, r_u_ch)
-                        ),
-                        MappingInfo(
-                            species=u,
-                            left=l_u_ch,
-                            right=r_u_ch,
+                    options.update(
+                        (
+                            dup_cost
+                            + min_vl_u_ch.min
+                            + min_vr_u_ch.min
+                            + loss_cost
+                            * (
+                                species_lca.distance(u, l_u_ch)
+                                + species_lca.distance(u, r_u_ch)
+                            ),
+                            MappingInfo(
+                                species=u,
+                                left=l_u_ch,
+                                right=r_u_ch,
+                            ),
                         )
-                    ))
+                    )
 
                 # Try mapping as a horizontal gene transfer
                 # Map left gene as a transfer and right gene as conserved
                 for l_u_inc, r_u_ch in product(min_vl_u_inc, min_vr_u_ch):
-                    options.update((
-                        hgt_cost + min_vl_u_inc.min + min_vr_u_ch.min
-                        + loss_cost * species_lca.distance(u, r_u_ch),
-                        MappingInfo(
-                            species=u,
-                            left=l_u_inc,
-                            right=r_u_ch,
+                    options.update(
+                        (
+                            hgt_cost
+                            + min_vl_u_inc.min
+                            + min_vr_u_ch.min
+                            + loss_cost * species_lca.distance(u, r_u_ch),
+                            MappingInfo(
+                                species=u,
+                                left=l_u_inc,
+                                right=r_u_ch,
+                            ),
                         )
-                    ))
+                    )
 
                 # Map left gene as conserved and right gene as a transfer
                 for l_u_ch, r_u_inc in product(min_vl_u_ch, min_vr_u_inc):
-                    options.update((
-                        hgt_cost + min_vl_u_ch.min + min_vr_u_inc.min
-                        + loss_cost * species_lca.distance(u, l_u_ch),
-                        MappingInfo(
-                            species=u,
-                            left=l_u_ch,
-                            right=r_u_inc,
+                    options.update(
+                        (
+                            hgt_cost
+                            + min_vl_u_ch.min
+                            + min_vr_u_inc.min
+                            + loss_cost * species_lca.distance(u, l_u_ch),
+                            MappingInfo(
+                                species=u,
+                                left=l_u_ch,
+                                right=r_u_inc,
+                            ),
                         )
-                    ))
+                    )
 
     return min_costs
 
@@ -191,18 +209,19 @@ def _decode_thl_table(root, solutions, min_costs):
             )
 
             for map_left, map_right in mappings:
-                results.append({
-                    root: solution.species,
-                    **map_left, **map_right,
-                })
+                results.append(
+                    {
+                        root: solution.species,
+                        **map_left,
+                        **map_right,
+                    }
+                )
 
     return results
 
 
 def reconcile_thl(
-    gene_tree: PhyloTree,
-    species_lca: LowestCommonAncestor,
-    costs: CostVector
+    gene_tree: PhyloTree, species_lca: LowestCommonAncestor, costs: CostVector
 ) -> Tuple[ExtendedIntegral, List[Reconciliation]]:
     """
     Find all minimum-cost reconciliations between a species tree and a gene

@@ -12,10 +12,12 @@ from .tools import (
     reconcile_all,
 )
 
+
 class TestReconciliationTools(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.gene_tree = PhyloTree("""
+        cls.gene_tree = PhyloTree(
+            """
             (
                 ((x_1,z_1)3,(w_1,w_2)4)2,
                 (
@@ -26,12 +28,12 @@ class TestReconciliationTools(unittest.TestCase):
                     (w_3,(z_3,(t_1,t_2)14)13)12
                 )5
             )1;
-        """, sp_naming_function=get_species_name, format=1)
-
-        cls.species_tree = PhyloTree(
-            "(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;",
-            format=1
+        """,
+            sp_naming_function=get_species_name,
+            format=1,
         )
+
+        cls.species_tree = PhyloTree("(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;", format=1)
         cls.species_lca = LowestCommonAncestor(cls.species_tree)
 
         cls.rec_leaves = {
@@ -91,9 +93,10 @@ class TestReconciliationTools(unittest.TestCase):
     def test_parse(self):
         self.assertEqual(
             parse_reconciliation(
-                self.gene_tree, self.species_tree,
+                self.gene_tree,
+                self.species_tree,
                 "1:XYZWT,2:XYZ,3:XYZ,4:W,5:XYZWT,6:XYZ,7:XY,"
-                "8:XYZ,9:XY,10:Y,11:Y,12:WT,13:T,14:T"
+                "8:XYZ,9:XY,10:Y,11:Y,12:WT,13:T,14:T",
             ),
             self.rec_internal,
         )
@@ -117,10 +120,14 @@ class TestReconciliationTools(unittest.TestCase):
         }
 
         for name, event in expected_events.items():
-            self.assertEqual(get_event(
-                self.gene_tree & name,
-                self.species_lca, self.rec,
-            ), event)
+            self.assertEqual(
+                get_event(
+                    self.gene_tree & name,
+                    self.species_lca,
+                    self.rec,
+                ),
+                event,
+            )
 
     def test_get_reconciliation_cost(self):
         expected_costs = {
@@ -131,21 +138,25 @@ class TestReconciliationTools(unittest.TestCase):
         }
 
         for (dup, hgt, loss), value in expected_costs.items():
-            self.assertEqual(get_reconciliation_cost(
-                self.gene_tree,
-                self.species_lca,
-                self.rec,
-                {
-                    CostType.Duplication: dup,
-                    CostType.HorizontalGeneTransfer: hgt,
-                    CostType.Loss: loss,
-                }
-            ), value)
+            self.assertEqual(
+                get_reconciliation_cost(
+                    self.gene_tree,
+                    self.species_lca,
+                    self.rec,
+                    {
+                        CostType.Duplication: dup,
+                        CostType.HorizontalGeneTransfer: hgt,
+                        CostType.Loss: loss,
+                    },
+                ),
+                value,
+            )
 
     def test_reconcile_all(self):
         gene_tree = PhyloTree(
             "((x_1,x_2)2,(y_1,z_1)3)1;",
-            sp_naming_function=get_species_name, format=1
+            sp_naming_function=get_species_name,
+            format=1,
         )
 
         gene_1 = gene_tree & "1"
@@ -167,117 +178,165 @@ class TestReconciliationTools(unittest.TestCase):
 
         # Check that all valid reconciliations are generated
         self.assertEqual(len(recs), 16)
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_yz,
-            gene_1: species_xyz,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_yz,
+                gene_1: species_xyz,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_yz,
-            gene_1: species_x,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_yz,
+                gene_1: species_x,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_yz,
-            gene_1: species_yz,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_yz,
+                gene_1: species_yz,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_xyz,
-            gene_1: species_xyz,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_xyz,
+                gene_1: species_xyz,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_y,
-            gene_1: species_yz,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_y,
+                gene_1: species_yz,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_y,
-            gene_1: species_xyz,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_y,
+                gene_1: species_xyz,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_y,
-            gene_1: species_x,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_y,
+                gene_1: species_x,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_y,
-            gene_1: species_y,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_y,
+                gene_1: species_y,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_z,
-            gene_1: species_yz,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_z,
+                gene_1: species_yz,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_z,
-            gene_1: species_xyz,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_z,
+                gene_1: species_xyz,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_z,
-            gene_1: species_x,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_z,
+                gene_1: species_x,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_x,
-            gene_3: species_z,
-            gene_1: species_z,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_x,
+                gene_3: species_z,
+                gene_1: species_z,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_xyz,
-            gene_3: species_yz,
-            gene_1: species_xyz,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_xyz,
+                gene_3: species_yz,
+                gene_1: species_xyz,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_xyz,
-            gene_3: species_xyz,
-            gene_1: species_xyz,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_xyz,
+                gene_3: species_xyz,
+                gene_1: species_xyz,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_xyz,
-            gene_3: species_y,
-            gene_1: species_xyz,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_xyz,
+                gene_3: species_y,
+                gene_1: species_xyz,
+            },
+            recs,
+        )
 
-        self.assertIn({
-            **leaves,
-            gene_2: species_xyz,
-            gene_3: species_z,
-            gene_1: species_xyz,
-        }, recs)
+        self.assertIn(
+            {
+                **leaves,
+                gene_2: species_xyz,
+                gene_3: species_z,
+                gene_1: species_xyz,
+            },
+            recs,
+        )
 
         # Check that all the generated reconciliations are valid
         for rec in recs:

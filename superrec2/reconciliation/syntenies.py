@@ -12,7 +12,15 @@ from collections import defaultdict
 from ete3 import PhyloTree, PhyloNode
 from infinity import inf
 from typing import (
-    Any, DefaultDict, Dict, NamedTuple, List, Optional, Sequence, Set, Tuple
+    Any,
+    DefaultDict,
+    Dict,
+    NamedTuple,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
 )
 
 
@@ -37,8 +45,9 @@ def _compute_spfs_table(
 
         if sub_gene.is_leaf():
             sub_synt = known_syntenies[sub_gene]
-            costs[sub_gene][mask_from_subseq(sub_synt, root_synt)] = \
-                LabelingInfo(cost=0)
+            costs[sub_gene][
+                mask_from_subseq(sub_synt, root_synt)
+            ] = LabelingInfo(cost=0)
         else:
             left_gene, right_gene = sub_gene.children
             event = get_event(sub_gene, species_lca, rec)
@@ -156,9 +165,7 @@ def _label_with_root_order(
     all_mask = subseq_complete(root_synteny)
     return (
         costs[gene_tree][all_mask][0],
-        _decode_spfs_table(
-            gene_tree, root_synteny, all_mask, costs
-        )
+        _decode_spfs_table(gene_tree, root_synteny, all_mask, costs),
     )
 
 
@@ -193,7 +200,8 @@ def label_ancestral_syntenies(
 
         for leaf_synteny in leaf_labeling.values():
             for gene_1, gene_2 in zip(leaf_synteny[0:-1], leaf_synteny[1:]):
-                if gene_1 not in prec: prec[gene_1] = set()
+                if gene_1 not in prec:
+                    prec[gene_1] = set()
                 prec[gene_1].add(gene_2)
 
             if leaf_synteny[-1] not in prec:
@@ -205,10 +213,7 @@ def label_ancestral_syntenies(
                     gene_tree,
                     species_lca,
                     rec,
-                    {
-                        **leaf_labeling,
-                        gene_tree: order
-                    },
+                    {**leaf_labeling, gene_tree: order},
                 )
             )
     else:

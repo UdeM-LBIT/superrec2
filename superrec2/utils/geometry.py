@@ -3,6 +3,7 @@ from typing import NamedTuple
 
 class Position(NamedTuple):
     """Vector or point on the 2D plane."""
+
     x: float
     y: float
 
@@ -21,12 +22,14 @@ class Position(NamedTuple):
 
 class Size(NamedTuple):
     """Dimension on the 2D plane."""
+
     w: float
     h: float
 
 
 class Rect(NamedTuple):
     """Axis-aligned 2D rectangle."""
+
     x: float
     y: float
     w: float
