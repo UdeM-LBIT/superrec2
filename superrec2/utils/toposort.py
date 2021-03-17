@@ -3,7 +3,6 @@ from collections import deque
 from typing import (
     Deque,
     Dict,
-    Iterable,
     List,
     Mapping,
     Optional,
@@ -16,7 +15,7 @@ from typing import (
 Node = TypeVar('Node')
 
 
-def toposort(graph: Mapping[Node, Sequence[Node]]) -> Optional[List[Node]]:
+def toposort(graph: Mapping[Node, Set[Node]]) -> Optional[List[Node]]:
     """
     Sort nodes of a graph in topological order.
 
@@ -59,19 +58,19 @@ def tree_nodes_toposort(nodes: Sequence[TreeNode]) -> Optional[List[TreeNode]]:
     :param nodes: set of nodes to sort
     :returns: topologically sorted set of nodes
     """
-    subgraph = {node: [] for node in nodes}
+    subgraph: Dict[TreeNode, Set[TreeNode]] = {node: set() for node in nodes}
 
     for node in nodes:
         for child in node.children:
             if child in subgraph:
-                subgraph[child].append(node)
+                subgraph[child].add(node)
 
     return toposort(subgraph)
 
 
 def _toposort_all_bt(
     starts: Set[Node],
-    graph: Mapping[Node, Sequence[Node]],
+    graph: Mapping[Node, Set[Node]],
     indeg: Dict[Node, int],
 ) -> List[List[Node]]:
     """
@@ -107,7 +106,7 @@ def _toposort_all_bt(
     return results
 
 
-def toposort_all(graph: Mapping[Node, Sequence[Node]]) -> List[List[Node]]:
+def toposort_all(graph: Mapping[Node, Set[Node]]) -> List[List[Node]]:
     """
     Enumerate all topological orderings of the vertices of a graph.
 

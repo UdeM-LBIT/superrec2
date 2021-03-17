@@ -3,16 +3,16 @@ from typing import NamedTuple
 
 class Position(NamedTuple):
     """Vector or point on the 2D plane."""
-    x: int
-    y: int
+    x: float
+    y: float
 
-    def __add__(self, pos: "Position") -> "Position":
+    def __add__(self, pos: tuple) -> "Position":
         """Add two vectors together."""
-        return Position(self.x + pos.x, self.y + pos.y)
+        return Position(self.x + pos[0], self.y + pos[1])
 
-    def __sub__(self, pos: "Position") -> "Position":
+    def __sub__(self, pos: tuple) -> "Position":
         """Subtract a vector from another."""
-        return Position(self.x - pos.x, self.y - pos.y)
+        return Position(self.x - pos[0], self.y - pos[1])
 
     def __str__(self) -> str:
         """Print vector coordinates."""
@@ -21,17 +21,18 @@ class Position(NamedTuple):
 
 class Size(NamedTuple):
     """Dimension on the 2D plane."""
-    w: int
-    h: int
+    w: float
+    h: float
 
 
 class Rect(NamedTuple):
     """Axis-aligned 2D rectangle."""
-    x: int
-    y: int
-    w: int
-    h: int
+    x: float
+    y: float
+    w: float
+    h: float
 
+    @staticmethod
     def make_from(position: Position, size: Size) -> "Rect":
         """
         Create a rectangle from a position and a dimension.

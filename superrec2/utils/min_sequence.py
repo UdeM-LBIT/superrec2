@@ -1,11 +1,10 @@
-from typing import Generic, List, Tuple, TypeVar, Union
+from typing import Generic, List, overload, Tuple, TypeVar, Union
 from collections.abc import Sequence
-from numbers import Integral
 from infinity import Infinity, inf
 
 
 T = TypeVar('T')
-ExtendedIntegral = Union[Integral, Infinity]
+ExtendedIntegral = Union[int, Infinity]
 
 
 class MinSequence(Generic[T], Sequence[T]):
@@ -31,9 +30,22 @@ class MinSequence(Generic[T], Sequence[T]):
                     if len(self._items) < self.max_keep:
                         self._items.append(element[1])
 
+    @overload
     def __getitem__(self, idx: int) -> T:
+        ...
+
+    @overload
+    def __getitem__(self, idx: slice) -> "MinSequence[T]":
+        ...
+
+    def __getitem__(self, idx: Union[int, slice]) -> Union[T, "MinSequence[T]"]:
         """Get the nth minimal element."""
-        return self._items[idx]
+        if isinstance(idx, slice):
+            result: MinSequence[T] = MinSequence(self.max_keep)
+            result._items = self._items[idx]
+            return result
+        else:
+            return self._items[idx]
 
     def __len__(self) -> int:
         """Get the number of minimal elements."""

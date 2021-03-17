@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from itertools import product
-from typing import Any, Generator, Mapping, Sequence
+from typing import Any, Dict, Generator, List, Mapping, Sequence
 from ete3 import PhyloTree, PhyloNode
 from infinity import inf
 from ..utils.lowest_common_ancestor import LowestCommonAncestor
@@ -302,7 +302,7 @@ def parse_reconciliation(
     :param source: string to parse
     :returns: parsed reconciliation
     """
-    result: Reconciliation = {}
+    result: Dict[PhyloNode, PhyloNode] = {}
 
     for pair in source.split(","):
         if pair.strip():
@@ -322,7 +322,7 @@ def parse_labeling(
     :param source: string to parse
     :returns: parsed labeling
     """
-    result: Labeling = {}
+    result: Dict[PhyloNode, List[str]] = {}
 
     for pair in source.split(","):
         if pair.strip():

@@ -1,7 +1,7 @@
 from ete3 import PhyloTree, PhyloNode
 from enum import Enum, auto
 import textwrap
-from typing import Dict, Mapping, NamedTuple, Optional, Union
+from typing import Any, Dict, List, Mapping, NamedTuple, Optional, Union
 from ..utils.geometry import Position, Rect, Size
 from ..utils.lowest_common_ancestor import LowestCommonAncestor
 from ..utils.mappings import invert_mapping
@@ -38,7 +38,7 @@ class Branch(NamedTuple):
     rect: Rect
 
     # Label of the branch node or of the extant gene
-    name: str = None
+    name: str = ""
 
     # Children genes
     # * If this is a full loss branch, either `left` or `right` will be None,
@@ -127,21 +127,21 @@ class DrawParams(NamedTuple):
 
     # Minimum space between the outline of the species tree
     # and one of the gene branches it contains
-    species_branch_padding: int = 20
+    species_branch_padding: float = 20
 
     # Minimum space between two gene branches in the tree
-    gene_branch_spacing: int = 10
+    gene_branch_spacing: float = 10
 
     # Space above trunks
-    trunk_overhead: int = 20
+    trunk_overhead: float = 20
 
     # Horizontal space between the trunk of a parent node
     # and its children subtrees
-    subtree_spacing: int = 0
+    subtree_spacing: float = 0
 
     # Vertical space between the fork of the parent node
     # and its children subtrees
-    level_spacing: int = 0
+    level_spacing: float = 0
 
     # Thickness of the lines around the outer species tree
     species_border_thickness: str = "1pt"
@@ -153,25 +153,25 @@ class DrawParams(NamedTuple):
     branch_outer_thickness: str = "4pt"
 
     # Space between extant gene names and the end of species branches
-    species_leaf_spacing: str = 10
+    species_leaf_spacing: float = 10
 
     # Distance of the species labels from the species leaves
-    species_label_spacing: str = 10
+    species_label_spacing: float = 10
 
     # Size of the filled circles that represent extant genes
     extant_gene_diameter: str = "3pt"
 
     # Length of the dashed line that represent lost genes
-    full_loss_size: str = 20
+    full_loss_size: float = 20
 
     # Minimum size of the hollow circles that represent speciation events
-    speciation_size: str = 10
+    speciation_size: float = 10
 
     # Minimum size of the square that represent duplication events
-    duplication_size: str = 10
+    duplication_size: float = 10
 
     # Minimum size of the sideways square that represent transfer events
-    transfer_size: str = 10
+    transfer_size: float = 10
 
     def get_tikz_definitions(self):
         """Get TikZ definitions matching a set of drawing parameters."""
@@ -285,10 +285,11 @@ def _compute_branches(
         return prev_gene
 
     for root_species in species_tree.traverse("postorder"):
-        layout_state[root_species] = state = {
+        state: Dict[str, Any] = {
             "branches": {},
             "anchor_nodes": set(),
         }
+        layout_state[root_species] = state
 
         # Create branches even for leaf genes
         for extant_gene in rev_rec[root_species]:
@@ -310,6 +311,9 @@ def _compute_branches(
             gene for gene in rev_rec[root_species]
             if not gene.is_leaf()
         ])
+
+        # If we get none, then there’s a loop somewhere in the tree
+        assert internal_genes is not None
 
         if not root_species.is_leaf():
             left_species, right_species = root_species.children
@@ -478,7 +482,8 @@ def _layout_branches(
                 raise ValueError("Invalid node type")
 
             rect = Rect.make_from(pos, size)
-            layout["branches"][root_gene] = Branch(**branch, rect=rect)
+            branch["rect"] = rect
+            layout["branches"][root_gene] = Branch(**branch)
 
             if root_gene in layout["anchor_nodes"]:
                 layout["anchors"][root_gene] = rect.center().x
@@ -552,7 +557,7 @@ def _layout_subtrees(
             state["fork_thickness"] = fork_thickness
 
     # Compute the absolute position of each subtree
-    result: Layout = {}
+    result: Dict[PhyloNode, SubtreeLayout] = {}
     layout_state[species_tree]["rect"] = Rect.make_from(
         position=Position(0, 0),
         size=layout_state[species_tree]["size"],
@@ -652,7 +657,7 @@ def render_to_tikz(
         params.get_tikz_definitions(),
         r"\begin{tikzpicture}",
     ]
-    layers = {
+    layers: Dict[str, List[str]] = {
         "species": [],
         "gene branches": [],
         "gene transfers": [],

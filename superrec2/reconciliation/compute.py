@@ -1,6 +1,6 @@
 from collections import defaultdict
 from itertools import product
-from typing import List, NamedTuple, Tuple
+from typing import DefaultDict, List, NamedTuple, Tuple
 from ete3 import PhyloTree, PhyloNode
 from ..utils.lowest_common_ancestor import LowestCommonAncestor
 from ..utils.min_sequence import MinSequence
@@ -43,11 +43,14 @@ def _compute_thl_table(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
     costs: CostVector
-) -> MinSequence[MappingInfo]:
+) -> DefaultDict[Tuple[PhyloNode, PhyloNode], MinSequence[MappingInfo]]:
     dup_cost = costs[CostType.Duplication]
     hgt_cost = costs[CostType.HorizontalGeneTransfer]
     loss_cost = costs[CostType.Loss]
-    min_costs = defaultdict(MinSequence)
+    min_costs: DefaultDict[
+        Tuple[PhyloNode, PhyloNode],
+        MinSequence[MappingInfo]
+    ] = defaultdict(MinSequence)
 
     for v in gene_tree.traverse("postorder"):
         if v.is_leaf():
@@ -66,10 +69,10 @@ def _compute_thl_table(
                 # Try mapping as a speciation
                 if not u.is_leaf():
                     ul, ur = u.children
-                    min_vl_ul_ch = MinSequence()
-                    min_vr_ul_ch = MinSequence()
-                    min_vl_ur_ch = MinSequence()
-                    min_vr_ur_ch = MinSequence()
+                    min_vl_ul_ch: MinSequence[PhyloNode] = MinSequence()
+                    min_vr_ul_ch: MinSequence[PhyloNode] = MinSequence()
+                    min_vl_ur_ch: MinSequence[PhyloNode] = MinSequence()
+                    min_vr_ur_ch: MinSequence[PhyloNode] = MinSequence()
 
                     for ul_ch in ul.traverse():
                         min_vl_ul_ch.update((min_costs[(vl, ul_ch)].min, ul_ch))
@@ -109,10 +112,10 @@ def _compute_thl_table(
                             )
                         ))
 
-                min_vl_u_ch = MinSequence()
-                min_vl_u_inc = MinSequence()
-                min_vr_u_ch = MinSequence()
-                min_vr_u_inc = MinSequence()
+                min_vl_u_ch: MinSequence[PhyloNode] = MinSequence()
+                min_vl_u_inc: MinSequence[PhyloNode] = MinSequence()
+                min_vr_u_ch: MinSequence[PhyloNode] = MinSequence()
+                min_vr_u_inc: MinSequence[PhyloNode] = MinSequence()
 
                 for w in species_lca.tree.traverse():
                     if species_lca.is_ancestor_of(u, w):
@@ -216,7 +219,7 @@ def reconcile_thl(
         list of all reconciliations with such a cost
     """
     min_costs = _compute_thl_table(gene_tree, species_lca, costs or {})
-    solutions = MinSequence()
+    solutions: MinSequence[MappingInfo] = MinSequence()
 
     for u in species_lca.tree.traverse("postorder"):
         for option in min_costs[(gene_tree, u)]:
