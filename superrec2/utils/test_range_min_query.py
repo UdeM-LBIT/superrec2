@@ -38,7 +38,7 @@ class TestUtilsRangeMinQuery(unittest.TestCase):
                 if i < j:
                     self.assertEqual(rmq(i, j), min(data[i:j]))
                 else:
-                    self.assertEqual(rmq(i, j), inf)
+                    self.assertEqual(rmq(i, j), None)
 
     def test_change_source(self):
         data = [8, 8, 8]

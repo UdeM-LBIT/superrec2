@@ -1,16 +1,18 @@
+"""Handle and compare sequences and subsequences."""
 from typing import List, Sequence, TypeVar
 
 
-T = TypeVar("T")
+Element = TypeVar("Element")
 
 
-def subseq_complete(sequence: Sequence[T]) -> int:
+def subseq_complete(sequence: Sequence[Element]) -> int:
+    """Get a bitmask representing a complete subsequence."""
     return (1 << len(sequence)) - 1
 
 
 def mask_from_subseq(
-    child: Sequence[T],
-    parent: Sequence[T],
+    child: Sequence[Element],
+    parent: Sequence[Element],
 ) -> int:
     """
     Create a bitmask representing a subsequence.
@@ -26,11 +28,11 @@ def mask_from_subseq(
     child_i = 0
     mask = 0
 
-    for parent_i in range(len(parent)):
+    for parent_i, parent_v in enumerate(parent):
         if child_i == len(child):
             break
 
-        if child[child_i] == parent[parent_i]:
+        if child[child_i] == parent_v:
             mask |= 1 << parent_i
             child_i += 1
 
@@ -39,8 +41,8 @@ def mask_from_subseq(
 
 def subseq_from_mask(
     child: int,
-    parent: Sequence[T],
-) -> List[T]:
+    parent: Sequence[Element],
+) -> List[Element]:
     """
     Reconstruct a subsequence from a bitmask.
 
@@ -85,7 +87,7 @@ def subseq_segment_dist(
     if parent.bit_length() < child.bit_length():
         return -1
 
-    for i in range(parent.bit_length()):
+    for _ in range(parent.bit_length()):
         bit_child = child & 1
         bit_parent = parent & 1
 

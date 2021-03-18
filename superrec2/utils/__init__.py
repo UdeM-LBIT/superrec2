@@ -1,3 +1,4 @@
+"""Generic utilities."""
 from . import geometry
 from . import lowest_common_ancestor
 from . import min_sequence

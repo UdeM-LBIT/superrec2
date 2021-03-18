@@ -7,7 +7,7 @@ from .tools import (
     parse_labeling,
     parse_reconciliation,
 )
-from .draw import layout, render_to_tikz
+from .draw import compute_layout, render_to_tikz
 
 
 class TestReconciliationDraw(unittest.TestCase):
@@ -23,7 +23,7 @@ class TestReconciliationDraw(unittest.TestCase):
             **reconcile_leaves(gene_tree, species_tree),
             **parse_reconciliation(gene_tree, species_tree, rec_text),
         }
-        layout_info = layout(gene_tree, species_tree, rec, labeling)
+        layout_info = compute_layout(species_tree, rec, labeling)
         out = render_to_tikz(species_tree, rec, layout_info)
         self.assertEqual(
             out,

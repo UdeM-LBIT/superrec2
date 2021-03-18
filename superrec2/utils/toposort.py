@@ -1,4 +1,4 @@
-from ete3 import TreeNode
+"""Compute a topological ordering or all possible such orderings."""
 from collections import deque
 from typing import (
     Deque,
@@ -10,6 +10,7 @@ from typing import (
     Set,
     TypeVar,
 )
+from ete3 import TreeNode
 
 
 Node = TypeVar("Node")
@@ -29,7 +30,7 @@ def toposort(graph: Mapping[Node, Set[Node]]) -> Optional[List[Node]]:
     indeg: Dict[Node, int] = {node: 0 for node in graph}
     result: List[Node] = []
 
-    for node, succs in graph.items():
+    for succs in graph.values():
         for succ in succs:
             if indeg[succ] == 0:
                 starts.remove(succ)
@@ -116,7 +117,7 @@ def toposort_all(graph: Mapping[Node, Set[Node]]) -> List[List[Node]]:
     starts: Set[Node] = set(graph)
     indeg: Dict[Node, int] = {node: 0 for node in graph}
 
-    for node, succs in graph.items():
+    for succs in graph.values():
         for succ in succs:
             starts.discard(succ)
             indeg[succ] += 1

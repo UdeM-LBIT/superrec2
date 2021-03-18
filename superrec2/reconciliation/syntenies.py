@@ -1,16 +1,5 @@
-from ..utils.toposort import toposort_all
-from ..utils.min_sequence import ExtendedIntegral, MinSequence
-from ..utils.lowest_common_ancestor import LowestCommonAncestor
-from ..utils.subsequences import (
-    subseq_complete,
-    mask_from_subseq,
-    subseq_from_mask,
-    subseq_segment_dist,
-)
-from .tools import Labeling, Event, get_event, Reconciliation
+"""Compute and represent synteny-labeled reconciliations."""
 from collections import defaultdict
-from ete3 import PhyloTree, PhyloNode
-from infinity import inf
 from typing import (
     Any,
     DefaultDict,
@@ -22,12 +11,107 @@ from typing import (
     Set,
     Tuple,
 )
+from ete3 import PhyloTree, PhyloNode
+from infinity import inf
+from ..utils.toposort import toposort_all
+from ..utils.min_sequence import ExtendedIntegral, MinSequence
+from ..utils.lowest_common_ancestor import LowestCommonAncestor
+from ..utils.subsequences import (
+    subseq_complete,
+    mask_from_subseq,
+    subseq_from_mask,
+    subseq_segment_dist,
+)
+from .tools import Labeling, Event, get_event, Reconciliation
 
 
 class LabelingInfo(NamedTuple):
+    """Information about an assignment of a synteny to a node."""
+
+    # Cost of this assignment
     cost: ExtendedIntegral = inf
+
+    # Synteny assigned to the left child, if applicable
     left_mask: Optional[int] = None
+
+    # Synteny assigned to the right child, if applicable
     right_mask: Optional[int] = None
+
+
+SPFSTable = Dict[PhyloNode, DefaultDict[int, LabelingInfo]]
+LRSubsynt = Tuple[MinSequence[int], MinSequence[int]]
+
+
+def _compute_spfs_entry(  # pylint:disable=too-many-locals
+    sub_gene: PhyloNode,
+    species_lca: LowestCommonAncestor,
+    rec: Reconciliation,
+    sub_synt_mask: int,
+    table: SPFSTable,
+) -> None:
+    """Find optimal syntenies for the node’s children given a parent synteny."""
+    event = get_event(sub_gene, species_lca, rec)
+    min_synt_full: LRSubsynt = (MinSequence(1), MinSequence(1))
+    min_synt_segm: LRSubsynt = (MinSequence(1), MinSequence(1))
+
+    for i in (0, 1):
+        gene = sub_gene.children[i]
+
+        for synt, info in table[gene].items():
+            full = subseq_segment_dist(synt, sub_synt_mask, edges=True)
+
+            if full == -1:
+                # Not a subsequence of the parent synteny
+                continue
+
+            segm = subseq_segment_dist(synt, sub_synt_mask, edges=False)
+
+            min_synt_full[i].update((info.cost + full, synt))
+            min_synt_segm[i].update((info.cost + segm, synt))
+
+    if any(min_synt.min == inf for min_synt in min_synt_full):
+        return
+
+    keep_left_cost = min_synt_full[0].min + min_synt_segm[1].min
+    keep_right_cost = min_synt_segm[0].min + min_synt_full[1].min
+
+    if event == Event.SPECIATION:
+        table[sub_gene][sub_synt_mask] = LabelingInfo(
+            cost=min_synt_full[0].min + min_synt_full[1].min,
+            left_mask=min_synt_full[0][0],
+            right_mask=min_synt_full[1][0],
+        )
+    elif event == Event.DUPLICATION:
+        if keep_left_cost <= keep_right_cost:
+            table[sub_gene][sub_synt_mask] = LabelingInfo(
+                cost=keep_left_cost,
+                left_mask=min_synt_full[0][0],
+                right_mask=min_synt_segm[1][0],
+            )
+        else:
+            table[sub_gene][sub_synt_mask] = LabelingInfo(
+                cost=keep_right_cost,
+                left_mask=min_synt_segm[0][0],
+                right_mask=min_synt_full[1][0],
+            )
+    elif event == Event.HORIZONTAL_GENE_TRANSFER:
+        keep_left = species_lca.is_comparable(
+            rec[sub_gene], rec[sub_gene.children[0]]
+        )
+        if keep_left:
+            table[sub_gene][sub_synt_mask] = LabelingInfo(
+                cost=keep_left_cost,
+                left_mask=min_synt_full[0][0],
+                right_mask=min_synt_segm[1][0],
+            )
+        else:
+            table[sub_gene][sub_synt_mask] = LabelingInfo(
+                cost=keep_right_cost,
+                left_mask=min_synt_segm[0][0],
+                right_mask=min_synt_full[1][0],
+            )
+    else:
+        raise ValueError("Invalid event")
 
 
 def _compute_spfs_table(
@@ -38,19 +122,17 @@ def _compute_spfs_table(
 ) -> Dict[PhyloNode, DefaultDict[int, LabelingInfo]]:
     root_synt = known_syntenies[gene_tree]
     subseq_count = 2 ** len(root_synt)
-    costs: Dict[PhyloNode, DefaultDict[int, LabelingInfo]] = {}
+    table: Dict[PhyloNode, DefaultDict[int, LabelingInfo]] = {}
 
     for sub_gene in gene_tree.traverse("postorder"):
-        costs[sub_gene] = defaultdict(LabelingInfo)
+        table[sub_gene] = defaultdict(LabelingInfo)
 
         if sub_gene.is_leaf():
             sub_synt = known_syntenies[sub_gene]
-            costs[sub_gene][
+            table[sub_gene][
                 mask_from_subseq(sub_synt, root_synt)
             ] = LabelingInfo(cost=0)
         else:
-            left_gene, right_gene = sub_gene.children
-            event = get_event(sub_gene, species_lca, rec)
             sub_synt_masks = (
                 (subseq_complete(root_synt),)
                 if sub_gene == gene_tree
@@ -59,75 +141,11 @@ def _compute_spfs_table(
 
             # Test all possible subsequences for the current node’s synteny
             for sub_synt_mask in sub_synt_masks:
-                # Find optimal syntenies for the node’s two children
-                LRSubsynt = Tuple[MinSequence[int], MinSequence[int]]
-                min_synt_full: LRSubsynt = (MinSequence(1), MinSequence(1))
-                min_synt_segm: LRSubsynt = (MinSequence(1), MinSequence(1))
+                _compute_spfs_entry(
+                    sub_gene, species_lca, rec, sub_synt_mask, table
+                )
 
-                for i in (0, 1):
-                    gene = sub_gene.children[i]
-
-                    for synt, info in costs[gene].items():
-                        full = subseq_segment_dist(
-                            synt, sub_synt_mask, edges=True
-                        )
-
-                        if full == -1:
-                            # Not a subsequence of the parent synteny
-                            continue
-
-                        segm = subseq_segment_dist(
-                            synt, sub_synt_mask, edges=False
-                        )
-
-                        min_synt_full[i].update((info.cost + full, synt))
-                        min_synt_segm[i].update((info.cost + segm, synt))
-
-                if any(min_synt.min == inf for min_synt in min_synt_full):
-                    continue
-
-                keep_left_cost = min_synt_full[0].min + min_synt_segm[1].min
-                keep_right_cost = min_synt_segm[0].min + min_synt_full[1].min
-
-                if event == Event.Speciation:
-                    costs[sub_gene][sub_synt_mask] = LabelingInfo(
-                        cost=min_synt_full[0].min + min_synt_full[1].min,
-                        left_mask=min_synt_full[0][0],
-                        right_mask=min_synt_full[1][0],
-                    )
-                elif event == Event.Duplication:
-                    if keep_left_cost <= keep_right_cost:
-                        costs[sub_gene][sub_synt_mask] = LabelingInfo(
-                            cost=keep_left_cost,
-                            left_mask=min_synt_full[0][0],
-                            right_mask=min_synt_segm[1][0],
-                        )
-                    else:
-                        costs[sub_gene][sub_synt_mask] = LabelingInfo(
-                            cost=keep_right_cost,
-                            left_mask=min_synt_segm[0][0],
-                            right_mask=min_synt_full[1][0],
-                        )
-                elif event == Event.HorizontalGeneTransfer:
-                    keep_left = species_lca.is_comparable(
-                        rec[sub_gene], rec[left_gene]
-                    )
-                    if keep_left:
-                        costs[sub_gene][sub_synt_mask] = LabelingInfo(
-                            cost=keep_left_cost,
-                            left_mask=min_synt_full[0][0],
-                            right_mask=min_synt_segm[1][0],
-                        )
-                    else:
-                        costs[sub_gene][sub_synt_mask] = LabelingInfo(
-                            cost=keep_right_cost,
-                            left_mask=min_synt_segm[0][0],
-                            right_mask=min_synt_full[1][0],
-                        )
-                else:
-                    raise ValueError("Invalid event")
-
-    return costs
+    return table
 
 
 def _decode_spfs_table(

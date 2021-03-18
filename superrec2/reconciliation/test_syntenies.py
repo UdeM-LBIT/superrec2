@@ -306,9 +306,9 @@ class TestReconciliationSyntenies(unittest.TestCase):
             gene_tree,
             species_lca,
             costs={
-                rec.tools.CostType.Duplication: 1,
-                rec.tools.CostType.HorizontalGeneTransfer: 1,
-                rec.tools.CostType.Loss: 1,
+                rec.tools.CostType.DUPLICATION: 1,
+                rec.tools.CostType.HORIZONTAL_GENE_TRANSFER: 1,
+                rec.tools.CostType.LOSS: 1,
             },
         )
 
@@ -423,9 +423,9 @@ class TestReconciliationSyntenies(unittest.TestCase):
             gene_tree,
             species_lca,
             costs={
-                rec.tools.CostType.Duplication: 1,
-                rec.tools.CostType.HorizontalGeneTransfer: 1,
-                rec.tools.CostType.Loss: 1,
+                rec.tools.CostType.DUPLICATION: 1,
+                rec.tools.CostType.HORIZONTAL_GENE_TRANSFER: 1,
+                rec.tools.CostType.LOSS: 1,
             },
         )
 

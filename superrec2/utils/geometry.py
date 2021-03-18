@@ -1,3 +1,4 @@
+"""2D geometry primitives."""
 from typing import NamedTuple
 
 

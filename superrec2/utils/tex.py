@@ -1,3 +1,4 @@
+"""Bridge with the XeLaTeX compiler."""
 import os
 import subprocess
 import shutil
@@ -10,6 +11,7 @@ class TeXError(Exception):
     """Raised when a TeX compiler returns an error."""
 
     def __init__(self, code, message):
+        super().__init__(message)
         self.code = code
         self.message = message
 
@@ -36,6 +38,7 @@ def xelatex_compile(source: str, dest: str = None) -> str:
             cwd=tmpdir,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
+            check=False,
         )
 
         out = result.stdout.decode()
@@ -63,6 +66,7 @@ class MeasureBox(NamedTuple):
     depth: float
 
     def overall_size(self) -> Size:
+        """Get the overall dimensions of the box."""
         return Size(w=self.width, h=self.height + self.depth)
 
 

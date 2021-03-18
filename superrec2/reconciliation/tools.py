@@ -1,3 +1,4 @@
+"""Reconciliation definition and auxiliary computations."""
 from enum import Enum, auto
 from itertools import product
 from typing import Any, Dict, Generator, List, Mapping, Sequence
@@ -33,74 +34,76 @@ class Event(Enum):
     """Evolutionary events affecting genes."""
 
     # Sentinel for extant (current) genes
-    Leaf = auto()
+    LEAF = auto()
 
     # Sentinel for scenarios that are invalid wrt our evolutionary model
-    Invalid = auto()
+    INVALID = auto()
 
     # Transmission of the parent gene to both children species
-    Speciation = auto()
+    SPECIATION = auto()
 
     # Duplication of the parent gene in the same genome
-    Duplication = auto()
+    DUPLICATION = auto()
 
     # Transfer of the parent gene to a foreign genome
-    HorizontalGeneTransfer = auto()
+    HORIZONTAL_GENE_TRANSFER = auto()
 
 
 def get_event(
-    gene_node: PhyloNode,
+    root_gene: PhyloNode,
     species_lca: LowestCommonAncestor,
     rec: Reconciliation,
 ) -> Event:
     """
     Find the event associated to a gene by a reconciliation.
 
-    :param gene_node: gene to query
+    :param root_gene: gene to query
     :param species_lca: species ancestry information
     :param rec: reconciliation to use
     :returns: event associated to the given gene node
     """
-    if gene_node.is_leaf():
+    if root_gene.is_leaf():
         return (
-            Event.Leaf
-            if rec[gene_node].name == gene_node.species
-            else Event.Invalid
+            Event.LEAF
+            if rec[root_gene].name == root_gene.species
+            else Event.INVALID
         )
 
-    vl, vr = gene_node.children
+    left_gene, right_gene = root_gene.children
 
     if species_lca.is_strict_ancestor_of(
-        rec[vl], rec[gene_node]
-    ) or species_lca.is_strict_ancestor_of(rec[vr], rec[gene_node]):
-        return Event.Invalid
+        rec[left_gene], rec[root_gene]
+    ) or species_lca.is_strict_ancestor_of(rec[right_gene], rec[root_gene]):
+        return Event.INVALID
 
     if species_lca.is_ancestor_of(
-        rec[gene_node], rec[vl]
-    ) and species_lca.is_ancestor_of(rec[gene_node], rec[vr]):
+        rec[root_gene], rec[left_gene]
+    ) and species_lca.is_ancestor_of(rec[root_gene], rec[right_gene]):
         return (
-            Event.Speciation
+            Event.SPECIATION
             if (
-                rec[gene_node] == species_lca(rec[vl], rec[vr])
-                and not species_lca.is_comparable(rec[vl], rec[vr])
+                rec[root_gene] == species_lca(rec[left_gene], rec[right_gene])
+                and not species_lca.is_comparable(
+                    rec[left_gene], rec[right_gene]
+                )
             )
-            else Event.Duplication
+            else Event.DUPLICATION
         )
 
     if species_lca.is_ancestor_of(
-        rec[gene_node], rec[vl]
-    ) or species_lca.is_ancestor_of(rec[gene_node], rec[vr]):
-        return Event.HorizontalGeneTransfer
+        rec[root_gene], rec[left_gene]
+    ) or species_lca.is_ancestor_of(rec[root_gene], rec[right_gene]):
+        return Event.HORIZONTAL_GENE_TRANSFER
 
-    return Event.Invalid
+    return Event.INVALID
 
 
 class CostType(Enum):
     """Evolutionary events to which a cost can be assigned."""
 
-    Duplication = auto()
-    HorizontalGeneTransfer = auto()
-    Loss = auto()
+    DUPLICATION = auto()
+    HORIZONTAL_GENE_TRANSFER = auto()
+    LOSS = auto()
 
 
 # Cost values for each possible evolutionary event
@@ -123,43 +126,43 @@ def get_reconciliation_cost(
     """
     event = get_event(gene_tree, species_lca, rec)
 
-    if event == Event.Invalid:
+    if event == Event.INVALID:
         return inf
 
-    if event == Event.Leaf:
+    if event == Event.LEAF:
         return 0
 
-    vl, vr = gene_tree.children
-    cost_vl = get_reconciliation_cost(vl, species_lca, rec, costs)
-    dist_vl = species_lca.distance(rec[gene_tree], rec[vl])
-    cost_vr = get_reconciliation_cost(vr, species_lca, rec, costs)
-    dist_vr = species_lca.distance(rec[gene_tree], rec[vr])
+    left_gene, right_gene = gene_tree.children
+    cost_vl = get_reconciliation_cost(left_gene, species_lca, rec, costs)
+    dist_vl = species_lca.distance(rec[gene_tree], rec[left_gene])
+    cost_vr = get_reconciliation_cost(right_gene, species_lca, rec, costs)
+    dist_vr = species_lca.distance(rec[gene_tree], rec[right_gene])
 
-    if event == Event.Speciation:
+    if event == Event.SPECIATION:
         return (
-            cost_vl + cost_vr + costs[CostType.Loss] * (dist_vl + dist_vr - 2)
+            cost_vl + cost_vr + costs[CostType.LOSS] * (dist_vl + dist_vr - 2)
         )
 
-    if event == Event.Duplication:
+    if event == Event.DUPLICATION:
         return (
-            costs[CostType.Duplication]
+            costs[CostType.DUPLICATION]
             + cost_vl
             + cost_vr
-            + costs[CostType.Loss] * (dist_vl + dist_vr)
+            + costs[CostType.LOSS] * (dist_vl + dist_vr)
         )
 
-    assert event == Event.HorizontalGeneTransfer
+    assert event == Event.HORIZONTAL_GENE_TRANSFER
 
     dist_conserved = (
         dist_vl
-        if species_lca.is_ancestor_of(rec[gene_tree], rec[vl])
+        if species_lca.is_ancestor_of(rec[gene_tree], rec[left_gene])
         else dist_vr
     )
     return (
-        costs[CostType.HorizontalGeneTransfer]
+        costs[CostType.HORIZONTAL_GENE_TRANSFER]
         + cost_vl
         + cost_vr
-        + costs[CostType.Loss] * dist_conserved
+        + costs[CostType.LOSS] * dist_conserved
     )
 
 
@@ -187,19 +190,19 @@ def get_labeling_cost(
             sub_mask = masks[sub_gene]
             left_gene, right_gene = sub_gene.children
 
-            left_syn = labeling[left_gene]
-            left_mask = masks[left_gene] = mask_from_subseq(left_syn, root_syn)
-
-            right_syn = labeling[right_gene]
-            right_mask = masks[right_gene] = mask_from_subseq(
-                right_syn, root_syn
+            left_mask = masks[left_gene] = mask_from_subseq(
+                labeling[left_gene], root_syn
             )
 
-            if event == Event.Speciation:
+            right_mask = masks[right_gene] = mask_from_subseq(
+                labeling[right_gene], root_syn
+            )
+
+            if event == Event.SPECIATION:
                 total_cost += subseq_segment_dist(
                     left_mask, sub_mask, True
                 ) + subseq_segment_dist(right_mask, sub_mask, True)
-            elif event == Event.Duplication:
+            elif event == Event.DUPLICATION:
                 total_cost += min(
                     (
                         subseq_segment_dist(left_mask, sub_mask, True)
@@ -210,7 +213,7 @@ def get_labeling_cost(
                         + subseq_segment_dist(right_mask, sub_mask, True)
                     ),
                 )
-            elif event == Event.HorizontalGeneTransfer:
+            elif event == Event.HORIZONTAL_GENE_TRANSFER:
                 keep_left = species_lca.is_comparable(
                     rec[sub_gene], rec[left_gene]
                 )
@@ -268,7 +271,7 @@ def reconcile_all(
         lca = species_lca(left_species, right_species)
 
         parent_species = lca
-        while parent_species != None:
+        while parent_species is not None:
             yield {
                 gene_tree: parent_species,
                 **map_left,

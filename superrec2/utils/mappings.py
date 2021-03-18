@@ -1,12 +1,13 @@
+"""Helpers for transforming discrete mappings."""
 from collections import defaultdict
 from typing import DefaultDict, List, Mapping, TypeVar
 
 
-A = TypeVar("A")
-B = TypeVar("B")
+From = TypeVar("From")
+To = TypeVar("To")
 
 
-def invert_mapping(mapping: Mapping[A, B]) -> DefaultDict[B, List[A]]:
+def invert_mapping(mapping: Mapping[From, To]) -> DefaultDict[To, List[From]]:
     """
     Compute the reciprocal of a mapping.
 

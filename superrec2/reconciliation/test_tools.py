@@ -103,20 +103,20 @@ class TestReconciliationTools(unittest.TestCase):
 
     def test_get_event(self):
         expected_events = {
-            "1": Event.Duplication,
-            "2": Event.HorizontalGeneTransfer,
-            "3": Event.Speciation,
-            "4": Event.Duplication,
-            "5": Event.Speciation,
-            "6": Event.Duplication,
-            "7": Event.Speciation,
-            "8": Event.Speciation,
-            "9": Event.Speciation,
-            "10": Event.Duplication,
-            "11": Event.Duplication,
-            "12": Event.Speciation,
-            "13": Event.HorizontalGeneTransfer,
-            "14": Event.Duplication,
+            "1": Event.DUPLICATION,
+            "2": Event.HORIZONTAL_GENE_TRANSFER,
+            "3": Event.SPECIATION,
+            "4": Event.DUPLICATION,
+            "5": Event.SPECIATION,
+            "6": Event.DUPLICATION,
+            "7": Event.SPECIATION,
+            "8": Event.SPECIATION,
+            "9": Event.SPECIATION,
+            "10": Event.DUPLICATION,
+            "11": Event.DUPLICATION,
+            "12": Event.SPECIATION,
+            "13": Event.HORIZONTAL_GENE_TRANSFER,
+            "14": Event.DUPLICATION,
         }
 
         for name, event in expected_events.items():
@@ -144,9 +144,9 @@ class TestReconciliationTools(unittest.TestCase):
                     self.species_lca,
                     self.rec,
                     {
-                        CostType.Duplication: dup,
-                        CostType.HorizontalGeneTransfer: hgt,
-                        CostType.Loss: loss,
+                        CostType.DUPLICATION: dup,
+                        CostType.HORIZONTAL_GENE_TRANSFER: hgt,
+                        CostType.LOSS: loss,
                     },
                 ),
                 value,
@@ -343,5 +343,5 @@ class TestReconciliationTools(unittest.TestCase):
             for gene in rec:
                 self.assertNotEqual(
                     get_event(gene, species_lca, rec),
-                    Event.Invalid,
+                    Event.INVALID,
                 )

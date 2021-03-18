@@ -2,6 +2,7 @@ test:
 	python -m unittest discover --buffer
 
 lint:
+	pylint --ignore-patterns "test_" *.py superrec2
 	mypy .
 
 format:

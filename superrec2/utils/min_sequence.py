@@ -1,13 +1,14 @@
+"""Helper for keeping a set of equivalently minimal elements."""
 from typing import Generic, List, overload, Tuple, TypeVar, Union
 from collections.abc import Sequence
 from infinity import Infinity, inf
 
 
-T = TypeVar("T")
+Element = TypeVar("Element")
 ExtendedIntegral = Union[int, Infinity]
 
 
-class MinSequence(Generic[T], Sequence[T]):
+class MinSequence(Generic[Element], Sequence[Element]):
     """Receive ordered elements and keep only the minimal ones."""
 
     def __init__(self, max_keep: ExtendedIntegral = inf) -> None:
@@ -17,9 +18,9 @@ class MinSequence(Generic[T], Sequence[T]):
         """
         self.min: ExtendedIntegral = inf
         self.max_keep = max_keep
-        self._items: List[T] = []
+        self._items: List[Element] = []
 
-    def update(self, *elements: Tuple[ExtendedIntegral, T]) -> None:
+    def update(self, *elements: Tuple[ExtendedIntegral, Element]) -> None:
         """Receive a set of elements."""
         for element in elements:
             if element[0] < inf:
@@ -31,21 +32,23 @@ class MinSequence(Generic[T], Sequence[T]):
                         self._items.append(element[1])
 
     @overload
-    def __getitem__(self, idx: int) -> T:
+    def __getitem__(self, idx: int) -> Element:
         ...
 
     @overload
-    def __getitem__(self, idx: slice) -> "MinSequence[T]":
+    def __getitem__(self, idx: slice) -> "MinSequence[Element]":
         ...
 
-    def __getitem__(self, idx: Union[int, slice]) -> Union[T, "MinSequence[T]"]:
+    def __getitem__(
+        self, idx: Union[int, slice]
+    ) -> Union[Element, "MinSequence[Element]"]:
         """Get the nth minimal element."""
         if isinstance(idx, slice):
-            result: MinSequence[T] = MinSequence(self.max_keep)
+            result: MinSequence[Element] = MinSequence(self.max_keep)
             result._items = self._items[idx]
             return result
-        else:
-            return self._items[idx]
+
+        return self._items[idx]
 
     def __len__(self) -> int:
         """Get the number of minimal elements."""
