@@ -18,9 +18,7 @@ class TestReconciliationCompute(unittest.TestCase):
         cls.species_lca = LowestCommonAncestor(cls.species_tree)
 
         cls.all_recs = list(
-            rec.tools.reconcile_all(
-                cls.gene_tree, cls.species_tree, cls.species_lca
-            )
+            rec.tools.reconcile_all(cls.gene_tree, cls.species_lca)
         )
 
     def test_all_recs(self):
@@ -30,7 +28,7 @@ class TestReconciliationCompute(unittest.TestCase):
         costs = {
             rec.tools.CostType.DUPLICATION: 1,
             rec.tools.CostType.HORIZONTAL_GENE_TRANSFER: inf,
-            rec.tools.CostType.LOSS: 1,
+            rec.tools.CostType.FULL_LOSS: 1,
         }
 
         result = rec.compute.reconcile_lca(self.gene_tree, self.species_lca)
@@ -72,7 +70,7 @@ class TestReconciliationCompute(unittest.TestCase):
         costs = {
             rec.tools.CostType.DUPLICATION: 1,
             rec.tools.CostType.HORIZONTAL_GENE_TRANSFER: 1,
-            rec.tools.CostType.LOSS: 1,
+            rec.tools.CostType.FULL_LOSS: 1,
         }
 
         result_cost, results = rec.compute.reconcile_thl(

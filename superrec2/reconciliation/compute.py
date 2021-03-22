@@ -57,7 +57,7 @@ def _compute_thl_try_speciation(  # pylint:disable=too-many-locals
     table: THLTable,
     costs: CostVector,
 ) -> None:
-    loss_cost = costs[CostType.LOSS]
+    loss_cost = costs[CostType.FULL_LOSS]
 
     options = table[(root_gene, root_species)]
     left_species, right_species = root_species.children
@@ -140,7 +140,7 @@ def _compute_thl_try_duplication_transfer(  # pylint:disable=too-many-locals
 ) -> None:
     dup_cost = costs[CostType.DUPLICATION]
     hgt_cost = costs[CostType.HORIZONTAL_GENE_TRANSFER]
-    loss_cost = costs[CostType.LOSS]
+    loss_cost = costs[CostType.FULL_LOSS]
 
     options = table[(root_gene, root_species)]
     left_gene, right_gene = root_gene.children

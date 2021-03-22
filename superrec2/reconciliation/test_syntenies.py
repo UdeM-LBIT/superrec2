@@ -308,7 +308,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
             costs={
                 rec.tools.CostType.DUPLICATION: 1,
                 rec.tools.CostType.HORIZONTAL_GENE_TRANSFER: 1,
-                rec.tools.CostType.LOSS: 1,
+                rec.tools.CostType.FULL_LOSS: 1,
             },
         )
 
@@ -425,7 +425,7 @@ class TestReconciliationSyntenies(unittest.TestCase):
             costs={
                 rec.tools.CostType.DUPLICATION: 1,
                 rec.tools.CostType.HORIZONTAL_GENE_TRANSFER: 1,
-                rec.tools.CostType.LOSS: 1,
+                rec.tools.CostType.FULL_LOSS: 1,
             },
         )
 
