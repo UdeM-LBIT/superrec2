@@ -1,7 +1,7 @@
-"""Reconciliation definition and auxiliary computations."""
+"""Reconciliation and super-reconciliation representation."""
 from enum import Enum, auto
 from itertools import product
-from typing import Any, Dict, Generator, List, Mapping, Sequence
+from typing import Any, Dict, Generator, List, Mapping, NamedTuple, Sequence
 from ete3 import PhyloTree, PhyloNode
 from infinity import inf
 from ..utils.lowest_common_ancestor import LowestCommonAncestor
@@ -15,6 +15,57 @@ from ..utils.subsequences import (
 
 Reconciliation = Mapping[PhyloNode, PhyloNode]
 Labeling = Mapping[PhyloNode, Sequence[Any]]
+
+
+class SuperReconciliationInput(NamedTuple):
+    """Input for the super-reconciliation problem."""
+
+    # Ancestry information of the species to reconcile
+    species_lca: LowestCommonAncestor
+
+    # Tree of syntenies to map onto the species tree
+    synteny_tree: PhyloTree
+
+    # Extant syntenies at the leaves of the synteny tree
+    leaf_labeling: Labeling
+
+    def __repr__(self):
+        species_tree = self.species_lca.tree.write(
+            format=8, format_root_node=True
+        )
+        synteny_tree = self.synteny_tree.write(format=8, format_root_node=True)
+        leaf_labeling = serialize_labeling(self.leaf_labeling)
+        return (
+            "SuperReconciliationInput("
+            f'species_tree="{species_tree}" '
+            f'synteny_tree="{synteny_tree}" '
+            f'leaf_labeling="{leaf_labeling}"'
+            ")"
+        )
+
+
+class SuperReconciliation(NamedTuple):
+    """Super-reconciliation of a synteny tree with a species tree."""
+
+    # Input to the super-reconciliation problem
+    input: SuperReconciliationInput
+
+    # Mapping of the synteny tree onto the species tree
+    reconciliation: Reconciliation
+
+    # Labeling of ancestral syntenies
+    labeling: Labeling
+
+    def __repr__(self):
+        reconciliation = serialize_reconciliation(self.reconciliation)
+        labeling = serialize_labeling(self.labeling)
+        return (
+            "SuperReconciliation("
+            f"input={repr(self.input)} "
+            f'reconciliation="{reconciliation}" '
+            f'labeling="{labeling}"'
+            ")"
+        )
 
 
 def get_species_name(gene_name):
@@ -245,26 +296,24 @@ def reconcile_leaves(
 
 def reconcile_all(
     gene_tree: PhyloTree,
-    species_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
 ) -> Generator[Reconciliation, None, None]:
     """
     Generate all valid reconciliations.
 
     :param gene_tree: gene tree to reconcile
-    :param species_tree: species tree to reconcile
     :param species_lca: species ancestry information
     :returns: all valid mappings of the gene tree onto the species tree
     """
     if gene_tree.is_leaf():
-        yield {gene_tree: species_tree & gene_tree.species}
+        yield {gene_tree: species_lca.tree & gene_tree.species}
         return
 
     left_gene, right_gene = gene_tree.children
 
     for map_left, map_right in product(
-        reconcile_all(left_gene, species_tree, species_lca),
-        reconcile_all(right_gene, species_tree, species_lca),
+        reconcile_all(left_gene, species_lca),
+        reconcile_all(right_gene, species_lca),
     ):
         left_species = map_left[left_gene]
         right_species = map_right[right_gene]
@@ -318,6 +367,19 @@ def parse_reconciliation(
     return result
 
 
+def serialize_reconciliation(reconciliation: Reconciliation) -> str:
+    """
+    Serialize a reconciliation.
+
+    :param reconciliation: reconciliation to serialize
+    :returns: serialized representation
+    """
+    return ",".join(
+        f"{gene.name}:{species.name}"
+        for gene, species in reconciliation.items()
+    )
+
+
 def parse_labeling(gene_tree: PhyloTree, source: str) -> Labeling:
     """
     Parse a string representation of a synteny labeling.
@@ -334,3 +396,15 @@ def parse_labeling(gene_tree: PhyloTree, source: str) -> Labeling:
             result[gene_tree & node.strip()] = list(synteny.strip())
 
     return result
+
+
+def serialize_labeling(labeling: Labeling) -> str:
+    """
+    Serialize a synteny labeling.
+
+    :param labeling: labeling to serialize
+    :returns: serialized representation
+    """
+    return ",".join(
+        f"{node.name}:{''.join(synteny)}" for node, synteny in labeling.items()
+    )
