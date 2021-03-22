@@ -138,7 +138,7 @@ class TestReconciliationTools(unittest.TestCase):
                     {
                         CostType.DUPLICATION: dup,
                         CostType.HORIZONTAL_GENE_TRANSFER: hgt,
-                        CostType.LOSS: loss,
+                        CostType.FULL_LOSS: loss,
                     },
                 ),
                 value,

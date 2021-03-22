@@ -20,28 +20,26 @@ Labeling = Mapping[PhyloNode, Sequence[Any]]
 class SuperReconciliationInput(NamedTuple):
     """Input for the super-reconciliation problem."""
 
-    # Ancestry information of the species to reconcile
-    species_lca: LowestCommonAncestor
-
     # Tree of syntenies to map onto the species tree
     synteny_tree: PhyloTree
+
+    # Ancestry information of the species to reconcile
+    species_lca: LowestCommonAncestor
 
     # Extant syntenies at the leaves of the synteny tree
     leaf_labeling: Labeling
 
     def __repr__(self):
+        synteny_tree = self.synteny_tree.write(format=8, format_root_node=True)
         species_tree = self.species_lca.tree.write(
             format=8, format_root_node=True
         )
-        synteny_tree = self.synteny_tree.write(format=8, format_root_node=True)
         leaf_labeling = serialize_labeling(self.leaf_labeling)
-        return (
-            "SuperReconciliationInput("
-            f'species_tree="{species_tree}" '
-            f'synteny_tree="{synteny_tree}" '
+        return f"""SuperReconciliationInput({", ".join([
+            f'synteny_tree="{synteny_tree}", '
+            f'species_tree="{species_tree}", '
             f'leaf_labeling="{leaf_labeling}"'
-            ")"
-        )
+        ])})"""
 
 
 class SuperReconciliation(NamedTuple):
@@ -59,13 +57,11 @@ class SuperReconciliation(NamedTuple):
     def __repr__(self):
         reconciliation = serialize_reconciliation(self.reconciliation)
         labeling = serialize_labeling(self.labeling)
-        return (
-            "SuperReconciliation("
-            f"input={repr(self.input)} "
-            f'reconciliation="{reconciliation}" '
-            f'labeling="{labeling}"'
-            ")"
-        )
+        return f"""SuperReconciliation({", ".join([
+            f"input={repr(self.input)}",
+            f'reconciliation="{reconciliation}"',
+            f'labeling="{labeling}"',
+        ])})"""
 
 
 def get_species_name(gene_name):
@@ -154,7 +150,8 @@ class CostType(Enum):
 
     DUPLICATION = auto()
     HORIZONTAL_GENE_TRANSFER = auto()
-    LOSS = auto()
+    FULL_LOSS = auto()
+    SEGMENTAL_LOSS = auto()
 
 
 # Cost values for each possible evolutionary event
@@ -191,7 +188,9 @@ def get_reconciliation_cost(
 
     if event == Event.SPECIATION:
         return (
-            cost_vl + cost_vr + costs[CostType.LOSS] * (dist_vl + dist_vr - 2)
+            cost_vl
+            + cost_vr
+            + costs[CostType.FULL_LOSS] * (dist_vl + dist_vr - 2)
         )
 
     if event == Event.DUPLICATION:
@@ -199,7 +198,7 @@ def get_reconciliation_cost(
             costs[CostType.DUPLICATION]
             + cost_vl
             + cost_vr
-            + costs[CostType.LOSS] * (dist_vl + dist_vr)
+            + costs[CostType.FULL_LOSS] * (dist_vl + dist_vr)
         )
 
     assert event == Event.HORIZONTAL_GENE_TRANSFER
@@ -213,7 +212,7 @@ def get_reconciliation_cost(
         costs[CostType.HORIZONTAL_GENE_TRANSFER]
         + cost_vl
         + cost_vr
-        + costs[CostType.LOSS] * dist_conserved
+        + costs[CostType.FULL_LOSS] * dist_conserved
     )
 
 
