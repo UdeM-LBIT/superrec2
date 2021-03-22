@@ -13,8 +13,9 @@ from superrec2.reconciliation.tools import (
 )
 from superrec2.utils.tex import xelatex_compile, TeXError
 
-def main():  # pylint:disable=missing-function-docstring
-    # Retrieve arguments or show help
+
+def parse_arguments():
+    """Retrieve arguments or show help."""
     parser = argparse.ArgumentParser(description=__doc__)
 
     parser.add_argument(
@@ -49,9 +50,11 @@ def main():  # pylint:disable=missing-function-docstring
         help="where to output the result (default: output to stdout)",
     )
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    # Parse trees, reconciliation, and labeling
+
+def generate_tikz(args):
+    """Generate TikZ code corresponding to the given reconciliation."""
     gene_tree = PhyloTree(
         args.gene_tree, sp_naming_function=get_species_name, format=1
     )
@@ -68,11 +71,12 @@ def main():  # pylint:disable=missing-function-docstring
         else {}
     )
 
-    # Generate TikZ code
     layout_info = compute_layout(species_tree, rec, labeling)
-    tikz = render_to_tikz(species_tree, rec, layout_info)
+    return render_to_tikz(species_tree, rec, layout_info)
 
-    # Generate output
+
+def output(args, tikz):
+    """Generate output."""
     if args.output == "-":
         print(tikz, end="")
     elif args.output.endswith(".tex"):
@@ -110,6 +114,13 @@ def main():  # pylint:disable=missing-function-docstring
             sys.exit(1)
     else:
         raise RuntimeError(f"Unrecognized file extension: {args.output}")
+
+
+def main():  # pylint:disable=missing-function-docstring
+    args = parse_arguments()
+    tikz = generate_tikz(args)
+    output(args, tikz)
+
 
 if __name__ == "__main__":
     main()
