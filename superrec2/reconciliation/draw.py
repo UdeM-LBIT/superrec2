@@ -554,8 +554,8 @@ def _layout_subtrees(
         else:
             # Empty subtree
             trunk_width = 2 * params.species_branch_padding
-            trunk_height = 0
-            fork_thickness = 0
+            trunk_height = params.trunk_overhead
+            fork_thickness = params.species_branch_padding
 
         if root_species.is_leaf():
             # Extant species
