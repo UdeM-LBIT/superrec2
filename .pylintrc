@@ -1,0 +1,10 @@
+[MESSAGES CONTROL]
+# Avoid false-positives for NamedTuple subclasses
+min-public-methods=0
+
+# Workaround for <https://github.com/PyCQA/pylint/issues/3876>
+disable=inherit-non-class
+
+[SIMILARITIES]
+# Do not consider duplicate imports in several files as duplicated code
+ignore-imports=yes

@@ -460,7 +460,7 @@ def _layout_branches(  # pylint:disable=too-many-locals
     measures = _layout_measure_nodes(layout_state, species_tree, params)
 
     for root_species in species_tree.traverse():
-        next_pos_x = params.species_branch_padding
+        next_pos_x: float = 0
         next_pos_y = params.species_branch_padding
         layout = layout_state[root_species]
         layout["anchors"] = {}
@@ -483,8 +483,8 @@ def _layout_branches(  # pylint:disable=too-many-locals
                 next_pos_x += params.gene_branch_spacing + size.w
                 next_pos_y += params.gene_branch_spacing + size.h
             elif branch["kind"] == BranchKind.DUPLICATION:
-                left_rect = layout["branches"][branch["left"]].rect
-                right_rect = layout["branches"][branch["right"]].rect
+                left_rect = layout["branches"][branch["left"]]["rect"]
+                right_rect = layout["branches"][branch["right"]]["rect"]
                 pos = Position(
                     x=((left_rect.center() + right_rect.center()).x) / 2
                     - size.w / 2,
@@ -493,7 +493,7 @@ def _layout_branches(  # pylint:disable=too-many-locals
                     - size.h,
                 )
             elif branch["kind"] == BranchKind.HORIZONTAL_GENE_TRANSFER:
-                cons_rect = layout["branches"][branch["left"]].rect
+                cons_rect = layout["branches"][branch["left"]]["rect"]
                 pos = Position(
                     x=cons_rect.center().x - size.w / 2,
                     y=min(params.gene_branch_spacing, cons_rect.y)
@@ -505,12 +505,29 @@ def _layout_branches(  # pylint:disable=too-many-locals
 
             rect = Rect.make_from(pos, size)
             branch["rect"] = rect
-            layout["branches"][root_gene] = Branch(**branch)
 
             if root_gene in layout["anchor_nodes"]:
                 layout["anchors"][root_gene] = rect.center().x
 
         del layout["anchor_nodes"]
+
+        # Shift all nodes to the right to make room for the left padding
+        if layout["branches"]:
+            padding_shift = Position(
+                x=(
+                    -min(branch["rect"].x for branch in layout["branches"].values())
+                    + params.species_branch_padding
+                ),
+                y=0,
+            )
+
+            for root_gene in layout["branches"]:
+                branch = layout["branches"][root_gene]
+                branch["rect"] += padding_shift
+                layout["branches"][root_gene] = Branch(**branch)
+
+            for root_gene in layout["anchors"]:
+                layout["anchors"][root_gene] += padding_shift.x
 
 
 def _layout_subtrees(

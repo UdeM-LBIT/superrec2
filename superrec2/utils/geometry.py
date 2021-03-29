@@ -51,6 +51,14 @@ class Rect(NamedTuple):
             h=size.h,
         )
 
+    def __add__(self, pos: tuple) -> "Rect":
+        """Shift the rectangle by adding the given vector."""
+        return Rect(x=self.x + pos[0], y=self.y + pos[1], w=self.w, h=self.h)
+
+    def __sub__(self, pos: tuple) -> "Rect":
+        """Shift the rectangle by subtracting the given vector."""
+        return Rect(x=self.x - pos[0], y=self.y - pos[1], w=self.w, h=self.h)
+
     def top_left(self) -> Position:
         """Position of the upper left corner."""
         return Position(self.x, self.y)
