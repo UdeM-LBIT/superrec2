@@ -1,7 +1,7 @@
 import unittest
 from ete3 import Tree
 from infinity import inf
-from .trees import LowestCommonAncestor
+from .trees import LowestCommonAncestor, tree_to_triples, tree_from_triples
 
 
 def _is_ancestor_of_naive(a, b):
@@ -123,3 +123,59 @@ class TestLowestCommonAncestor(unittest.TestCase):
                     _distance_naive(a, b),
                     lca.distance(a, b),
                 )
+
+
+class TestSupertree(unittest.TestCase):
+    def test_tree_to_triples(self):
+        tree1 = Tree("(a,(b,(c,(d,(e,f)))));")
+        self.assertEqual(
+            tree_to_triples(tree1),
+            (
+                list("abcdef"),
+                [
+                    ("e", "f", "d"),
+                    ("d", "f", "c"),
+                    ("c", "f", "b"),
+                    ("b", "f", "a"),
+                ],
+            ),
+        )
+
+        tree2 = Tree("(a,b);")
+        self.assertEqual(
+            tree_to_triples(tree2),
+            (
+                list("ab"),
+                [],
+            ),
+        )
+
+    def test_tree_from_triples(self):
+        self.assertEqual(
+            tree_from_triples(
+                list("abcd"),
+                [
+                    ("a", "b", "c"),
+                    ("c", "d", "a"),
+                ],
+            ).write(format=9),
+            "((a,b),(c,d));",
+        )
+
+        self.assertEqual(
+            tree_from_triples(
+                list("abc"),
+                [
+                    ("a", "b", "c"),
+                    ("b", "c", "a"),
+                ],
+            ),
+            None,
+        )
+
+    def test_tree_feedback(self):
+        tree = Tree("((a,(b,c)),((d,e),(f,g)));")
+        self.assertEqual(
+            tree.write(format=9),
+            tree_from_triples(*tree_to_triples(tree)).write(format=9),
+        )

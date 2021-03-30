@@ -1,7 +1,8 @@
 """Preprocessing to answer lowest common ancestor queries in constant time."""
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 from ete3 import Tree, TreeNode
 from .range_min_query import RangeMinQuery
+from .disjoint_set import UnionFind
 
 
 def _euler_tour(root: TreeNode, level: int = 0) -> List[Tuple[int, TreeNode]]:
@@ -138,3 +139,129 @@ class LowestCommonAncestor:
             + self.level(second)
             - 2 * self.level(self(first, second))
         )
+
+
+Triple = Tuple[str, str, str]
+
+
+def tree_to_triples(tree: Tree) -> Tuple[List[str], List[Triple]]:
+    """
+    Compute a set of triples that encode the topology of a binary
+    phylogenetic tree.
+
+    A triple is a binary tree containing exactly three leaves and two internal
+    nodes. Each triple is represented as a canonical tuple containing its three
+    leaves in the following order:
+
+    * the deepest leaf that comes first in lexicographic order
+    * the deepest leaf that comes second
+    * the shallowest leaf
+
+    This implements the BreakUp algorithm from [Ng and Wormald, 1996].
+    Feeding the output of this function directly to :func:`tree_from_triples`
+    will reconstruct the original tree.
+
+    :param tree: input tree to break up in triples
+    :returns: a tuple containing the labels of leaves in the original tree and
+        the list of triples that characterize the tree’s topology
+    """
+    result = []
+    leaves = [leaf.name for leaf in tree.get_leaves()]
+    tree = tree.copy()
+    minimal_int_nodes = set()
+
+    for node in tree.traverse("postorder"):
+        if node.is_leaf():
+            continue
+
+        if not all(child.is_leaf() for child in node.children):
+            continue
+
+        minimal_int_nodes.add(node)
+
+    while minimal_int_nodes:
+        other = minimal_int_nodes.pop()
+        parent = other.up
+
+        if parent is None:
+            break
+
+        leaf = other.get_sisters()[0].get_leaves()[0].name
+        left_node, right_node = other.children
+        left, right = left_node.name, right_node.name
+
+        parent.add_child(right_node.detach())
+        parent.remove_child(other)
+
+        if left <= right:
+            result.append((left, right, leaf))
+        else:
+            result.append((right, left, leaf))
+
+        if all(child.is_leaf() for child in parent.children):
+            minimal_int_nodes.add(parent)
+
+    return leaves, result
+
+
+def tree_from_triples(
+    leaves: List[str], triples: List[Triple]
+) -> Optional[Tree]:
+    """
+    Reconstruct a phylogenetic tree that respects the constraints given
+    by a set of triples.
+
+    Note that the reconstructed tree may not be a binary tree, if the set of
+    triples is not specific enough.
+
+    This implements the OneTree algorithm from [Ng and Wormald, 1996].
+
+    :param leaves: set of leaf labels
+    :param triples: set of triples that constrain the tree topology
+    :returns: either a phylogenetic tree, or None if the set of triples
+        is not consistent
+    """
+    if not leaves:
+        return None
+
+    if len(leaves) == 1:
+        return Tree(name=leaves[0])
+
+    if len(leaves) == 2:
+        root = Tree()
+        root.add_child(Tree(name=leaves[0]))
+        root.add_child(Tree(name=leaves[1]))
+        return root
+
+    partition = UnionFind(len(leaves))
+    leaf_index = {leaf: index for index, leaf in enumerate(leaves)}
+
+    for left, right, _ in triples:
+        partition.unite(leaf_index[left], leaf_index[right])
+
+    groups: List[List[str]] = [[] for i in range(len(leaves))]
+
+    for i, leaf in enumerate(leaves):
+        groups[partition.find(i)].append(leaf)
+
+    if sum(map(bool, groups)) <= 1:
+        return None
+
+    root = Tree()
+
+    for group_leaves in groups:
+        if group_leaves:
+            group_triples = [
+                triple
+                for triple in triples
+                if all(leaf in group_leaves for leaf in triple)
+            ]
+
+            subtree = tree_from_triples(group_leaves, group_triples)
+
+            if not subtree:
+                return None
+
+            root.add_child(subtree)
+
+    return root

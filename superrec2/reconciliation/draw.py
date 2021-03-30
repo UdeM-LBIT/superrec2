@@ -515,7 +515,10 @@ def _layout_branches(  # pylint:disable=too-many-locals
         if layout["branches"]:
             padding_shift = Position(
                 x=(
-                    -min(branch["rect"].x for branch in layout["branches"].values())
+                    -min(
+                        branch["rect"].x
+                        for branch in layout["branches"].values()
+                    )
                     + params.species_branch_padding
                 ),
                 y=0,
