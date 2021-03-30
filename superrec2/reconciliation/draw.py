@@ -4,7 +4,7 @@ import textwrap
 from typing import Any, Dict, List, Mapping, NamedTuple, Optional, Union
 from ete3 import PhyloTree, PhyloNode
 from ..utils.geometry import Position, Rect, Size
-from ..utils.lowest_common_ancestor import LowestCommonAncestor
+from ..utils.trees import LowestCommonAncestor
 from ..utils.mappings import invert_mapping
 from ..utils.toposort import tree_nodes_toposort
 from ..utils import tex

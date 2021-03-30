@@ -20,7 +20,7 @@ from superrec2.reconciliation.tools import (
 )
 from superrec2.reconciliation.compute import reconcile_thl
 from superrec2.reconciliation.syntenies import label_ancestral_syntenies
-from superrec2.utils.lowest_common_ancestor import LowestCommonAncestor
+from superrec2.utils.trees import LowestCommonAncestor
 from superrec2.utils.min_sequence import MinSequence
 
 

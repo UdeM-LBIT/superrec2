@@ -4,7 +4,7 @@ from itertools import product
 from typing import Any, Dict, Generator, List, Mapping, NamedTuple, Sequence
 from ete3 import PhyloTree, PhyloNode
 from infinity import inf
-from ..utils.lowest_common_ancestor import LowestCommonAncestor
+from ..utils.trees import LowestCommonAncestor
 from ..utils.min_sequence import ExtendedIntegral
 from ..utils.subsequences import (
     subseq_complete,

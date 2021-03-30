@@ -1,7 +1,7 @@
 import unittest
 from ete3 import Tree
 from infinity import inf
-from .lowest_common_ancestor import LowestCommonAncestor
+from .trees import LowestCommonAncestor
 
 
 def _is_ancestor_of_naive(a, b):
@@ -56,7 +56,7 @@ def _distance_naive(start, stop, visited=None):
     return distance
 
 
-class TestUtilsLowestCommonAncestor(unittest.TestCase):
+class TestLowestCommonAncestor(unittest.TestCase):
     def test_lca(self):
         tree = Tree("((2,(4,5)3)1,(7,8,(10)9)6)0;", format=8)
         lca = LowestCommonAncestor(tree)

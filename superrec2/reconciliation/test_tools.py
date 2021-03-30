@@ -1,6 +1,6 @@
 import unittest
 from ete3 import PhyloTree
-from ..utils.lowest_common_ancestor import LowestCommonAncestor
+from ..utils.trees import LowestCommonAncestor
 from .tools import (
     CostType,
     Event,

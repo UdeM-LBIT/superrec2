@@ -3,7 +3,7 @@ from collections import defaultdict
 from itertools import product
 from typing import DefaultDict, List, NamedTuple, Tuple
 from ete3 import PhyloTree, PhyloNode
-from ..utils.lowest_common_ancestor import LowestCommonAncestor
+from ..utils.trees import LowestCommonAncestor
 from ..utils.min_sequence import MinSequence
 from .tools import CostType, CostVector, ExtendedIntegral, Reconciliation
 

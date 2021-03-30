@@ -2,7 +2,7 @@ import unittest
 from infinity import inf
 from ete3 import PhyloTree
 from superrec2 import reconciliation as rec
-from superrec2.utils.lowest_common_ancestor import LowestCommonAncestor
+from superrec2.utils.trees import LowestCommonAncestor
 
 
 class TestReconciliationCompute(unittest.TestCase):

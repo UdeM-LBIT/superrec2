@@ -15,7 +15,7 @@ from ete3 import PhyloTree, PhyloNode
 from infinity import inf
 from ..utils.toposort import toposort_all
 from ..utils.min_sequence import ExtendedIntegral, MinSequence
-from ..utils.lowest_common_ancestor import LowestCommonAncestor
+from ..utils.trees import LowestCommonAncestor
 from ..utils.subsequences import (
     subseq_complete,
     mask_from_subseq,
