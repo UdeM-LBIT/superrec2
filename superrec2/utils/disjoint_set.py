@@ -1,8 +1,10 @@
-"""Fast disjoint-set structure implementing the union-find algorithm."""
+"""Fast disjoint-set structure implementing the union-find strategy."""
+from typing import List, Optional
+from copy import deepcopy
 
 
-class UnionFind:
-    """Fast disjoint-set structure implementing the union-find algorithm."""
+class DisjointSet:
+    """Fast disjoint-set structure implementing the union-find strategy."""
 
     def __init__(self, n):
         """
@@ -15,6 +17,7 @@ class UnionFind:
         """
         self.parent = list(range(n))
         self.rank = [0] * n
+        self.groups = n
 
     def find(self, element: int) -> int:
         """
@@ -57,4 +60,74 @@ class UnionFind:
         else:
             self.parent[rep_first] = rep_second
 
+        self.groups -= 1
         return True
+
+    def __len__(self) -> int:
+        """Get the number of groups in this partition."""
+        return self.groups
+
+    def to_list(self) -> List[List[int]]:
+        """Create a list of all groups in this partition."""
+        result: List[List[int]] = [[] for i in range(len(self.parent))]
+
+        for i in range(len(self.parent)):
+            result[self.find(i)].append(i)
+
+        return [group for group in result if group]
+
+    def __repr__(self) -> str:
+        return (
+            "DisjointSet({"
+            + ", ".join(
+                f"{{{', '.join(map(str, group))}}}" for group in self.to_list()
+            )
+            + "})"
+        )
+
+    def binary(self) -> List["DisjointSet"]:
+        """
+        Generate all possible partitions obtained from the current partition
+        by merging groups so that exactly two groups remain.
+        """
+
+        def _binary(
+            partition: "DisjointSet",
+            groups: List[int],
+            first: Optional[int],
+            second: Optional[int],
+        ) -> List["DisjointSet"]:
+            if not groups:
+                if first is None or second is None:
+                    return []
+
+                return [partition]
+
+            part_1 = deepcopy(partition)
+
+            if first is not None:
+                part_1.unite(first, groups[0])
+                results_1 = _binary(part_1, groups[1:], first, second)
+            elif second is None or groups[0] < second:
+                results_1 = _binary(part_1, groups[1:], groups[0], second)
+            else:
+                results_1 = []
+
+            part_2 = deepcopy(partition)
+
+            if second is not None:
+                part_2.unite(second, groups[0])
+                results_2 = _binary(part_2, groups[1:], first, second)
+            elif first is None or groups[0] > first:
+                results_2 = _binary(part_2, groups[1:], first, groups[0])
+            else:
+                results_2 = []
+
+            return results_1 + results_2
+
+        return _binary(
+            partition=self,
+            groups=list(set(self.find(i) for i in range(len(self.parent)))),
+            first=None,
+            second=None,
+        )

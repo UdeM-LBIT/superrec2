@@ -1,7 +1,12 @@
 import unittest
 from ete3 import Tree
 from infinity import inf
-from .trees import LowestCommonAncestor, tree_to_triples, tree_from_triples
+from .trees import (
+    LowestCommonAncestor,
+    tree_to_triples,
+    tree_from_triples,
+    all_trees_from_triples,
+)
 
 
 def _is_ancestor_of_naive(a, b):
@@ -173,9 +178,45 @@ class TestSupertree(unittest.TestCase):
             None,
         )
 
+    def test_all_trees_from_triples(self):
+        self.assertCountEqual(
+            (
+                result.write(format=9)
+                for result in all_trees_from_triples(
+                    list("abcd"),
+                    [
+                        ("a", "b", "c"),
+                        ("a", "b", "d"),
+                    ],
+                )
+            ),
+            (
+                "(((a,b),c),d);",
+                "(((a,b),d),c);",
+                "((a,b),(c,d));",
+            ),
+        )
+        self.assertEqual(
+            all_trees_from_triples(
+                list("abc"),
+                [
+                    ("a", "b", "c"),
+                    ("b", "c", "a"),
+                ],
+            ),
+            [],
+        )
+
     def test_tree_feedback(self):
         tree = Tree("((a,(b,c)),((d,e),(f,g)));")
         self.assertEqual(
             tree.write(format=9),
             tree_from_triples(*tree_to_triples(tree)).write(format=9),
+        )
+        self.assertCountEqual(
+            (
+                result.write(format=9)
+                for result in all_trees_from_triples(*tree_to_triples(tree))
+            ),
+            (tree.write(format=9),),
         )

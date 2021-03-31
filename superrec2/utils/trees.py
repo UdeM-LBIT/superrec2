@@ -1,8 +1,9 @@
-"""Preprocessing to answer lowest common ancestor queries in constant time."""
+"""Common operations on trees."""
+from itertools import product
 from typing import Dict, List, Optional, Tuple
 from ete3 import Tree, TreeNode
 from .range_min_query import RangeMinQuery
-from .disjoint_set import UnionFind
+from .disjoint_set import DisjointSet
 
 
 def _euler_tour(root: TreeNode, level: int = 0) -> List[Tuple[int, TreeNode]]:
@@ -157,9 +158,10 @@ def tree_to_triples(tree: Tree) -> Tuple[List[str], List[Triple]]:
     * the deepest leaf that comes second
     * the shallowest leaf
 
-    This implements the BreakUp algorithm from [Ng and Wormald, 1996].
-    Feeding the output of this function directly to :func:`tree_from_triples`
-    will reconstruct the original tree.
+    This implements the BreakUp algorithm from [Ng and Wormald, 1996],
+    restricted to binary trees and triples only. Feeding the output of this
+    function directly to :func:`tree_from_triples` will reconstruct the
+    original tree.
 
     :param tree: input tree to break up in triples
     :returns: a tuple containing the labels of leaves in the original tree and
@@ -214,7 +216,8 @@ def tree_from_triples(
     Note that the reconstructed tree may not be a binary tree, if the set of
     triples is not specific enough.
 
-    This implements the OneTree algorithm from [Ng and Wormald, 1996].
+    This implements the OneTree algorithm from [Ng and Wormald, 1996],
+    restricted to triples only.
 
     :param leaves: set of leaf labels
     :param triples: set of triples that constrain the tree topology
@@ -233,35 +236,101 @@ def tree_from_triples(
         root.add_child(Tree(name=leaves[1]))
         return root
 
-    partition = UnionFind(len(leaves))
-    leaf_index = {leaf: index for index, leaf in enumerate(leaves)}
+    partition = DisjointSet(len(leaves))
+    leaf_index = {leaf: i for i, leaf in enumerate(leaves)}
 
     for left, right, _ in triples:
         partition.unite(leaf_index[left], leaf_index[right])
 
-    groups: List[List[str]] = [[] for i in range(len(leaves))]
-
-    for i, leaf in enumerate(leaves):
-        groups[partition.find(i)].append(leaf)
-
-    if sum(map(bool, groups)) <= 1:
+    if len(partition) <= 1:
         return None
 
     root = Tree()
 
-    for group_leaves in groups:
-        if group_leaves:
-            group_triples = [
-                triple
-                for triple in triples
-                if all(leaf in group_leaves for leaf in triple)
-            ]
+    for group in partition.to_list():
+        group_leaves = [leaves[item] for item in group]
+        group_triples = [
+            triple
+            for triple in triples
+            if all(leaf in group_leaves for leaf in triple)
+        ]
 
-            subtree = tree_from_triples(group_leaves, group_triples)
+        subtree = tree_from_triples(group_leaves, group_triples)
 
-            if not subtree:
-                return None
+        if not subtree:
+            return None
 
-            root.add_child(subtree)
+        root.add_child(subtree)
 
     return root
+
+
+def all_trees_from_triples(
+    leaves: List[str], triples: List[Triple]
+) -> List[Tree]:
+    """
+    Find all the phylogenetic binary trees that respect the constraints given
+    by a set of triples.
+
+    This implements the AllTrees algorithm from [Ng and Wormald, 1996],
+    restricted to triples and binary trees only.
+
+    :param leaves: set of leaf labels
+    :param triples: set of triples that constrain the tree topology
+    :returns: list of compatible either a phylogenetic trees, potentially
+        empty if the set of triples is not consistent
+    """
+
+    def _all_trees_from_triples(
+        leaves: List[str], triples: List[Triple]
+    ) -> List[Tree]:
+        if not leaves:
+            return []
+
+        if len(leaves) == 1:
+            return [Tree(name=leaves[0])]
+
+        if len(leaves) == 2:
+            root = Tree()
+            root.add_child(Tree(name=leaves[0]))
+            root.add_child(Tree(name=leaves[1]))
+            return [root]
+
+        partition = DisjointSet(len(leaves))
+        leaf_index = {leaf: index for index, leaf in enumerate(leaves)}
+
+        for left, right, _ in triples:
+            partition.unite(leaf_index[left], leaf_index[right])
+
+        results = []
+
+        for bin_partition in partition.binary():
+            groups = bin_partition.to_list()
+            groups_leaves = [
+                [leaves[item] for item in group] for group in groups
+            ]
+            groups_triples = [
+                [
+                    triple
+                    for triple in triples
+                    if all(leaf in group_leaves for leaf in triple)
+                ]
+                for group_leaves in groups_leaves
+            ]
+
+            for left_tree, right_tree in product(
+                _all_trees_from_triples(groups_leaves[0], groups_triples[0]),
+                _all_trees_from_triples(groups_leaves[1], groups_triples[1]),
+            ):
+                root = Tree()
+                root.add_child(left_tree.copy())
+                root.add_child(right_tree.copy())
+                results.append(root)
+
+        return results
+
+    # Detect whether the input set of triples is inconsistent right away
+    if tree_from_triples(leaves, triples) is None:
+        return []
+
+    return _all_trees_from_triples(leaves, triples)
