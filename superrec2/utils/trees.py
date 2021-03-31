@@ -1,6 +1,6 @@
 """Common operations on trees."""
 from itertools import product
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 from ete3 import Tree, TreeNode
 from .range_min_query import RangeMinQuery
 from .disjoint_set import DisjointSet
@@ -206,6 +206,24 @@ def tree_to_triples(tree: Tree) -> Tuple[List[str], List[Triple]]:
     return leaves, result
 
 
+def trees_to_triples(trees: Iterable[Tree]) -> Tuple[List[str], List[Triple]]:
+    """
+    Compute a set of triples that encode the topology of a set of binary
+    phylogenetic tree.
+
+    See :func:`tree_to_triples`.
+    """
+    leaves = set()
+    triples = set()
+
+    for tree in trees:
+        tree_leaves, tree_triples = tree_to_triples(tree)
+        leaves.update(tree_leaves)
+        triples.update(tree_triples)
+
+    return list(leaves), list(triples)
+
+
 def tree_from_triples(
     leaves: List[str], triples: List[Triple]
 ) -> Optional[Tree]:
@@ -214,7 +232,8 @@ def tree_from_triples(
     by a set of triples.
 
     Note that the reconstructed tree may not be a binary tree, if the set of
-    triples is not specific enough.
+    triples is not specific enough. You can use :meth:`resolve_polytomy`
+    on the resulting tree to turn it into a binary tree.
 
     This implements the OneTree algorithm from [Ng and Wormald, 1996],
     restricted to triples only.
@@ -334,3 +353,11 @@ def all_trees_from_triples(
         return []
 
     return _all_trees_from_triples(leaves, triples)
+
+
+def supertree(trees: Iterable[Tree]) -> Optional[Tree]:
+    return tree_from_triples(*trees_to_triples(trees))
+
+
+def all_supertrees(trees: Iterable[Tree]) -> List[Tree]:
+    return all_trees_from_triples(*trees_to_triples(trees))

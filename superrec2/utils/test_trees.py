@@ -6,6 +6,8 @@ from .trees import (
     tree_to_triples,
     tree_from_triples,
     all_trees_from_triples,
+    supertree,
+    all_supertrees,
 )
 
 
@@ -210,13 +212,36 @@ class TestSupertree(unittest.TestCase):
     def test_tree_feedback(self):
         tree = Tree("((a,(b,c)),((d,e),(f,g)));")
         self.assertEqual(
-            tree.write(format=9),
-            tree_from_triples(*tree_to_triples(tree)).write(format=9),
+            tree.get_topology_id(),
+            tree_from_triples(*tree_to_triples(tree)).get_topology_id(),
         )
         self.assertCountEqual(
             (
-                result.write(format=9)
+                result.get_topology_id()
                 for result in all_trees_from_triples(*tree_to_triples(tree))
             ),
-            (tree.write(format=9),),
+            (tree.get_topology_id(),),
+        )
+
+    def test_supertree(self):
+        trees = (
+            Tree("((Y1,Z1),(X2,X3));"),
+            Tree("((Z1,X1),X2);"),
+            Tree("(X2,X3);"),
+        )
+
+        self.assertEqual(
+            supertree(trees).get_topology_id(),
+            Tree("((Z1,Y1,X1),(X3,X2));").get_topology_id(),
+        )
+        self.assertCountEqual(
+            (
+                result.get_topology_id()
+                for result in all_supertrees(trees)
+            ),
+            (
+                Tree("(((Z1,X1),Y1),(X3,X2));").get_topology_id(),
+                Tree("(((Z1,Y1),X1),(X3,X2));").get_topology_id(),
+                Tree("((Z1,(X1,Y1)),(X3,X2));").get_topology_id(),
+            )
         )
