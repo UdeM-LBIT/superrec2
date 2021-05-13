@@ -356,8 +356,22 @@ def all_trees_from_triples(
 
 
 def supertree(trees: Iterable[Tree]) -> Optional[Tree]:
+    """
+    Compute a supertree compatible with each input tree, if possible.
+
+    :param trees: list of input binary labelled trees
+    :returns: a tree that is compatible with each input tree (note that
+        the returned tree may not be binary), or None
+    """
     return tree_from_triples(*trees_to_triples(trees))
 
 
 def all_supertrees(trees: Iterable[Tree]) -> List[Tree]:
+    """
+    Compute all the supertrees compatible with each input tree.
+
+    :param trees: list of input binary labelled trees
+    :returns: all binary trees that are compatible with each input tree
+        (may be empty)
+    """
     return all_trees_from_triples(*trees_to_triples(trees))
