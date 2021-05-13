@@ -18,7 +18,7 @@ Labeling = Mapping[PhyloNode, Sequence[Any]]
 
 
 class SuperReconciliationInput(NamedTuple):
-    """Input for the super-reconciliation problem."""
+    """Input to the super-reconciliation problem."""
 
     # Tree of syntenies to map onto the species tree
     synteny_tree: PhyloTree
@@ -45,8 +45,8 @@ class SuperReconciliationInput(NamedTuple):
 class SuperReconciliation(NamedTuple):
     """Super-reconciliation of a synteny tree with a species tree."""
 
-    # Input to the super-reconciliation problem
-    input: SuperReconciliationInput
+    # Synteny tree
+    synteny_tree: PhyloTree
 
     # Mapping of the synteny tree onto the species tree
     reconciliation: Reconciliation
@@ -55,10 +55,11 @@ class SuperReconciliation(NamedTuple):
     labeling: Labeling
 
     def __repr__(self):
+        synteny_tree = self.synteny_tree.write(format=8, format_root_node=True)
         reconciliation = serialize_reconciliation(self.reconciliation)
         labeling = serialize_labeling(self.labeling)
         return f"""SuperReconciliation({", ".join([
-            f"input={repr(self.input)}",
+            f'synteny_tree="{synteny_tree}"',
             f'reconciliation="{reconciliation}"',
             f'labeling="{labeling}"',
         ])})"""

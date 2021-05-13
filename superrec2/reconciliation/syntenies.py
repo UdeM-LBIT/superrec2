@@ -6,10 +6,12 @@ from typing import (
     Dict,
     NamedTuple,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
     Tuple,
+    Union,
 )
 from ete3 import PhyloTree, PhyloNode
 from infinity import inf
@@ -115,16 +117,16 @@ def _compute_spfs_entry(  # pylint:disable=too-many-locals
 
 
 def _compute_spfs_table(
-    gene_tree: PhyloTree,
+    synteny_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
     rec: Reconciliation,
     known_syntenies: Labeling,
 ) -> Dict[PhyloNode, DefaultDict[int, LabelingInfo]]:
-    root_synt = known_syntenies[gene_tree]
+    root_synt = known_syntenies[synteny_tree]
     subseq_count = 2 ** len(root_synt)
     table: Dict[PhyloNode, DefaultDict[int, LabelingInfo]] = {}
 
-    for sub_gene in gene_tree.traverse("postorder"):
+    for sub_gene in synteny_tree.traverse("postorder"):
         table[sub_gene] = defaultdict(LabelingInfo)
 
         if sub_gene.is_leaf():
@@ -135,7 +137,7 @@ def _compute_spfs_table(
         else:
             sub_synt_masks = (
                 (subseq_complete(root_synt),)
-                if sub_gene == gene_tree
+                if sub_gene == synteny_tree
                 else range(1, subseq_count)
             )
 
@@ -172,26 +174,26 @@ def _decode_spfs_table(
 
 
 def _label_with_root_order(
-    gene_tree: PhyloTree,
+    synteny_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
     rec: Reconciliation,
     known_syntenies: Labeling,
 ) -> Tuple[int, Labeling]:
-    costs = _compute_spfs_table(gene_tree, species_lca, rec, known_syntenies)
+    costs = _compute_spfs_table(synteny_tree, species_lca, rec, known_syntenies)
 
-    root_synteny = known_syntenies[gene_tree]
+    root_synteny = known_syntenies[synteny_tree]
     all_mask = subseq_complete(root_synteny)
     return (
-        costs[gene_tree][all_mask][0],
-        _decode_spfs_table(gene_tree, root_synteny, all_mask, costs),
+        costs[synteny_tree][all_mask][0],
+        _decode_spfs_table(synteny_tree, root_synteny, all_mask, costs),
     )
 
 
 def label_ancestral_syntenies(
-    gene_tree: PhyloTree,
+    synteny_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
     rec: Reconciliation,
-    leaf_labeling: Labeling,
+    syntenies: Union[Labeling, Mapping[str, Sequence[Any]]],
 ) -> Tuple[ExtendedIntegral, List[Labeling]]:
     """
     Find a minimum-cost ancestral synteny labeling for a super-reconciliation.
@@ -204,16 +206,21 @@ def label_ancestral_syntenies(
     The cost of a labeling is the total number of segments that are lost from
     each synteny to its children.
 
-    :param gene_tree: gene tree to reconcile
+    :param synteny_tree: synteny tree to label
     :param species_lca: species ancestry information
-    :param rec: mapping of the gene tree onto the species tree
-    :param leaf_labeling: syntenies assigned to the leaves of the gene tree
+    :param rec: mapping of the synteny tree onto the species tree
+    :param syntenies: syntenies assigned to the leaves of the synteny tree
+        (keys can either by synteny names or node instances)
     :returns: a tuple containing the minimum cost of a labeling and a
         list of all labelings with such a cost
     """
     results: MinSequence[Labeling] = MinSequence()
+    leaf_labeling: Labeling = {
+        (synteny_tree & key if isinstance(key, str) else key): value
+        for key, value in syntenies.items()
+    }
 
-    if gene_tree not in leaf_labeling:
+    if synteny_tree not in leaf_labeling:
         prec: Dict[Any, Set[Any]] = {}
 
         for leaf_synteny in leaf_labeling.values():
@@ -228,16 +235,16 @@ def label_ancestral_syntenies(
         for order in toposort_all(prec):
             results.update(
                 _label_with_root_order(
-                    gene_tree,
+                    synteny_tree,
                     species_lca,
                     rec,
-                    {**leaf_labeling, gene_tree: order},
+                    {**leaf_labeling, synteny_tree: order},
                 )
             )
     else:
         results.update(
             _label_with_root_order(
-                gene_tree,
+                synteny_tree,
                 species_lca,
                 rec,
                 leaf_labeling,

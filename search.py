@@ -247,7 +247,7 @@ def solve_thl_spfs(
             (
                 rec_cost + costs[CostType.SEGMENTAL_LOSS] * labeling_cost,
                 SuperReconciliation(
-                    input=dtl_input,
+                    synteny_tree=synteny_tree,
                     reconciliation=optimal_rec,
                     labeling=labelings[0],
                 ),
@@ -294,7 +294,7 @@ def solve_bruteforce(
             (
                 rec_cost + costs[CostType.SEGMENTAL_LOSS] * labeling_cost,
                 SuperReconciliation(
-                    input=dtl_input,
+                    synteny_tree=synteny_tree,
                     reconciliation=valid_rec,
                     labeling=labelings[0],
                 ),
