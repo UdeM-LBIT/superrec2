@@ -131,13 +131,13 @@ class DrawParams(NamedTuple):
 
     # Minimum space between the outline of the species tree
     # and one of the gene branches it contains
-    species_branch_padding: float = 20
+    species_branch_padding: float = 10
 
     # Minimum space between two gene branches in the tree
-    gene_branch_spacing: float = 10
+    gene_branch_spacing: float = 5
 
     # Space above trunks
-    trunk_overhead: float = 20
+    trunk_overhead: float = 10
 
     # Horizontal space between the trunk of a parent node
     # and its children subtrees
