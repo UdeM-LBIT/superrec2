@@ -6,11 +6,9 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Sequence,
     Set,
     TypeVar,
 )
-from ete3 import TreeNode
 
 
 Node = TypeVar("Node")
@@ -50,23 +48,6 @@ def toposort(graph: Mapping[Node, Set[Node]]) -> Optional[List[Node]]:
         return result
 
     return None
-
-
-def tree_nodes_toposort(nodes: Sequence[TreeNode]) -> Optional[List[TreeNode]]:
-    """
-    Sort a set of tree nodes so that no node comes before its children.
-
-    :param nodes: set of nodes to sort
-    :returns: topologically sorted set of nodes
-    """
-    subgraph: Dict[TreeNode, Set[TreeNode]] = {node: set() for node in nodes}
-
-    for node in nodes:
-        for child in node.children:
-            if child in subgraph:
-                subgraph[child].add(node)
-
-    return toposort(subgraph)
 
 
 def _toposort_all_bt(

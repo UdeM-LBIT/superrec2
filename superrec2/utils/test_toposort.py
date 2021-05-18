@@ -1,7 +1,6 @@
-from ete3 import Tree
 from itertools import permutations
 import unittest
-from .toposort import toposort, tree_nodes_toposort, toposort_all
+from .toposort import toposort, toposort_all
 
 
 class TestUtilsToposort(unittest.TestCase):
@@ -49,19 +48,6 @@ class TestUtilsToposort(unittest.TestCase):
             ),
             None,
         )
-
-    def test_tree_nodes_toposort(self):
-        tree = Tree("(z_3,(((x_1,y_2)4,z_2)3,((x_2,y_1)6,z_1)5)2)1;", format=8)
-
-        nodes_1 = [tree & "1", tree & "2", tree & "3", tree & "5"]
-        result_1 = tree_nodes_toposort(nodes_1)
-        self.assertEqual(
-            [*result_1], [tree & "3", tree & "5", tree & "2", tree & "1"]
-        )
-
-        nodes_2 = [tree & "4", tree & "6"]
-        result_2 = tree_nodes_toposort(nodes_2)
-        self.assertEqual([*result_2], nodes_2)
 
     def test_toposort_all(self):
         self.assertEqual(

@@ -5,8 +5,6 @@ from typing import Any, Dict, List, Mapping, NamedTuple, Optional, Union
 from ete3 import PhyloTree, PhyloNode
 from ..utils.geometry import Position, Rect, Size
 from ..utils.trees import LowestCommonAncestor
-from ..utils.mappings import invert_mapping
-from ..utils.toposort import tree_nodes_toposort
 from ..utils import tex
 from ..reconciliation.tools import Event, get_event, Reconciliation, Labeling
 
@@ -286,9 +284,9 @@ def _add_losses(
 
 def _compute_branches(  # pylint:disable=too-many-locals
     layout_state: Dict[PhyloNode, Dict],
+    gene_tree: PhyloTree,
     species_tree: PhyloTree,
     rec: Reconciliation,
-    rev_rec: Mapping,
     labeling: Labeling,
 ) -> None:
     """Create the branching nodes for each species."""
@@ -301,107 +299,102 @@ def _compute_branches(  # pylint:disable=too-many-locals
         }
         layout_state[root_species] = state
 
-        # Create branches even for leaf genes
-        for extant_gene in rev_rec[root_species]:
-            if extant_gene.is_leaf():
-                if extant_gene in labeling:
-                    name = "".join(labeling[extant_gene])
+        for root_gene in gene_tree.traverse("postorder"):
+            if rec[root_gene] != root_species:
+                continue
+
+            if root_gene.is_leaf():
+                # Create branches even for leaf genes
+                if root_gene in labeling:
+                    name = "".join(labeling[root_gene])
                 else:
-                    species_name, gene_name = extant_gene.name.split("_")
+                    species_name, gene_name = root_gene.name.split("_")
                     name = rf"{species_name}\textsubscript{{{gene_name}}}"
 
-                state["anchor_nodes"].add(extant_gene)
-                state["branches"][extant_gene] = {
+                state["anchor_nodes"].add(root_gene)
+                state["branches"][root_gene] = {
                     "kind": BranchKind.LEAF,
                     "name": name,
                 }
-
-        # Create branches for actual internal nodes
-        internal_genes = tree_nodes_toposort(
-            [gene for gene in rev_rec[root_species] if not gene.is_leaf()]
-        )
-
-        # If we get none, then there’s a loop somewhere in the tree
-        assert internal_genes is not None
-
-        for root_gene in internal_genes:
-            left_gene, right_gene = root_gene.children
-            event = get_event(root_gene, species_lca, rec)
-
-            name = (
-                rf"{''.join(labeling[root_gene])}"
-                if root_gene in labeling
-                else ""
-            )
-
-            if event == Event.SPECIATION:
-                # Speciation nodes are located below the trunk
-                # and linked to child species’s gene anchors
-                left_species = root_species.children[0]
-
-                if species_lca.is_ancestor_of(left_species, rec[right_gene]):
-                    # Left gene and right gene are swapped relative
-                    # to the left and right species
-                    left_gene, right_gene = right_gene, left_gene
-
-                left_gene = _add_losses(
-                    layout_state, left_gene, rec[left_gene], root_species
-                )
-                right_gene = _add_losses(
-                    layout_state, right_gene, rec[right_gene], root_species
-                )
-
-                state["anchor_nodes"].add(root_gene)
-                state["branches"][root_gene] = {
-                    "kind": BranchKind.SPECIATION,
-                    "name": name,
-                    "left": left_gene,
-                    "right": right_gene,
-                }
-            elif event == Event.DUPLICATION:
-                # Duplications are located in the trunk and linked
-                # to other nodes in the same species
-                left_gene = _add_losses(
-                    layout_state, left_gene, rec[left_gene], root_species.up
-                )
-                right_gene = _add_losses(
-                    layout_state, right_gene, rec[right_gene], root_species.up
-                )
-
-                state["anchor_nodes"].add(root_gene)
-                state["anchor_nodes"].remove(left_gene)
-                state["anchor_nodes"].remove(right_gene)
-                state["branches"][root_gene] = {
-                    "kind": BranchKind.DUPLICATION,
-                    "name": name,
-                    "left": left_gene,
-                    "right": right_gene,
-                }
-            elif event == Event.HORIZONTAL_GENE_TRANSFER:
-                # Transfers are located in the trunk, like duplications,
-                # but are linked to a node outside the current subtree
-                conserv_gene, foreign_gene = (
-                    (left_gene, right_gene)
-                    if species_lca.is_ancestor_of(root_species, rec[left_gene])
-                    else (right_gene, left_gene)
-                )
-                conserv_gene = _add_losses(
-                    layout_state,
-                    conserv_gene,
-                    rec[conserv_gene],
-                    root_species.up,
-                )
-
-                state["anchor_nodes"].add(root_gene)
-                state["anchor_nodes"].remove(conserv_gene)
-                state["branches"][root_gene] = {
-                    "kind": BranchKind.HORIZONTAL_GENE_TRANSFER,
-                    "name": name,
-                    "left": conserv_gene,
-                    "right": foreign_gene,
-                }
             else:
-                raise ValueError("Invalid event")
+                # Create branches for actual internal nodes
+                left_gene, right_gene = root_gene.children
+                event = get_event(root_gene, species_lca, rec)
+
+                name = (
+                    rf"{''.join(labeling[root_gene])}"
+                    if root_gene in labeling
+                    else ""
+                )
+
+                if event == Event.SPECIATION:
+                    # Speciation nodes are located below the trunk
+                    # and linked to child species’s gene anchors
+                    left_species = root_species.children[0]
+
+                    if species_lca.is_ancestor_of(left_species, rec[right_gene]):
+                        # Left gene and right gene are swapped relative
+                        # to the left and right species
+                        left_gene, right_gene = right_gene, left_gene
+
+                    left_gene = _add_losses(
+                        layout_state, left_gene, rec[left_gene], root_species
+                    )
+                    right_gene = _add_losses(
+                        layout_state, right_gene, rec[right_gene], root_species
+                    )
+
+                    state["anchor_nodes"].add(root_gene)
+                    state["branches"][root_gene] = {
+                        "kind": BranchKind.SPECIATION,
+                        "name": name,
+                        "left": left_gene,
+                        "right": right_gene,
+                    }
+                elif event == Event.DUPLICATION:
+                    # Duplications are located in the trunk and linked
+                    # to other nodes in the same species
+                    left_gene = _add_losses(
+                        layout_state, left_gene, rec[left_gene], root_species.up
+                    )
+                    right_gene = _add_losses(
+                        layout_state, right_gene, rec[right_gene], root_species.up
+                    )
+
+                    state["anchor_nodes"].add(root_gene)
+                    state["anchor_nodes"].remove(left_gene)
+                    state["anchor_nodes"].remove(right_gene)
+                    state["branches"][root_gene] = {
+                        "kind": BranchKind.DUPLICATION,
+                        "name": name,
+                        "left": left_gene,
+                        "right": right_gene,
+                    }
+                elif event == Event.HORIZONTAL_GENE_TRANSFER:
+                    # Transfers are located in the trunk, like duplications,
+                    # but are linked to a node outside the current subtree
+                    conserv_gene, foreign_gene = (
+                        (left_gene, right_gene)
+                        if species_lca.is_ancestor_of(root_species, rec[left_gene])
+                        else (right_gene, left_gene)
+                    )
+                    conserv_gene = _add_losses(
+                        layout_state,
+                        conserv_gene,
+                        rec[conserv_gene],
+                        root_species.up,
+                    )
+
+                    state["anchor_nodes"].add(root_gene)
+                    state["anchor_nodes"].remove(conserv_gene)
+                    state["branches"][root_gene] = {
+                        "kind": BranchKind.HORIZONTAL_GENE_TRANSFER,
+                        "name": name,
+                        "left": conserv_gene,
+                        "right": foreign_gene,
+                    }
+                else:
+                    raise ValueError("Invalid event")
 
 
 def _layout_measure_nodes(
@@ -651,6 +644,7 @@ def _layout_subtrees(
 
 
 def compute_layout(
+    gene_tree: PhyloTree,
     species_tree: PhyloTree,
     rec: Reconciliation,
     labeling: Optional[Labeling] = None,
@@ -669,9 +663,8 @@ def compute_layout(
     """
     layout_state: Dict[PhyloNode, Dict] = {}
     real_labeling: Labeling = labeling or {}
-    rev_rec = invert_mapping(rec)
 
-    _compute_branches(layout_state, species_tree, rec, rev_rec, real_labeling)
+    _compute_branches(layout_state, gene_tree, species_tree, rec, real_labeling)
     _layout_branches(layout_state, species_tree, params)
     return _layout_subtrees(layout_state, species_tree, params)
 

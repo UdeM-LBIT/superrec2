@@ -71,7 +71,7 @@ def generate_tikz(args):
         else {}
     )
 
-    layout_info = compute_layout(species_tree, rec, labeling)
+    layout_info = compute_layout(gene_tree, species_tree, rec, labeling)
     return render_to_tikz(species_tree, rec, layout_info)
 
 
