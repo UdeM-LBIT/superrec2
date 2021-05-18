@@ -63,17 +63,33 @@ class Rect(NamedTuple):
         """Position of the upper left corner."""
         return Position(self.x, self.y)
 
+    def top(self) -> Position:
+        """Position of the upper edge’s center."""
+        return Position(self.x + self.w / 2, self.y)
+
     def top_right(self) -> Position:
         """Position of the upper left corner."""
         return Position(self.x + self.w, self.y)
+
+    def right(self) -> Position:
+        """Position of the right edge’s center."""
+        return Position(self.x + self.w, self.y + self.h / 2)
 
     def bottom_right(self) -> Position:
         """Position of the lower right corner."""
         return Position(self.x + self.w, self.y + self.h)
 
+    def bottom(self) -> Position:
+        """Position of the lower edge’s center."""
+        return Position(self.x + self.w / 2, self.y + self.h)
+
     def bottom_left(self) -> Position:
         """Position of the lower left corner."""
         return Position(self.x, self.y + self.h)
+
+    def left(self) -> Position:
+        """Position of the left edge’s center."""
+        return Position(self.x, self.y + self.h / 2)
 
     def center(self) -> Position:
         """Position of the center."""

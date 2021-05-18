@@ -155,13 +155,13 @@ class DrawParams(NamedTuple):
     branch_outer_thickness: str = "4pt"
 
     # Space between extant gene names and the end of species branches
-    species_leaf_spacing: float = 10
+    species_leaf_spacing: float = 1
 
     # Distance of the species labels from the species leaves
     species_label_spacing: float = 10
 
     # Size of the filled circles that represent extant genes
-    extant_gene_diameter: str = "3pt"
+    extant_gene_diameter: float = 3
 
     # Length of the dashed line that represent lost genes
     full_loss_size: float = 20
@@ -211,9 +211,15 @@ class DrawParams(NamedTuple):
                 extant gene/.style={{
                     circle, fill,
                     outer sep=0pt, inner sep=0pt,
-                    minimum width={{{self.extant_gene_diameter}}},
-                    minimum height={{{self.extant_gene_diameter}}},
-                    label={{[font={{\strut}}, inner xsep=0pt]below:#1}},
+                    minimum size={{{self.extant_gene_diameter}}},
+                    label={{
+                        [font={{\strut}},
+                         inner xsep=0pt,
+                         inner ysep=2pt,
+                         outer ysep=0pt,
+                         fill=white]
+                        below:#1
+                    }},
                 }},
                 branch node/.style={{
                     draw, fill=white,
@@ -481,16 +487,16 @@ def _layout_branches(  # pylint:disable=too-many-locals
                 pos = Position(
                     x=((left_rect.center() + right_rect.center()).x) / 2
                     - size.w / 2,
-                    y=min(params.gene_branch_spacing, left_rect.y, right_rect.y)
-                    - params.gene_branch_spacing
+                    y=min(params.species_branch_padding, left_rect.y, right_rect.y)
+                    - params.species_branch_padding
                     - size.h,
                 )
             elif branch["kind"] == BranchKind.HORIZONTAL_GENE_TRANSFER:
                 cons_rect = layout["branches"][branch["left"]]["rect"]
                 pos = Position(
                     x=cons_rect.center().x - size.w / 2,
-                    y=min(params.gene_branch_spacing, cons_rect.y)
-                    - params.gene_branch_spacing
+                    y=min(params.species_branch_padding, cons_rect.y)
+                    - params.species_branch_padding
                     - size.h,
                 )
             else:
@@ -584,7 +590,7 @@ def _layout_subtrees(
             height = (
                 max(left_info["size"].h, right_info["size"].h)
                 + params.level_spacing
-                + trunk_width
+                + fork_thickness
                 + trunk_height
             )
 
@@ -765,9 +771,13 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
             )
 
         if branch.kind == BranchKind.LEAF:
+            leaf_pos = (
+                trunk_offset + branch.rect.top()
+                + Position(0, params.extant_gene_diameter / 2)
+            )
             layers["events"].append(
                 rf"\node[extant gene={{{branch.name}}}] "
-                rf"at ({branch_pos}) {{}};"
+                rf"at ({leaf_pos}) {{}};"
             )
         elif branch.kind == BranchKind.FULL_LOSS:
             if right_gene is None:
