@@ -11,10 +11,8 @@ from ..utils.subsequences import (
     mask_from_subseq,
     subseq_segment_dist,
 )
-
-
-Reconciliation = Mapping[PhyloNode, PhyloNode]
-Labeling = Mapping[PhyloNode, Sequence[Any]]
+from ..model.synteny import SyntenyMapping, serialize_synteny_mapping
+from ..model.tree_mapping import TreeMapping, serialize_tree_mapping
 
 
 class SuperReconciliationInput(NamedTuple):
@@ -27,18 +25,18 @@ class SuperReconciliationInput(NamedTuple):
     species_lca: LowestCommonAncestor
 
     # Extant syntenies at the leaves of the synteny tree
-    leaf_labeling: Labeling
+    leaf_syntenies: SyntenyMapping
 
     def __repr__(self):
         synteny_tree = self.synteny_tree.write(format=8, format_root_node=True)
         species_tree = self.species_lca.tree.write(
             format=8, format_root_node=True
         )
-        leaf_labeling = serialize_labeling(self.leaf_labeling)
+        leaf_syntenies = serialize_synteny_mapping(self.leaf_syntenies)
         return f"""SuperReconciliationInput({", ".join([
             f'synteny_tree="{synteny_tree}", '
             f'species_tree="{species_tree}", '
-            f'leaf_labeling="{leaf_labeling}"'
+            f'leaf_syntenies="{leaf_syntenies}"'
         ])})"""
 
 
@@ -49,19 +47,19 @@ class SuperReconciliation(NamedTuple):
     synteny_tree: PhyloTree
 
     # Mapping of the synteny tree onto the species tree
-    reconciliation: Reconciliation
+    reconciliation: TreeMapping
 
     # Labeling of ancestral syntenies
-    labeling: Labeling
+    syntenies: SyntenyMapping
 
     def __repr__(self):
         synteny_tree = self.synteny_tree.write(format=8, format_root_node=True)
-        reconciliation = serialize_reconciliation(self.reconciliation)
-        labeling = serialize_labeling(self.labeling)
+        reconciliation = serialize_tree_mapping(self.reconciliation)
+        syntenies = serialize_synteny_mapping(self.syntenies)
         return f"""SuperReconciliation({", ".join([
             f'synteny_tree="{synteny_tree}"',
             f'reconciliation="{reconciliation}"',
-            f'labeling="{labeling}"',
+            f'syntenies="{syntenies}"',
         ])})"""
 
 
@@ -100,7 +98,7 @@ class Event(Enum):
 def get_event(
     root_gene: PhyloNode,
     species_lca: LowestCommonAncestor,
-    rec: Reconciliation,
+    rec: TreeMapping,
 ) -> Event:
     """
     Find the event associated to a gene by a reconciliation.
@@ -162,7 +160,7 @@ CostVector = Mapping[CostType, ExtendedIntegral]
 def get_reconciliation_cost(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
-    rec: Reconciliation,
+    rec: TreeMapping,
     costs: CostVector,
 ) -> ExtendedIntegral:
     """
@@ -220,8 +218,8 @@ def get_reconciliation_cost(
 def get_labeling_cost(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
-    rec: Reconciliation,
-    labeling: Labeling,
+    rec: TreeMapping,
+    syntenies: SyntenyMapping,
 ) -> int:
     """
     Compute the cost of a synteny labeling.
@@ -229,10 +227,10 @@ def get_labeling_cost(
     :param gene_tree: reconciled gene tree
     :param species_lca: ancestry information about the reconciled species tree
     :param rec: reconciliation to use
-    :param labeling: synteny labeling
+    :param syntenies: synteny labeling
     """
     total_cost = 0
-    root_syn = labeling[gene_tree]
+    root_syn = syntenies[gene_tree]
     masks = {gene_tree: subseq_complete(root_syn)}
 
     for sub_gene in gene_tree.traverse("preorder"):
@@ -242,11 +240,11 @@ def get_labeling_cost(
             left_gene, right_gene = sub_gene.children
 
             left_mask = masks[left_gene] = mask_from_subseq(
-                labeling[left_gene], root_syn
+                syntenies[left_gene], root_syn
             )
 
             right_mask = masks[right_gene] = mask_from_subseq(
-                labeling[right_gene], root_syn
+                syntenies[right_gene], root_syn
             )
 
             if event == Event.SPECIATION:
@@ -277,27 +275,10 @@ def get_labeling_cost(
     return total_cost
 
 
-def reconcile_leaves(
-    gene_tree: PhyloTree,
-    species_tree: PhyloTree,
-) -> Reconciliation:
-    """
-    Compute a partial reconciliation containing forced leaves assignments.
-
-    :param gene_tree: gene tree to reconcile
-    :param species_tree: species tree to reconcile
-    :returns: mapping of the leaf genes onto leaf species
-    """
-    return {
-        gene_leaf: species_tree & gene_leaf.species
-        for gene_leaf in gene_tree.get_leaves()
-    }
-
-
 def reconcile_all(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
-) -> Generator[Reconciliation, None, None]:
+) -> Generator[TreeMapping, None, None]:
     """
     Generate all valid reconciliations.
 
@@ -344,67 +325,3 @@ def reconcile_all(
                     **map_right,
                 }
                 transfer_species = transfer_species.up
-
-
-def parse_reconciliation(
-    gene_tree: PhyloTree, species_tree: PhyloTree, source: str
-) -> Reconciliation:
-    """
-    Parse a string representation of a reconciliation.
-
-    :param gene_tree: gene tree of the reconciliation
-    :param species_tree: species tree of the reconciliation
-    :param source: string to parse
-    :returns: parsed reconciliation
-    """
-    result: Dict[PhyloNode, PhyloNode] = {}
-
-    for pair in source.split(","):
-        if pair.strip():
-            gene, species = pair.split(":")
-            result[gene_tree & gene.strip()] = species_tree & species.strip()
-
-    return result
-
-
-def serialize_reconciliation(reconciliation: Reconciliation) -> str:
-    """
-    Serialize a reconciliation.
-
-    :param reconciliation: reconciliation to serialize
-    :returns: serialized representation
-    """
-    return ",".join(
-        f"{gene.name}:{species.name}"
-        for gene, species in reconciliation.items()
-    )
-
-
-def parse_labeling(gene_tree: PhyloTree, source: str) -> Labeling:
-    """
-    Parse a string representation of a synteny labeling.
-
-    :param gene_tree: labeled gene tree
-    :param source: string to parse
-    :returns: parsed labeling
-    """
-    result: Dict[PhyloNode, List[str]] = {}
-
-    for pair in source.split(","):
-        if pair.strip():
-            node, synteny = pair.split(":")
-            result[gene_tree & node.strip()] = list(synteny.strip())
-
-    return result
-
-
-def serialize_labeling(labeling: Labeling) -> str:
-    """
-    Serialize a synteny labeling.
-
-    :param labeling: labeling to serialize
-    :returns: serialized representation
-    """
-    return ",".join(
-        f"{node.name}:{''.join(synteny)}" for node, synteny in labeling.items()
-    )

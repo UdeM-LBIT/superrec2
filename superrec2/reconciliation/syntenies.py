@@ -24,7 +24,9 @@ from ..utils.subsequences import (
     subseq_from_mask,
     subseq_segment_dist,
 )
-from .tools import Labeling, Event, get_event, Reconciliation
+from ..model.synteny import SyntenyMapping
+from ..model.tree_mapping import TreeMapping
+from .tools import Event, get_event
 
 
 class LabelingInfo(NamedTuple):
@@ -47,7 +49,7 @@ LRSubsynt = Tuple[MinSequence[int], MinSequence[int]]
 def _compute_spfs_entry(  # pylint:disable=too-many-locals
     sub_gene: PhyloNode,
     species_lca: LowestCommonAncestor,
-    rec: Reconciliation,
+    rec: TreeMapping,
     sub_synt_mask: int,
     table: SPFSTable,
 ) -> None:
@@ -119,12 +121,12 @@ def _compute_spfs_entry(  # pylint:disable=too-many-locals
 def _compute_spfs_table(
     synteny_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
-    rec: Reconciliation,
-    known_syntenies: Labeling,
-) -> Dict[PhyloNode, DefaultDict[int, LabelingInfo]]:
+    rec: TreeMapping,
+    known_syntenies: SyntenyMapping,
+) -> SPFSTable:
     root_synt = known_syntenies[synteny_tree]
     subseq_count = 2 ** len(root_synt)
-    table: Dict[PhyloNode, DefaultDict[int, LabelingInfo]] = {}
+    table: SPFSTable = {}
 
     for sub_gene in synteny_tree.traverse("postorder"):
         table[sub_gene] = defaultdict(LabelingInfo)
@@ -154,8 +156,8 @@ def _decode_spfs_table(
     sub_gene: PhyloTree,
     root_synteny: Sequence[Any],
     sub_synteny: int,
-    costs: Dict[PhyloNode, DefaultDict[int, LabelingInfo]],
-) -> Labeling:
+    costs: SPFSTable,
+) -> SyntenyMapping:
     resolv_synteny = subseq_from_mask(sub_synteny, root_synteny)
 
     if sub_gene.is_leaf():
@@ -176,9 +178,9 @@ def _decode_spfs_table(
 def _label_with_root_order(
     synteny_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
-    rec: Reconciliation,
-    known_syntenies: Labeling,
-) -> Tuple[int, Labeling]:
+    rec: TreeMapping,
+    known_syntenies: SyntenyMapping,
+) -> Tuple[int, SyntenyMapping]:
     costs = _compute_spfs_table(synteny_tree, species_lca, rec, known_syntenies)
 
     root_synteny = known_syntenies[synteny_tree]
@@ -192,9 +194,9 @@ def _label_with_root_order(
 def label_ancestral_syntenies(
     synteny_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
-    rec: Reconciliation,
-    syntenies: Union[Labeling, Mapping[str, Sequence[Any]]],
-) -> Tuple[ExtendedIntegral, List[Labeling]]:
+    rec: TreeMapping,
+    syntenies: Union[SyntenyMapping, Mapping[str, Sequence[Any]]],
+) -> Tuple[ExtendedIntegral, List[SyntenyMapping]]:
     """
     Find a minimum-cost ancestral synteny labeling for a super-reconciliation.
 

@@ -1,12 +1,9 @@
 import unittest
 import textwrap
 from ete3 import PhyloTree
-from .tools import (
-    get_species_name,
-    reconcile_leaves,
-    parse_labeling,
-    parse_reconciliation,
-)
+from ..model.synteny import parse_synteny_mapping
+from ..model.tree_mapping import get_species_mapping, parse_tree_mapping
+from .tools import get_species_name
 from .draw import compute_layout, render_to_tikz
 
 
@@ -18,10 +15,10 @@ class TestReconciliationDraw(unittest.TestCase):
             gene_text, sp_naming_function=get_species_name, format=1
         )
         species_tree = PhyloTree(species_text, format=1)
-        labeling = parse_labeling(gene_tree, labeling_text)
+        labeling = parse_synteny_mapping(gene_tree, labeling_text)
         rec = {
-            **reconcile_leaves(gene_tree, species_tree),
-            **parse_reconciliation(gene_tree, species_tree, rec_text),
+            **get_species_mapping(gene_tree, species_tree),
+            **parse_tree_mapping(gene_tree, species_tree, rec_text),
         }
         layout_info = compute_layout(gene_tree, species_tree, rec, labeling)
         out = render_to_tikz(species_tree, rec, layout_info)

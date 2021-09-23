@@ -5,7 +5,8 @@ from typing import DefaultDict, List, NamedTuple, Tuple
 from ete3 import PhyloTree, PhyloNode
 from ..utils.trees import LowestCommonAncestor
 from ..utils.min_sequence import MinSequence
-from .tools import CostType, CostVector, ExtendedIntegral, Reconciliation
+from ..model.tree_mapping import TreeMapping
+from .tools import CostType, CostVector, ExtendedIntegral
 
 
 class MappingInfo(NamedTuple):
@@ -24,7 +25,7 @@ class MappingInfo(NamedTuple):
 def reconcile_lca(
     gene_tree: PhyloTree,
     species_lca: LowestCommonAncestor,
-) -> Reconciliation:
+) -> TreeMapping:
     """
     Compute the minimum-cost reconciliation between species tree and a gene
     tree, allowing for duplications and losses and where a duplication
@@ -291,7 +292,7 @@ def _decode_thl_table(root, solutions, table):
 
 def reconcile_thl(
     gene_tree: PhyloTree, species_lca: LowestCommonAncestor, costs: CostVector
-) -> Tuple[ExtendedIntegral, List[Reconciliation]]:
+) -> Tuple[ExtendedIntegral, List[TreeMapping]]:
     """
     Find all minimum-cost reconciliations between a species tree and a gene
     tree, allowing for duplications, horizontal gene transfers and losses.

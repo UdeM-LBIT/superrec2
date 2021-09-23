@@ -1,17 +1,13 @@
 import unittest
 from ete3 import PhyloTree
 from ..utils.trees import LowestCommonAncestor
+from ..model.tree_mapping import get_species_mapping
 from .tools import (
     CostType,
     Event,
     get_reconciliation_cost,
     get_event,
     get_species_name,
-    parse_reconciliation,
-    serialize_reconciliation,
-    parse_labeling,
-    serialize_labeling,
-    reconcile_leaves,
     reconcile_all,
 )
 
@@ -87,12 +83,6 @@ class TestReconciliationTools(unittest.TestCase):
         self.assertEqual(get_species_name("1_x"), "1")
         self.assertEqual(get_species_name("X_X"), "X")
 
-    def test_reconcile_leaves(self):
-        self.assertEqual(
-            reconcile_leaves(self.gene_tree, self.species_tree),
-            self.rec_leaves,
-        )
-
     def test_get_event(self):
         expected_events = {
             "1": Event.DUPLICATION,
@@ -166,7 +156,7 @@ class TestReconciliationTools(unittest.TestCase):
         species_lca = LowestCommonAncestor(species_tree)
 
         recs = list(reconcile_all(gene_tree, species_lca))
-        leaves = reconcile_leaves(gene_tree, species_tree)
+        leaves = get_species_mapping(gene_tree, species_tree)
 
         # Check that all valid reconciliations are generated
         self.assertEqual(len(recs), 16)
@@ -337,29 +327,3 @@ class TestReconciliationTools(unittest.TestCase):
                     get_event(gene, species_lca, rec),
                     Event.INVALID,
                 )
-
-    def test_serialize_reconciliation(self):
-        serialized = (
-            "1:XYZWT,2:XYZ,3:XYZ,4:W,5:XYZWT,6:XYZ,7:XY,"
-            "8:XYZ,9:XY,10:Y,11:Y,12:WT,13:T,14:T"
-        )
-
-        self.assertEqual(
-            parse_reconciliation(self.gene_tree, self.species_tree, serialized),
-            self.rec_internal,
-        )
-        self.assertEqual(
-            serialize_reconciliation(self.rec_internal),
-            serialized,
-        )
-
-    def test_serialize_labeling(self):
-        labeling = {
-            self.gene_tree & "x_1": ["a"],
-            self.gene_tree & "x_2": ["a", "b", "c", "d", "e", "f"],
-            self.gene_tree & "x_3": ["d", "e", "f", "a", "b", "c"],
-        }
-        serialized = "x_1:a,x_2:abcdef,x_3:defabc"
-
-        self.assertEqual(parse_labeling(self.gene_tree, serialized), labeling)
-        self.assertEqual(serialize_labeling(labeling), serialized)

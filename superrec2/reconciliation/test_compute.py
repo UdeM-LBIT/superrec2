@@ -2,6 +2,7 @@ import unittest
 from infinity import inf
 from ete3 import PhyloTree
 from superrec2 import reconciliation as rec
+from ..model.tree_mapping import get_species_mapping
 from superrec2.utils.trees import LowestCommonAncestor
 
 
@@ -37,7 +38,7 @@ class TestReconciliationCompute(unittest.TestCase):
         self.assertEqual(
             result,
             {
-                **rec.tools.reconcile_leaves(self.gene_tree, self.species_tree),
+                **get_species_mapping(self.gene_tree, self.species_tree),
                 self.gene_tree & "1": self.species_tree & "XYZ",
                 self.gene_tree & "2": self.species_tree & "YZ",
                 self.gene_tree & "3": self.species_tree & "XYZ",
@@ -95,7 +96,7 @@ class TestReconciliationCompute(unittest.TestCase):
         self.assertEqual(len(results), 2)
         self.assertIn(
             {
-                **rec.tools.reconcile_leaves(self.gene_tree, self.species_tree),
+                **get_species_mapping(self.gene_tree, self.species_tree),
                 self.gene_tree & "1": self.species_tree & "XYZ",
                 self.gene_tree & "2": self.species_tree & "YZ",
                 self.gene_tree & "3": self.species_tree & "X",
@@ -107,7 +108,7 @@ class TestReconciliationCompute(unittest.TestCase):
 
         self.assertIn(
             {
-                **rec.tools.reconcile_leaves(self.gene_tree, self.species_tree),
+                **get_species_mapping(self.gene_tree, self.species_tree),
                 self.gene_tree & "1": self.species_tree & "XYZ",
                 self.gene_tree & "2": self.species_tree & "YZ",
                 self.gene_tree & "3": self.species_tree & "X",

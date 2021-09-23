@@ -6,7 +6,9 @@ from ete3 import PhyloTree, PhyloNode
 from ..utils.geometry import Position, Rect, Size
 from ..utils.trees import LowestCommonAncestor
 from ..utils import tex
-from ..reconciliation.tools import Event, get_event, Reconciliation, Labeling
+from ..model.tree_mapping import TreeMapping
+from ..model.synteny import SyntenyMapping
+from ..reconciliation.tools import Event, get_event
 
 
 class BranchKind(Enum):
@@ -292,8 +294,8 @@ def _compute_branches(  # pylint:disable=too-many-locals
     layout_state: Dict[PhyloNode, Dict],
     gene_tree: PhyloTree,
     species_tree: PhyloTree,
-    rec: Reconciliation,
-    labeling: Labeling,
+    rec: TreeMapping,
+    syntenies: SyntenyMapping,
 ) -> None:
     """Create the branching nodes for each species."""
     species_lca = LowestCommonAncestor(species_tree)
@@ -311,8 +313,8 @@ def _compute_branches(  # pylint:disable=too-many-locals
 
             if root_gene.is_leaf():
                 # Create branches even for leaf genes
-                if root_gene in labeling:
-                    name = "".join(labeling[root_gene])
+                if root_gene in syntenies:
+                    name = "".join(syntenies[root_gene])
                 else:
                     species_name, gene_name = root_gene.name.split("_")
                     name = rf"{species_name}\textsubscript{{{gene_name}}}"
@@ -328,8 +330,8 @@ def _compute_branches(  # pylint:disable=too-many-locals
                 event = get_event(root_gene, species_lca, rec)
 
                 name = (
-                    rf"{''.join(labeling[root_gene])}"
-                    if root_gene in labeling
+                    rf"{''.join(syntenies[root_gene])}"
+                    if root_gene in syntenies
                     else ""
                 )
 
@@ -652,8 +654,8 @@ def _layout_subtrees(
 def compute_layout(
     gene_tree: PhyloTree,
     species_tree: PhyloTree,
-    rec: Reconciliation,
-    labeling: Optional[Labeling] = None,
+    rec: TreeMapping,
+    syntenies: Optional[SyntenyMapping] = None,
     params: DrawParams = DrawParams(),
 ) -> Layout:
     """
@@ -662,15 +664,15 @@ def compute_layout(
     :param gene_tree: embedded gene tree
     :param species_tree: host species tree
     :param rec: mapping of the gene tree onto the species tree
-    :param labeling: synteny labeling to display on the gene nodes
+    :param syntenies: synteny labeling to display on the gene nodes
         (leave empty to only show extant gene names)
     :param params: layout parameters
     :returns: layout information for each species node
     """
     layout_state: Dict[PhyloNode, Dict] = {}
-    real_labeling: Labeling = labeling or {}
+    real_syntenies: SyntenyMapping = syntenies or {}
 
-    _compute_branches(layout_state, gene_tree, species_tree, rec, real_labeling)
+    _compute_branches(layout_state, gene_tree, species_tree, rec, real_syntenies)
     _layout_branches(layout_state, species_tree, params)
     return _layout_subtrees(layout_state, species_tree, params)
 
@@ -748,7 +750,7 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
     left_layout: Optional[SubtreeLayout],
     right_layout: Optional[SubtreeLayout],
     all_layouts: Layout,
-    rec: Reconciliation,
+    rec: TreeMapping,
     layers: Dict[str, List[str]],
     params: DrawParams,
 ) -> None:
@@ -849,7 +851,7 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
 
 def render_to_tikz(
     species_tree: PhyloTree,
-    rec: Reconciliation,
+    rec: TreeMapping,
     layout: Layout,
     params: DrawParams = DrawParams(),
 ):
