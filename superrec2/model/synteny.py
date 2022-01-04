@@ -17,6 +17,11 @@ def parse_synteny(data: str) -> Synteny:
 
     :param data: string to parse
     :returns: parsed synteny
+    :example:
+    >>> parse_synteny("abcdef")
+    ["a", "b", "c", "d", "e", "f"]
+    >>> parse_synteny("(gene1)(gene2)xyz(gene3)")
+    ["gene1", "gene2", "x", "y", "z", "gene3"]
     """
     depth = 0
     escaped = False
@@ -63,6 +68,11 @@ def serialize_synteny(synteny: Synteny) -> str:
 
     :param mapping: synteny to serialize
     :returns: serialized representation
+    :example:
+    >>> serialize_synteny(["a", "b", "c", "d", "e", "f"])
+    "abcdef"
+    >>> serialize_synteny(["gene1", "gene2", "x", "y", "z", "gene3"])
+    "(gene1)(gene2)xyz(gene3)"
     """
     return "".join(
         f"({escape(item, ESCAPE_CHARS)})" if len(item) >= 2
@@ -81,6 +91,10 @@ def parse_synteny_mapping(tree: Tree, data: str) -> SyntenyMapping:
     :param tree: labeled tree
     :param data: string to parse
     :returns: parsed mapping
+    :example:
+    >>> parse_synteny_mapping(Tree("(x, y);"), "x: abcd, y: ade")
+    {Tree node "x": ["a", "b", "c", "d"],
+     Tree node "y": ["a", "d", "e"]}
     """
     result: Dict[TreeNode, List[str]] = {}
 
@@ -100,8 +114,17 @@ def serialize_synteny_mapping(mapping: SyntenyMapping) -> str:
 
     :param mapping: mapping to serialize
     :returns: serialized representation
+    >>> tree = Tree("(x, y);")
+    >>> serialize_synteny_mapping({
+          tree & "x": ["a", "b", "c", "d"],
+          tree & "y": ["a", "d", "e"]
+        })
+    "x:abcd,y:ade"
     """
     return ",".join(
-        f"{escape(node.name, ESCAPE_CHARS)}:{serialize_synteny(synteny)}"
-        for node, synteny in mapping.items()
+        f"{escape(name, ESCAPE_CHARS)}:{serialize_synteny(synteny)}"
+        for name, synteny in sorted(
+            (node.name, synteny)
+            for node, synteny in mapping.items()
+        )
     )

@@ -1,9 +1,12 @@
 import unittest
 import textwrap
-from ete3 import PhyloTree
-from ..model.synteny import parse_synteny_mapping
-from ..model.tree_mapping import get_species_mapping, parse_tree_mapping
-from .tools import get_species_name
+from ete3 import Tree
+from .model.synteny import parse_synteny_mapping
+from .model.tree_mapping import get_species_mapping, parse_tree_mapping
+from .model.reconciliation import (
+    SuperReconciliationInput, SuperReconciliationOutput
+)
+from .utils.trees import LowestCommonAncestor
 from .draw import compute_layout, render_to_tikz
 
 
@@ -11,17 +14,25 @@ class TestReconciliationDraw(unittest.TestCase):
     def assertRender(
         self, gene_text, species_text, rec_text, labeling_text, expect
     ):
-        gene_tree = PhyloTree(
-            gene_text, sp_naming_function=get_species_name, format=1
+        gene_tree = Tree(gene_text, format=1)
+        species_tree = Tree(species_text, format=1)
+        srec_input = SuperReconciliationInput(
+            object_tree=gene_tree,
+            species_lca=LowestCommonAncestor(species_tree),
+            leaf_object_species={},
+            costs={},
+            leaf_syntenies={},
         )
-        species_tree = PhyloTree(species_text, format=1)
-        labeling = parse_synteny_mapping(gene_tree, labeling_text)
-        rec = {
-            **get_species_mapping(gene_tree, species_tree),
-            **parse_tree_mapping(gene_tree, species_tree, rec_text),
-        }
-        layout_info = compute_layout(gene_tree, species_tree, rec, labeling)
-        out = render_to_tikz(species_tree, rec, layout_info)
+        srec_output = SuperReconciliationOutput(
+            input=srec_input,
+            object_species={
+                **get_species_mapping(gene_tree, species_tree),
+                **parse_tree_mapping(gene_tree, species_tree, rec_text),
+            },
+            syntenies=parse_synteny_mapping(gene_tree, labeling_text),
+        )
+        layout_info = compute_layout(srec_output)
+        out = render_to_tikz(srec_output, layout_info)
         self.assertEqual(
             out,
             textwrap.dedent(

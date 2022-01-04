@@ -1,5 +1,5 @@
 import unittest
-from ete3 import PhyloTree
+from ete3 import Tree
 from .tree_mapping import (
     parse_tree_mapping,
     get_species_mapping,
@@ -7,18 +7,10 @@ from .tree_mapping import (
 )
 
 
-def get_species_name(name):
-    if "_" in name:
-        return name.split("_")[0].upper()
-    else:
-        return ""
-
-
 class TestReconciliationTools(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.gene_tree = PhyloTree(
-            """
+        cls.gene_tree = Tree("""
             (
                 ((x_1,z_1)3,(w_1,w_2)4)2,
                 (
@@ -29,12 +21,8 @@ class TestReconciliationTools(unittest.TestCase):
                     (w_3,(z_3,(t_1,t_2)14)13)12
                 )5
             )1;
-        """,
-            sp_naming_function=get_species_name,
-            format=1,
-        )
-
-        cls.species_tree = PhyloTree("(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;", format=1)
+        """, format=1)
+        cls.species_tree = Tree("(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;", format=1)
 
     def test_parse_tree_mapping(self):
         self.assertEqual(
@@ -149,9 +137,9 @@ class TestReconciliationTools(unittest.TestCase):
         self.assertEqual(
             serialize_tree_mapping({
                 self.gene_tree & "x_1": self.species_tree & "X",
-                self.gene_tree & "x_2": self.species_tree & "X",
                 self.gene_tree & "2": self.species_tree & "XYZ",
+                self.gene_tree & "x_2": self.species_tree & "X",
                 self.gene_tree & "3": self.species_tree & "XYZ",
             }),
-            "x_1:X,x_2:X,2:XYZ,3:XYZ",
+            "2:XYZ,3:XYZ,x_1:X,x_2:X",
         )

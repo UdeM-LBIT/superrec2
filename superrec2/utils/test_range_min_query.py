@@ -1,7 +1,6 @@
 import random
 import time
 import unittest
-from infinity import inf
 from .range_min_query import RangeMinQuery
 
 

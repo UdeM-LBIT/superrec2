@@ -1,7 +1,7 @@
 import unittest
 from ete3 import Tree
 from .synteny import (
-    escape, unescape, parse_synteny, serialize_synteny,
+    parse_synteny, serialize_synteny,
     parse_synteny_mapping, serialize_synteny_mapping
 )
 
