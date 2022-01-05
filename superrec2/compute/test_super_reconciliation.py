@@ -17,16 +17,15 @@ class TestComputeSuperReconciliation(unittest.TestCase):
     def assertLabelingEquals(
         self,
         srec_input,
-        rec_output,
         expected_cost,
         expected_labelings,
     ):
-        any_l = label_syntenies_any(srec_input, rec_output)
-        all_l = list(label_syntenies_all(srec_input, rec_output))
+        any_l = label_syntenies_any(srec_input)
+        all_l = list(label_syntenies_all(srec_input))
         expected_results = [
             SuperReconciliationOutput(
                 input=srec_input,
-                object_species=rec_output.object_species,
+                object_species=reconcile_lca(srec_input).object_species,
                 syntenies=expected_labeling,
             )
             for expected_labeling in expected_labelings
@@ -54,7 +53,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
             species_lca,
             leaf_gene_species,
         )
-        rec_output = reconcile_lca(rec_input)
 
         # Test 1: Single optimal solution, conserved root
         input_1 = {
@@ -71,7 +69,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                 get_default_cost(),
                 input_1,
             ),
-            rec_output,
             expected_cost=2,
             expected_labelings=[
                 {
@@ -97,7 +94,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                 get_default_cost(),
                 input_2,
             ),
-            rec_output,
             expected_cost=3,
             expected_labelings=[
                 {
@@ -123,7 +119,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                 get_default_cost(),
                 input_3,
             ),
-            rec_output,
             expected_cost=4,
             expected_labelings=[
                 {
@@ -159,7 +154,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                 get_default_cost(),
                 input_4,
             ),
-            rec_output,
             expected_cost=inf,
             expected_labelings=[],
         )
@@ -179,7 +173,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                 get_default_cost(),
                 input_5,
             ),
-            rec_output,
             expected_cost=2,
             expected_labelings=[
                 {
@@ -206,7 +199,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
             species_lca,
             leaf_gene_species,
         )
-        rec_output = reconcile_lca(rec_input)
 
         # Test 1: Single optimal solution, conserved root
         input_1 = {
@@ -223,7 +215,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                 get_default_cost(),
                 input_1,
             ),
-            rec_output,
             expected_cost=2,
             expected_labelings=[
                 {
@@ -249,7 +240,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                 get_default_cost(),
                 input_2,
             ),
-            rec_output,
             expected_cost=3,
             expected_labelings=[
                 {
@@ -275,7 +265,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                 get_default_cost(),
                 input_3,
             ),
-            rec_output,
             expected_cost=2,
             expected_labelings=[
                 {
@@ -301,7 +290,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                 get_default_cost(),
                 input_4,
             ),
-            rec_output,
             expected_cost=3,
             expected_labelings=[
                 {
@@ -327,7 +315,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                 get_default_cost(),
                 input_5,
             ),
-            rec_output,
             expected_cost=3,
             expected_labelings=[
                 {
@@ -353,7 +340,6 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                 get_default_cost(),
                 input_6,
             ),
-            rec_output,
             expected_cost=inf,
             expected_labelings=[],
         )

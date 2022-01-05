@@ -10,6 +10,7 @@ from typing import (
     Set,
 )
 from ete3 import TreeNode
+from .reconciliation import reconcile_lca
 from ..utils.toposort import toposort_all
 from ..utils.trees import LowestCommonAncestor
 from ..utils.subsequences import (
@@ -221,13 +222,9 @@ def _make_prec_graph(leaf_syntenies: SyntenyMapping):
 
 def _label_syntenies(
     srec_input: SuperReconciliationInput,
-    rec_output: ReconciliationOutput,
-    retention_policy: RetentionPolicy,
-):
-    assert rec_output.input.object_tree == srec_input.object_tree
-    assert rec_output.input.species_lca == srec_input.species_lca
-    assert rec_output.input.leaf_object_species == srec_input.leaf_object_species
-
+    policy: RetentionPolicy,
+) -> Entry[int, SuperReconciliationOutput]:
+    rec_output = reconcile_lca(srec_input)
     synteny_tree = srec_input.object_tree
     leaf_syntenies = srec_input.leaf_syntenies
 
@@ -236,14 +233,15 @@ def _label_syntenies(
     else:
         root_synts = (leaf_syntenies[synteny_tree],)
 
-    results = Entry(MergePolicy.MIN, retention_policy)
+    results: Entry[int, SuperReconciliationOutput] \
+        = Entry(MergePolicy.MIN, policy)
 
     for root_synt in root_synts:
         table = _compute_spfs_table(
             srec_input,
             root_synt,
             rec_output,
-            retention_policy,
+            policy,
         )
 
         results.update(*map(
@@ -258,53 +256,35 @@ def _label_syntenies(
             )
         ))
 
-    return results.infos()
+    return results
 
 
 def label_syntenies_any(
     srec_input: SuperReconciliationInput,
-    rec_output: ReconciliationOutput,
 ) -> Optional[SuperReconciliationOutput]:
     """
-    Find any minimum-cost super-reconciliation based on a reconciliation.
-
-    The `leaf_syntenies` attribute of :param:`rec_input` must assign a synteny
-    to each leaf of the gene tree. It can also assign a synteny to the root
-    node. If no assignment of the root synteny is defined, this function will
-    consider all possible orderings of the root synteny.
-
-    The cost of a labeling is the total number of segments that are lost from
-    each synteny to its children.
+    Compute a minimum-cost super-reconciliation using the original
+    super-reconciliation algorithm. This algorithm works by first computing
+    an LCA reconciliation and then running the Small-Phylogeny-for-Syntenies
+    (SPFS) algorithm to compute a labelling. This does not take horizontal
+    transfers into account. If the input does not include a root synteny,
+    this algorithm will consider all possible orderings for the root
+    (this can take a lot of time!).
 
     :param srec_input: objects of the super-reconciliation
-    :param rec_output: computed reconciliation for the input
     :returns: any minimum-cost super-reconciliation, if there is one
     """
-    results = _label_syntenies(srec_input, rec_output, RetentionPolicy.ANY)
-
-    if results:
-        return min(results)
-    else:
-        return None
+    return _label_syntenies(srec_input, RetentionPolicy.ANY).info()
 
 
 def label_syntenies_all(
     srec_input: SuperReconciliationInput,
-    rec_output: ReconciliationOutput,
 ) -> Set[SuperReconciliationOutput]:
     """
-    Find all minimum-cost super-reconciliation based on a reconciliation.
-
-    The `leaf_syntenies` attribute of :param:`rec_input` must assign a synteny
-    to each leaf of the gene tree. It can also assign a synteny to the root
-    node. If no assignment of the root synteny is defined, this function will
-    consider all possible orderings of the root synteny.
-
-    The cost of a labeling is the total number of segments that are lost from
-    each synteny to its children.
+    Compute all minimum-cost super-reconciliations using the original
+    super-reconciliation algorithm.
 
     :param srec_input: objects of the super-reconciliation
-    :param rec_output: computed reconciliation for the input
-    :returns: generates all minimum-cost super-reconciliations
+    :returns: set of all minimum-cost super-reconciliations
     """
-    return _label_syntenies(srec_input, rec_output, RetentionPolicy.ALL)
+    return _label_syntenies(srec_input, RetentionPolicy.ALL).infos()

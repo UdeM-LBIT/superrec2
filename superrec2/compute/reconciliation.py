@@ -17,9 +17,11 @@ from ..model.reconciliation import (
 
 def reconcile_lca(rec_input: ReconciliationInput) -> ReconciliationOutput:
     """
-    Compute the minimum-cost reconciliation between two trees,
-    allowing for duplications and losses and where a duplication
-    costs the same as a loss.
+    Compute the minimum-cost reconciliation between two trees by mapping each
+    node of the object tree to the lowest common ancestor (LCA) of all species
+    that correspond to leaves of that node’s subtree. This yields the only
+    optimal solution, provided only speciations, duplications, and losses are
+    allowed and duplications cost the same as losses.
 
     :param rec_input: input for the reconciliation
     :returns: reconciliation result
@@ -250,11 +252,12 @@ def _decode_thl_table(
 
 def reconcile_thl_any(rec_input: ReconciliationInput) -> ReconciliationOutput:
     """
-    Find any minimum-cost reconciliation between two trees,
-    allowing for duplications, horizontal transfers and losses.
-
-    If you wish to disallow horizontal transfers, using `reconcile_lca` is
-    faster than setting the cost of transfers to infinity.
+    Compute a minimum-cost reconciliation between two trees, using the
+    Tofigh—Hallett—Lagergren algorithm, taking into account the possibility of
+    horizontal transfers. Any cost values are supported. This algorithm is
+    slower than the LCA algorithm, so the latter should be used when possible.
+    Note that several solutions can exist in the general case and that
+    solutions are not guaranteed to be time-consistent.
 
     :param rec_input: reconciliation input
     :returns: any minimum-cost reconciliation
@@ -274,11 +277,8 @@ def reconcile_thl_any(rec_input: ReconciliationInput) -> ReconciliationOutput:
 def reconcile_thl_all(rec_input: ReconciliationInput) \
 -> Generator[ReconciliationOutput, None, None]:
     """
-    Find all minimum-cost reconciliations between two trees,
-    allowing for duplications, horizontal transfers and losses.
-
-    If you wish to disallow horizontal transfers, using `reconcile_lca` is
-    faster than setting the cost of transfers to infinity.
+    Compute all possible minimum-cost reconciliations between two trees, using
+    the Tofigh—Hallett—Lagergren algorithm.
 
     :param rec_input: reconciliation input
     :returns: generates all minimum-cost reconciliations

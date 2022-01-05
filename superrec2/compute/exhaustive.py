@@ -1,16 +1,19 @@
-from itertools import product
-from typing import Generator
+from itertools import product, chain
+from typing import Generator, Optional, Set
 from ete3 import TreeNode
 from ..model.reconciliation import ReconciliationInput, ReconciliationOutput
+from ..utils.dynamic_programming import (
+    Candidate, Entry, MergePolicy, RetentionPolicy
+)
 
 
-def reconcile_all(rec_input: ReconciliationInput, node: TreeNode = None) \
+def generate_all(rec_input: ReconciliationInput, node: TreeNode = None) \
 -> Generator[ReconciliationOutput, None, None]:
     """
-    Generate all valid outputs for a reconciliation input.
+    Generate all possible outputs for a reconciliation input.
 
     :param rec_input: reconciliation input
-    :returns: all valid reconciliations
+    :returns: all possible reconciliations
     """
     if node is None:
         node = rec_input.object_tree
@@ -26,8 +29,8 @@ def reconcile_all(rec_input: ReconciliationInput, node: TreeNode = None) \
     left_node, right_node = node.children
 
     for map_left, map_right in product(
-        reconcile_all(rec_input, left_node),
-        reconcile_all(rec_input, right_node),
+        generate_all(rec_input, left_node),
+        generate_all(rec_input, right_node),
     ):
         left_species = map_left.object_species[left_node]
         right_species = map_right.object_species[right_node]
@@ -58,3 +61,39 @@ def reconcile_all(rec_input: ReconciliationInput, node: TreeNode = None) \
                     **map_right.object_species,
                 })
                 transfer_species = transfer_species.up
+
+
+def _exhaustive(
+    rec_input: ReconciliationInput,
+    policy: RetentionPolicy,
+) -> Entry[int, ReconciliationOutput]:
+    results: Entry[int, ReconciliationOutput] = Entry(MergePolicy.MIN, policy)
+
+    for output in generate_all(rec_input):
+        results.update(Candidate(output.cost(), output))
+
+    return results
+
+
+def exhaustive_any(rec_input: ReconciliationInput) \
+-> Optional[ReconciliationOutput]:
+    """
+    Compute a minimum-cost reconciliation by enumerating all possible
+    reconciliations and retaining any that minimizes the total cost.
+
+    :param rec_input: reconciliation input
+    :returns: any minimum-cost reconciliation, if there is one
+    """
+    return _exhaustive(rec_input, RetentionPolicy.ANY).info()
+
+
+def exhaustive_all(rec_input: ReconciliationInput) \
+-> Set[ReconciliationOutput]:
+    """
+    Compute all possible minimum-cost reconciliations by enumerating all
+    possible reconciliations and all retaining the minimal ones.
+
+    :param rec_input: reconciliation input
+    :returns: generates all minimum-cost reconciliations
+    """
+    return _exhaustive(rec_input, RetentionPolicy.ALL).infos()

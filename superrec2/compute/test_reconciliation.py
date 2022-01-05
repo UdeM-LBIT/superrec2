@@ -9,7 +9,7 @@ from ..model.reconciliation import (
     NodeEvent,
     EdgeEvent,
 )
-from .exhaustive import reconcile_all
+from .exhaustive import generate_all
 from .reconciliation import reconcile_lca, reconcile_thl_any, reconcile_thl_all
 
 
@@ -33,7 +33,7 @@ class TestComputeReconciliation(unittest.TestCase):
             cls.leaf_gene_species,
         )
 
-        cls.all_outputs = list(reconcile_all(cls.rec_input))
+        cls.all_outputs = list(generate_all(cls.rec_input))
 
     def test_output_count(self):
         self.assertEqual(len(self.all_outputs), 199)
