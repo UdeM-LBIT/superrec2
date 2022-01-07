@@ -1,5 +1,6 @@
 from typing import Mapping, Union
 from dataclasses import dataclass, field
+from itertools import chain
 from enum import Enum, auto
 from ete3 import Tree, TreeNode
 from textwrap import indent
@@ -97,7 +98,13 @@ class ReconciliationInput:
             self.object_tree,
             self.species_lca,
             serialize_tree_mapping(self.leaf_object_species),
-            tuple(self.costs.items()),
+            tuple(
+                (event, self.costs.get(event))
+                for event in chain(
+                    NodeEvent.__members__.keys(),
+                    EdgeEvent.__members__.keys(),
+                )
+            ),
         ))
 
 
@@ -221,7 +228,7 @@ class ReconciliationOutput:
     def __hash__(self):
         return hash((
             self.input,
-            tuple(self.object_species.items()),
+            serialize_tree_mapping(self.object_species),
         ))
 
 
