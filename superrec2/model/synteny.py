@@ -75,7 +75,8 @@ def serialize_synteny(synteny: Synteny) -> str:
     "(gene1)(gene2)xyz(gene3)"
     """
     return "".join(
-        f"({escape(item, ESCAPE_CHARS)})" if len(item) >= 2
+        f"({escape(item, ESCAPE_CHARS)})"
+        if len(item) >= 2
         else escape(item, ESCAPE_CHARS)
         for item in synteny
     )
@@ -124,7 +125,6 @@ def serialize_synteny_mapping(mapping: SyntenyMapping) -> str:
     return ",".join(
         f"{escape(name, ESCAPE_CHARS)}:{serialize_synteny(synteny)}"
         for name, synteny in sorted(
-            (node.name, synteny)
-            for node, synteny in mapping.items()
+            (node.name, synteny) for node, synteny in mapping.items()
         )
     )

@@ -17,20 +17,23 @@ from ete3 import Tree
 from superrec2.utils.trees import LowestCommonAncestor
 from superrec2.utils.dynamic_programming import RetentionPolicy
 from superrec2.model.synteny import parse_synteny_mapping
-from superrec2.model.tree_mapping import (
-    get_species_mapping, parse_tree_mapping
-)
+from superrec2.model.tree_mapping import get_species_mapping, parse_tree_mapping
 from superrec2.model.reconciliation import (
-    NodeEvent, EdgeEvent, get_default_cost,
-    ReconciliationInput, SuperReconciliationInput,
+    NodeEvent,
+    EdgeEvent,
+    get_default_cost,
+    ReconciliationInput,
+    SuperReconciliationInput,
     ReconciliationOutput,
 )
 from superrec2.compute.exhaustive import reconcile_exhaustive
 from superrec2.compute.reconciliation import (
-    reconcile_lca, reconcile_thl,
+    reconcile_lca,
+    reconcile_thl,
 )
 from superrec2.compute.super_reconciliation import (
-    sreconcile_base_spfs, sreconcile_extended_spfs,
+    sreconcile_base_spfs,
+    sreconcile_extended_spfs,
 )
 
 
@@ -113,10 +116,12 @@ def parse_arguments():
 def call_algorithm(args):
     object_tree = Tree(args.object_tree, format=1)
     species_tree = Tree(args.species_tree, format=1)
-    costs = dict((
-        (kind, getattr(args, f"cost_{argname}"))
-        for kind, (argname, _) in cost_events.items()
-    ))
+    costs = dict(
+        (
+            (kind, getattr(args, f"cost_{argname}"))
+            for kind, (argname, _) in cost_events.items()
+        )
+    )
 
     if args.leaf_syntenies is None:
         rec_input = ReconciliationInput(
@@ -129,9 +134,7 @@ def call_algorithm(args):
         rec_input = SuperReconciliationInput(
             object_tree=object_tree,
             species_lca=LowestCommonAncestor(species_tree),
-            leaf_object_species=get_species_mapping(
-                object_tree, species_tree
-            ),
+            leaf_object_species=get_species_mapping(object_tree, species_tree),
             costs=costs,
             leaf_syntenies=parse_synteny_mapping(
                 object_tree, args.leaf_syntenies
@@ -144,11 +147,17 @@ def call_algorithm(args):
 
     if params[0].annotation != type(rec_input):
         if params[0].annotation == ReconciliationInput:
-            print(f"Warning: '{args.algorithm}' is not a super-reconciliation \
-algorithm: the LEAF_SYNTENIES argument will be ignored", file=sys.stderr)
+            print(
+                f"Warning: '{args.algorithm}' is not a super-reconciliation \
+algorithm: the LEAF_SYNTENIES argument will be ignored",
+                file=sys.stderr,
+            )
         else:
-            print(f"Error: '{args.algorithm}' is a super-reconciliation \
-algorithm: you need to provide the LEAF_SYNTENIES argument", file=sys.stderr)
+            print(
+                f"Error: '{args.algorithm}' is a super-reconciliation \
+algorithm: you need to provide the LEAF_SYNTENIES argument",
+                file=sys.stderr,
+            )
             return None
 
     if len(params) == 1:
@@ -157,8 +166,9 @@ algorithm: you need to provide the LEAF_SYNTENIES argument", file=sys.stderr)
     if len(params) == 2 and params[1].annotation == RetentionPolicy:
         return algo(
             rec_input,
-            RetentionPolicy.ALL if args.policy == "all"
-            else RetentionPolicy.ANY
+            RetentionPolicy.ALL
+            if args.policy == "all"
+            else RetentionPolicy.ANY,
         )
 
     return None

@@ -31,18 +31,25 @@ from ..model.reconciliation import (
     CostValues,
 )
 from ..utils.dynamic_programming import (
-    Candidate, DictDimension, Entry, MergePolicy, RetentionPolicy, Table
+    Candidate,
+    DictDimension,
+    Entry,
+    MergePolicy,
+    RetentionPolicy,
+    Table,
 )
 
 
 class ObjectAssignment(NamedTuple):
     """Assignment of an object to a species and synteny."""
+
     species: TreeNode
     synteny: int
 
 
 class ChildrenAssignment(NamedTuple):
     """Assignment of an object’s children to species and syntenies."""
+
     left: ObjectAssignment
     right: ObjectAssignment
 
@@ -52,6 +59,7 @@ SPFSTable = Table[ChildrenAssignment, int]
 
 class SpeciesMappingChoices(NamedTuple):
     """Available mapping choices for an object."""
+
     # Mapping to a species of the left species subtree
     left: Entry[ObjectAssignment, int]
 
@@ -106,35 +114,49 @@ def _compute_spfs_entry(
 
         for desc_species in species_lca.tree.traverse():
             for child_synteny in table[child_object][desc_species]:
-                conserv_dist = subseq_segment_dist(
-                    child_synteny, root_synteny, edges=True,
-                ) * sloss_cost
+                conserv_dist = (
+                    subseq_segment_dist(
+                        child_synteny,
+                        root_synteny,
+                        edges=True,
+                    )
+                    * sloss_cost
+                )
 
                 if conserv_dist < 0:
                     # Not a subsequence of the parent synteny
                     continue
 
-                segment_dist = subseq_segment_dist(
-                    child_synteny, root_synteny, edges=False
-                ) * sloss_cost
+                segment_dist = (
+                    subseq_segment_dist(
+                        child_synteny, root_synteny, edges=False
+                    )
+                    * sloss_cost
+                )
 
-                sub_cost = \
-                    table[child_object][desc_species][child_synteny].value()
+                sub_cost = table[child_object][desc_species][
+                    child_synteny
+                ].value()
                 assignment = ObjectAssignment(desc_species, child_synteny)
 
                 if species_lca.is_ancestor_of(root_species, desc_species):
-                    above_species_dist = species_lca.distance(
-                        root_species, desc_species
-                    ) * floss_cost
+                    above_species_dist = (
+                        species_lca.distance(root_species, desc_species)
+                        * floss_cost
+                    )
 
-                    subprobs[child_index].conserved.update(Candidate(
-                        value=above_species_dist + sub_cost + conserv_dist,
-                        info=assignment,
-                    ))
-                    subprobs[child_index].segment.update(Candidate(
-                        value=above_species_dist + sub_cost + segment_dist,
-                        info=assignment,
-                    ))
+                    subprobs[child_index].conserved.update(
+                        Candidate(
+                            value=above_species_dist + sub_cost + conserv_dist,
+                            info=assignment,
+                        )
+                    )
+                    subprobs[child_index].segment.update(
+                        Candidate(
+                            value=above_species_dist + sub_cost + segment_dist,
+                            info=assignment,
+                        )
+                    )
 
                     if not root_species.is_leaf():
                         left_species, right_species = root_species.children
@@ -147,20 +169,30 @@ def _compute_spfs_entry(
                         species_dist = above_species_dist - floss_cost
 
                         if is_left_desc:
-                            subprobs[child_index].left.update(Candidate(
-                                value=species_dist + sub_cost + conserv_dist,
-                                info=assignment,
-                            ))
+                            subprobs[child_index].left.update(
+                                Candidate(
+                                    value=species_dist
+                                    + sub_cost
+                                    + conserv_dist,
+                                    info=assignment,
+                                )
+                            )
                         elif is_right_desc:
-                            subprobs[child_index].right.update(Candidate(
-                                value=species_dist + sub_cost + conserv_dist,
-                                info=assignment,
-                            ))
+                            subprobs[child_index].right.update(
+                                Candidate(
+                                    value=species_dist
+                                    + sub_cost
+                                    + conserv_dist,
+                                    info=assignment,
+                                )
+                            )
                 elif not species_lca.is_ancestor_of(desc_species, root_species):
-                    subprobs[child_index].separate.update(Candidate(
-                        value=sub_cost + segment_dist,
-                        info=assignment,
-                    ))
+                    subprobs[child_index].separate.update(
+                        Candidate(
+                            value=sub_cost + segment_dist,
+                            info=assignment,
+                        )
+                    )
 
     spe_comb = _make_event_combinator(costs[NodeEvent.SPECIATION])
     dup_comb = _make_event_combinator(costs[NodeEvent.DUPLICATION])
@@ -210,8 +242,7 @@ def _compute_spfs_table(
     for root_object in srec_input.object_tree.traverse("postorder"):
         if root_object.is_leaf():
             synteny = mask_from_subseq(
-                srec_input.leaf_syntenies[root_object],
-                root_ordering
+                srec_input.leaf_syntenies[root_object], root_ordering
             )
             species = srec_input.leaf_object_species[root_object]
             table[root_object][species][synteny] = Candidate(0)
@@ -258,12 +289,14 @@ def _decode_spfs_table(
     """
     resolv_synteny = subseq_from_mask(root_synteny, root_ordering)
 
-    if root_object.is_leaf() and \
-            not table[root_object][root_species][root_synteny].is_infinite():
+    if (
+        root_object.is_leaf()
+        and not table[root_object][root_species][root_synteny].is_infinite()
+    ):
         yield SuperReconciliationOutput(
             input=srec_input,
             object_species={root_object: root_species},
-            syntenies={root_object: resolv_synteny}
+            syntenies={root_object: resolv_synteny},
         )
         return
 
@@ -300,7 +333,7 @@ def _decode_spfs_table(
                     root_object: resolv_synteny,
                     **map_left.syntenies,
                     **map_right.syntenies,
-                }
+                },
             )
 
 
@@ -338,8 +371,9 @@ def _spfs(
     else:
         root_orderings = (leaf_syntenies[synteny_tree],)
 
-    results: Entry[int, SuperReconciliationOutput] \
-        = Entry(MergePolicy.MIN, policy)
+    results: Entry[int, SuperReconciliationOutput] = Entry(
+        MergePolicy.MIN, policy
+    )
 
     for root_species, root_ordering in product(
         srec_input.species_lca.tree.traverse(), root_orderings
@@ -352,17 +386,19 @@ def _spfs(
             policy,
         )
 
-        results.update(*map(
-            lambda output: Candidate(output.cost(), output),
-            _decode_spfs_table(
-                root_ordering,
-                synteny_tree,
-                root_species,
-                subseq_complete(root_ordering),
-                srec_input,
-                table,
+        results.update(
+            *map(
+                lambda output: Candidate(output.cost(), output),
+                _decode_spfs_table(
+                    root_ordering,
+                    synteny_tree,
+                    root_species,
+                    subseq_complete(root_ordering),
+                    srec_input,
+                    table,
+                ),
             )
-        ))
+        )
 
     return results.infos()
 

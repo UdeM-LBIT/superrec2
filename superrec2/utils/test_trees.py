@@ -235,13 +235,10 @@ class TestSupertree(unittest.TestCase):
             Tree("((Z1,Y1,X1),(X3,X2));").get_topology_id(),
         )
         self.assertCountEqual(
-            (
-                result.get_topology_id()
-                for result in all_supertrees(trees)
-            ),
+            (result.get_topology_id() for result in all_supertrees(trees)),
             (
                 Tree("(((Z1,X1),Y1),(X3,X2));").get_topology_id(),
                 Tree("(((Z1,Y1),X1),(X3,X2));").get_topology_id(),
                 Tree("((Z1,(X1,Y1)),(X3,X2));").get_topology_id(),
-            )
+            ),
         )

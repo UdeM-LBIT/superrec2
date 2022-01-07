@@ -4,8 +4,18 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from itertools import product
 from typing import (
-    Any, Callable, Generic, Optional, overload,
-    Protocol, List, Iterable, Set, Tuple, TypeVar, Union
+    Any,
+    Callable,
+    Generic,
+    Optional,
+    overload,
+    Protocol,
+    List,
+    Iterable,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
 )
 from infinity import Infinity, inf, is_infinite
 
@@ -23,6 +33,7 @@ class ListDimension(Dimension):
     Declares a dimension of a dynamic programming table that is a list of
     given length.
     """
+
     length: int
 
 
@@ -34,6 +45,7 @@ class DictDimension(Dimension):
     Declares a dimension of a dynamic programming table that is a dictionary.
     It is initially empty and accepts any hashable object as a key.
     """
+
     pass
 
 
@@ -49,16 +61,17 @@ def _generate_table(dimensions: Iterable[Dimension]):
     elif isinstance(dim, DictDimension):
         return defaultdict(lambda: _generate_table(rem))
     else:
-        raise RuntimeError(f'Unknown dimension type: {dim}')
+        raise RuntimeError(f"Unknown dimension type: {dim}")
 
 
-InfoType = TypeVar('InfoType')
-ValueType = TypeVar('ValueType')
+InfoType = TypeVar("InfoType")
+ValueType = TypeVar("ValueType")
 
 
 @dataclass(frozen=True)
 class Candidate(Generic[ValueType, InfoType]):
     """Candidate value for an entry of a dynamic programming table."""
+
     # Value of the candidate
     value: Union[ValueType, Infinity]
 
@@ -68,6 +81,7 @@ class Candidate(Generic[ValueType, InfoType]):
 
 class MergePolicy(Enum):
     """Policy on choosing between values for an entry of the table."""
+
     # Keep the lowest values
     MIN = auto()
 
@@ -77,6 +91,7 @@ class MergePolicy(Enum):
 
 class RetentionPolicy(Enum):
     """Policy on retaining info tags associated to values."""
+
     # Don’t store any info tag in the entries
     # (used when only the numeric values are of interest)
     NONE = auto()
@@ -112,8 +127,8 @@ class EntryProtocol(Generic[ValueType, InfoType], Protocol):
         other: "EntryProtocol[ValueType, InfoType]",
         combinator: Callable[
             [Candidate[ValueType, InfoType], Candidate[ValueType, InfoType]],
-            ValueType
-        ]
+            ValueType,
+        ],
     ) -> "EntryProtocol[ValueType, Tuple[InfoType, InfoType]]":
         """
         Combine the candidates from two entries.
@@ -136,6 +151,7 @@ class EntryProtocol(Generic[ValueType, InfoType], Protocol):
 
 class Entry(Generic[ValueType, InfoType]):
     """Type for entries stored in dynamic programming tables."""
+
     @overload
     def __init__(
         self,
@@ -153,8 +169,12 @@ class Entry(Generic[ValueType, InfoType]):
         retention_policy: RetentionPolicy = None,
     ):
         """Create an entry with initial value and info tags."""
-        if merge_policy is None and retention_policy is None and \
-                type(value) is MergePolicy and type(infos) is RetentionPolicy:
+        if (
+            merge_policy is None
+            and retention_policy is None
+            and type(value) is MergePolicy
+            and type(infos) is RetentionPolicy
+        ):
             self._value = inf if value == MergePolicy.MIN else -inf
             self._infos = set()
             self._merge_policy = value
@@ -163,11 +183,11 @@ class Entry(Generic[ValueType, InfoType]):
             self._value = value
             self._infos = set(infos)
             self._merge_policy = (
-                merge_policy if merge_policy is not None
-                else MergePolicy.MIN
+                merge_policy if merge_policy is not None else MergePolicy.MIN
             )
             self._retention_policy = (
-                retention_policy if retention_policy is not None
+                retention_policy
+                if retention_policy is not None
                 else RetentionPolicy.NONE
             )
 
@@ -203,8 +223,9 @@ class Entry(Generic[ValueType, InfoType]):
 
                 self._value = value
 
-            if (is_min and self._value > value) \
-                    or (is_max and self._value < value):
+            if (is_min and self._value > value) or (
+                is_max and self._value < value
+            ):
                 if info and (is_all or is_any):
                     self._infos = {info}
 
@@ -215,16 +236,18 @@ class Entry(Generic[ValueType, InfoType]):
         other: "EntryProtocol[ValueType, InfoType]",
         combinator: Callable[
             [Candidate[ValueType, InfoType], Candidate[ValueType, InfoType]],
-            ValueType
-        ]
+            ValueType,
+        ],
     ) -> "EntryProtocol[ValueType, Tuple[InfoType, InfoType]]":
         result = Entry(self._merge_policy, self._retention_policy)
 
         for ours, theirs in product(self._infos, other.infos()):
-            result.update(combinator(
-                Candidate(self._value, ours),
-                Candidate(other.value(), theirs),
-            ))
+            result.update(
+                combinator(
+                    Candidate(self._value, ours),
+                    Candidate(other.value(), theirs),
+                )
+            )
 
         return result
 
@@ -235,8 +258,7 @@ class Entry(Generic[ValueType, InfoType]):
         if not callable(getattr(other, "infos", None)):
             return False
 
-        return self.value() == other.value() and \
-                self.infos() == other.infos()
+        return self.value() == other.value() and self.infos() == other.infos()
 
     def __iter__(self):
         for info in self._infos:
@@ -257,11 +279,12 @@ class Table(Generic[ValueType, InfoType]):
     Info tags can be used as part of a dynamic programming algorithm to
     reconstruct an optimal solution.
     """
+
     def __init__(
         self,
         dimensions: Iterable[Dimension],
         merge_policy: MergePolicy = MergePolicy.MIN,
-        retention_policy: RetentionPolicy = RetentionPolicy.NONE
+        retention_policy: RetentionPolicy = RetentionPolicy.NONE,
     ):
         """
         Initialize the table.
@@ -293,8 +316,10 @@ class Table(Generic[ValueType, InfoType]):
             return Entry(self.merge_policy, self.retention_policy)
         else:
             return Entry(
-                value, infos,
-                self.merge_policy, self.retention_policy,
+                value,
+                infos,
+                self.merge_policy,
+                self.retention_policy,
             )
 
     def keys(self) -> Iterable[Any]:
@@ -304,7 +329,9 @@ class Table(Generic[ValueType, InfoType]):
     def __iter__(self) -> Iterable[Any]:
         return self.keys()
 
-    def __getitem__(self, key: Any) -> Union[
+    def __getitem__(
+        self, key: Any
+    ) -> Union[
         "EntryProtocol[ValueType, InfoType]",
         "TableProxy[ValueType, InfoType]",
     ]:
@@ -321,8 +348,9 @@ class Table(Generic[ValueType, InfoType]):
         """
         return TableProxy(self, ())[key]
 
-    def __setitem__(self, key: Any, candidate: Candidate[ValueType, InfoType]) \
-    -> None:
+    def __setitem__(
+        self, key: Any, candidate: Candidate[ValueType, InfoType]
+    ) -> None:
         """
         Assign a candidate to an entry of the table.
 
@@ -344,6 +372,7 @@ class EntryProxy(Generic[ValueType, InfoType]):
     If the underlying entry does exist, this instance will act as a transparent
     proxy to the real entry.
     """
+
     def __init__(self, parent: Table[ValueType, InfoType], key: Any):
         self._parent = parent
         self._key = key
@@ -389,7 +418,7 @@ class EntryProxy(Generic[ValueType, InfoType]):
             return real.info()
 
     def update(self, *candidates: Candidate[ValueType, InfoType]) -> None:
-        if any(not(is_infinite(candidate.value)) for candidate in candidates):
+        if any(not (is_infinite(candidate.value)) for candidate in candidates):
             entry = self._parent._table
 
             for x in self._key[:-1]:
@@ -405,8 +434,8 @@ class EntryProxy(Generic[ValueType, InfoType]):
         other: "EntryProtocol[ValueType, InfoType]",
         combinator: Callable[
             [Candidate[ValueType, InfoType], Candidate[ValueType, InfoType]],
-            ValueType
-        ]
+            ValueType,
+        ],
     ) -> "EntryProtocol[ValueType, Tuple[InfoType, InfoType]]":
         real = self._get_real()
 
@@ -422,8 +451,7 @@ class EntryProxy(Generic[ValueType, InfoType]):
         if not callable(getattr(other, "infos", None)):
             return False
 
-        return self.value() == other.value() and \
-                self.infos() == other.infos()
+        return self.value() == other.value() and self.infos() == other.infos()
 
     def __iter__(self):
         real = self._get_real()
@@ -449,6 +477,7 @@ class TableProxy(Generic[ValueType, InfoType]):
     dimensions i + 1 to n remain to be set. Such instances are used when
     indexing the table.
     """
+
     def __init__(self, parent: Table[ValueType, InfoType], prefix: Any):
         self.parent = parent
         self.prefix = prefix
@@ -468,7 +497,9 @@ class TableProxy(Generic[ValueType, InfoType]):
     def __iter__(self) -> Iterable[Any]:
         return self.keys()
 
-    def __getitem__(self, key: Any) -> Union[
+    def __getitem__(
+        self, key: Any
+    ) -> Union[
         None,
         EntryProtocol[ValueType, InfoType],
         "TableProxy[ValueType, InfoType]",
@@ -491,8 +522,9 @@ class TableProxy(Generic[ValueType, InfoType]):
         else:
             return TableProxy(self.parent, self.prefix + (key,))
 
-    def __setitem__(self, key: Any, candidate: Candidate[ValueType, InfoType]) \
-    -> None:
+    def __setitem__(
+        self, key: Any, candidate: Candidate[ValueType, InfoType]
+    ) -> None:
         """
         Update the entry at the given key.
 
@@ -505,6 +537,8 @@ class TableProxy(Generic[ValueType, InfoType]):
         if len(self.prefix) + 1 == len(self.parent.dimensions):
             EntryProxy(self.parent, self.prefix + (key,)).update(candidate)
         else:
-            raise TypeError(f"Cannot address a dynamic programming table \
+            raise TypeError(
+                f"Cannot address a dynamic programming table \
 with {len(self.parent.dimensions)} dimension(s) using only \
-{len(self.prefix) + 1} value(s)")
+{len(self.prefix) + 1} value(s)"
+            )

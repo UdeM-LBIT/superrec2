@@ -11,8 +11,9 @@ ESCAPE_CHARS = r"\,"
 MAPPING_SPLIT_REGEX = re.compile(r"(?<!\\),")
 
 
-def parse_tree_mapping(from_tree: Tree, to_tree: Tree, data: str) \
--> TreeMapping:
+def parse_tree_mapping(
+    from_tree: Tree, to_tree: Tree, data: str
+) -> TreeMapping:
     """
     Parse a string representation of a mapping between two trees.
 
@@ -26,8 +27,7 @@ def parse_tree_mapping(from_tree: Tree, to_tree: Tree, data: str) \
     for pair in MAPPING_SPLIT_REGEX.split(data):
         if pair.strip():
             from_node, to_node = map(
-                lambda x: unescape(x.strip()),
-                pair.split(":")
+                lambda x: unescape(x.strip()), pair.split(":")
             )
 
             if not from_node.startswith("#"):
@@ -36,8 +36,7 @@ def parse_tree_mapping(from_tree: Tree, to_tree: Tree, data: str) \
     return result
 
 
-def get_species_mapping(tree: Tree, species_tree: Tree) \
--> TreeMapping:
+def get_species_mapping(tree: Tree, species_tree: Tree) -> TreeMapping:
     """
     Extract a mapping of a tree onto a species tree from node names.
 
@@ -80,8 +79,7 @@ def serialize_tree_mapping(mapping: TreeMapping) -> str:
     :returns: serialized representation
     """
     return ",".join(
-        escape(from_name, ESCAPE_CHARS)
-        + ":" + escape(to_name, ESCAPE_CHARS)
+        escape(from_name, ESCAPE_CHARS) + ":" + escape(to_name, ESCAPE_CHARS)
         for from_name, to_name in sorted(
             (from_node.name, to_node.name)
             for from_node, to_node in mapping.items()

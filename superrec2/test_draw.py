@@ -4,7 +4,8 @@ from ete3 import Tree
 from .model.synteny import parse_synteny_mapping
 from .model.tree_mapping import get_species_mapping, parse_tree_mapping
 from .model.reconciliation import (
-    SuperReconciliationInput, SuperReconciliationOutput
+    SuperReconciliationInput,
+    SuperReconciliationOutput,
 )
 from .utils.trees import LowestCommonAncestor
 from .draw import compute_layout, render_to_tikz

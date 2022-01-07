@@ -7,7 +7,10 @@ from .utils.geometry import Position, Rect, Size
 from .utils.trees import LowestCommonAncestor
 from .utils import tex
 from .model.reconciliation import (
-    NodeEvent, EdgeEvent, ReconciliationOutput, SuperReconciliationOutput
+    NodeEvent,
+    EdgeEvent,
+    ReconciliationOutput,
+    SuperReconciliationOutput,
 )
 from .model.tree_mapping import TreeMapping
 from .model.synteny import SyntenyMapping
@@ -282,8 +285,9 @@ def _compute_branches(  # pylint:disable=too-many-locals
     species_lca = rec.input.species_lca
     species_tree = species_lca.tree
     mapping = rec.object_species
-    syntenies = rec.syntenies if isinstance(rec, SuperReconciliationOutput) \
-        else {}
+    syntenies = (
+        rec.syntenies if isinstance(rec, SuperReconciliationOutput) else {}
+    )
 
     for root_species in species_tree.traverse("postorder"):
         state: Dict[str, Any] = {
@@ -325,18 +329,24 @@ def _compute_branches(  # pylint:disable=too-many-locals
                     # and linked to child species’s gene anchors
                     left_species = root_species.children[0]
 
-                    if species_lca.is_ancestor_of(left_species, mapping[right_gene]):
+                    if species_lca.is_ancestor_of(
+                        left_species, mapping[right_gene]
+                    ):
                         # Left gene and right gene are swapped relative
                         # to the left and right species
                         left_gene, right_gene = right_gene, left_gene
 
                     left_gene = _add_losses(
-                        layout_state, left_gene,
-                        mapping[left_gene], root_species
+                        layout_state,
+                        left_gene,
+                        mapping[left_gene],
+                        root_species,
                     )
                     right_gene = _add_losses(
-                        layout_state, right_gene,
-                        mapping[right_gene], root_species
+                        layout_state,
+                        right_gene,
+                        mapping[right_gene],
+                        root_species,
                     )
 
                     state["anchor_nodes"].add(root_gene)
@@ -350,12 +360,16 @@ def _compute_branches(  # pylint:disable=too-many-locals
                     # Duplications are located in the trunk and linked
                     # to other nodes in the same species
                     left_gene = _add_losses(
-                        layout_state, left_gene,
-                        mapping[left_gene], root_species.up
+                        layout_state,
+                        left_gene,
+                        mapping[left_gene],
+                        root_species.up,
                     )
                     right_gene = _add_losses(
-                        layout_state, right_gene,
-                        mapping[right_gene], root_species.up
+                        layout_state,
+                        right_gene,
+                        mapping[right_gene],
+                        root_species.up,
                     )
 
                     state["anchor_nodes"].add(root_gene)
@@ -378,8 +392,10 @@ def _compute_branches(  # pylint:disable=too-many-locals
                         else (right_gene, left_gene)
                     )
                     conserv_gene = _add_losses(
-                        layout_state, conserv_gene,
-                        mapping[conserv_gene], root_species.up,
+                        layout_state,
+                        conserv_gene,
+                        mapping[conserv_gene],
+                        root_species.up,
                     )
 
                     state["anchor_nodes"].add(root_gene)
@@ -478,7 +494,9 @@ def _layout_branches(  # pylint:disable=too-many-locals
                 pos = Position(
                     x=((left_rect.center() + right_rect.center()).x) / 2
                     - size.w / 2,
-                    y=min(params.species_branch_padding, left_rect.y, right_rect.y)
+                    y=min(
+                        params.species_branch_padding, left_rect.y, right_rect.y
+                    )
                     - params.species_branch_padding
                     - size.h,
                 )
@@ -756,7 +774,8 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
 
         if branch.kind == NodeEvent.LEAF:
             leaf_pos = (
-                trunk_offset + branch.rect.top()
+                trunk_offset
+                + branch.rect.top()
                 + Position(0, params.extant_gene_diameter / 2)
             )
             layers["events"].append(
@@ -888,12 +907,16 @@ def render_to_tikz(
             right_layout = layout[right]
 
         _tikz_draw_fork(
-            species_node, node_layout, left_layout, right_layout, layers,
-            params
+            species_node, node_layout, left_layout, right_layout, layers, params
         )
         _tikz_draw_branches(
-            node_layout, left_layout, right_layout, layout, rec.object_species,
-            layers, params
+            node_layout,
+            left_layout,
+            right_layout,
+            layout,
+            rec.object_species,
+            layers,
+            params,
         )
 
     for name, layer in layers.items():

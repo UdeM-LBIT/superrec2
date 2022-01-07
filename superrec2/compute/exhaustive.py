@@ -3,12 +3,16 @@ from typing import Generator, Optional, Set
 from ete3 import TreeNode
 from ..model.reconciliation import ReconciliationInput, ReconciliationOutput
 from ..utils.dynamic_programming import (
-    Candidate, Entry, MergePolicy, RetentionPolicy
+    Candidate,
+    Entry,
+    MergePolicy,
+    RetentionPolicy,
 )
 
 
-def generate_all(rec_input: ReconciliationInput, node: TreeNode = None) \
--> Generator[ReconciliationOutput, None, None]:
+def generate_all(
+    rec_input: ReconciliationInput, node: TreeNode = None
+) -> Generator[ReconciliationOutput, None, None]:
     """
     Generate all possible outputs for a reconciliation input.
 
@@ -20,8 +24,7 @@ def generate_all(rec_input: ReconciliationInput, node: TreeNode = None) \
 
     if node.is_leaf():
         yield ReconciliationOutput(
-            rec_input,
-            {node: rec_input.leaf_object_species[node]}
+            rec_input, {node: rec_input.leaf_object_species[node]}
         )
         return
 
@@ -38,11 +41,14 @@ def generate_all(rec_input: ReconciliationInput, node: TreeNode = None) \
 
         parent_species = lca
         while parent_species is not None:
-            yield ReconciliationOutput(rec_input, {
-                node: parent_species,
-                **map_left.object_species,
-                **map_right.object_species,
-            })
+            yield ReconciliationOutput(
+                rec_input,
+                {
+                    node: parent_species,
+                    **map_left.object_species,
+                    **map_right.object_species,
+                },
+            )
             parent_species = parent_species.up
 
         for (transfer_target, other_target) in (
@@ -55,11 +61,14 @@ def generate_all(rec_input: ReconciliationInput, node: TreeNode = None) \
             transfer_species = transfer_target
 
             while transfer_species != lca:
-                yield ReconciliationOutput(rec_input, {
-                    node: transfer_species,
-                    **map_left.object_species,
-                    **map_right.object_species,
-                })
+                yield ReconciliationOutput(
+                    rec_input,
+                    {
+                        node: transfer_species,
+                        **map_left.object_species,
+                        **map_right.object_species,
+                    },
+                )
                 transfer_species = transfer_species.up
 
 

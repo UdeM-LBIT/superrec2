@@ -4,7 +4,12 @@ from typing import Generator, NamedTuple, Set
 from ete3 import TreeNode
 from ..utils.trees import LowestCommonAncestor
 from ..utils.dynamic_programming import (
-    Candidate, DictDimension, Entry, MergePolicy, RetentionPolicy, Table
+    Candidate,
+    DictDimension,
+    Entry,
+    MergePolicy,
+    RetentionPolicy,
+    Table,
 )
 from ..model.reconciliation import (
     ReconciliationInput,
@@ -41,6 +46,7 @@ def reconcile_lca(rec_input: ReconciliationInput) -> ReconciliationOutput:
 
 class MappingInfo(NamedTuple):
     """Information about an assignment of a node’s children to species."""
+
     # Species assigned to the left child
     left: TreeNode
 
@@ -71,28 +77,32 @@ def _compute_thl_try_speciation(
     min_rtr = table.entry()
 
     for left_child in left_species.traverse():
-        min_ltl.update(Candidate(
-            table[left_node][left_child].value(),
-            left_child,
-        ))
-        min_rtl.update(Candidate(
-            table[right_node][left_child].value(),
-            left_child,
-        ))
+        min_ltl.update(
+            Candidate(
+                table[left_node][left_child].value(),
+                left_child,
+            )
+        )
+        min_rtl.update(
+            Candidate(
+                table[right_node][left_child].value(),
+                left_child,
+            )
+        )
 
     for right_child in right_species.traverse():
-        min_ltr.update(Candidate(
-            table[left_node][right_child].value(),
-            right_child
-        ))
-        min_rtr.update(Candidate(
-            table[right_node][right_child].value(),
-            right_child
-        ))
+        min_ltr.update(
+            Candidate(table[left_node][right_child].value(), right_child)
+        )
+        min_rtr.update(
+            Candidate(table[right_node][right_child].value(), right_child)
+        )
 
     spe_combinator = lambda left, right: Candidate(
-        left.value + right.value
-        + loss_cost * (
+        left.value
+        + right.value
+        + loss_cost
+        * (
             species_lca.distance(root_species, left.info)
             + species_lca.distance(root_species, right.info)
             - 2
@@ -128,44 +138,54 @@ def _compute_thl_try_duplication_transfer(
 
     for other_species in species_lca.tree.traverse():
         if species_lca.is_ancestor_of(root_species, other_species):
-            min_ltc.update(Candidate(
-                table[left_node][other_species].value(),
-                other_species
-            ))
-            min_rtc.update(Candidate(
-                table[right_node][other_species].value(),
-                other_species
-            ))
+            min_ltc.update(
+                Candidate(
+                    table[left_node][other_species].value(), other_species
+                )
+            )
+            min_rtc.update(
+                Candidate(
+                    table[right_node][other_species].value(), other_species
+                )
+            )
         elif not species_lca.is_ancestor_of(other_species, root_species):
-            min_lts.update(Candidate(
-                table[left_node][other_species].value(),
-                other_species
-            ))
-            min_rts.update(Candidate(
-                table[right_node][other_species].value(),
-                other_species
-            ))
+            min_lts.update(
+                Candidate(
+                    table[left_node][other_species].value(), other_species
+                )
+            )
+            min_rts.update(
+                Candidate(
+                    table[right_node][other_species].value(), other_species
+                )
+            )
 
     # Try mapping as a duplication
     dup_combin = lambda left, right: Candidate(
-        dup_cost + left.value + right.value
-        + loss_cost * (
+        dup_cost
+        + left.value
+        + right.value
+        + loss_cost
+        * (
             species_lca.distance(root_species, left.info)
             + species_lca.distance(root_species, right.info)
         ),
         MappingInfo(left.info, right.info),
     )
 
-
     # Try mapping as a horizontal transfer
     hgt_l_combin = lambda left, right: Candidate(
-        hgt_cost + left.value + right.value
+        hgt_cost
+        + left.value
+        + right.value
         + loss_cost * species_lca.distance(root_species, left.info),
         MappingInfo(left.info, right.info),
     )
 
     hgt_r_combin = lambda left, right: Candidate(
-        hgt_cost + left.value + right.value
+        hgt_cost
+        + left.value
+        + right.value
         + loss_cost * species_lca.distance(root_species, right.info),
         MappingInfo(left.info, right.info),
     )
@@ -192,14 +212,16 @@ def _compute_thl_table(
             root_species = rec_input.leaf_object_species[root_node]
             table[root_node][root_species] = Candidate(0)
         else:
-            for root_species in rec_input.species_lca.tree.traverse("postorder"):
+            for root_species in rec_input.species_lca.tree.traverse(
+                "postorder"
+            ):
                 if not root_species.is_leaf():
                     _compute_thl_try_speciation(
                         rec_input.species_lca,
                         root_species,
                         root_node,
                         table,
-                        rec_input.costs
+                        rec_input.costs,
                     )
 
                 _compute_thl_try_duplication_transfer(
@@ -207,7 +229,7 @@ def _compute_thl_table(
                     root_species,
                     root_node,
                     table,
-                    rec_input.costs
+                    rec_input.costs,
                 )
 
     return table
@@ -220,9 +242,7 @@ def _decode_thl_table(
     table: THLTable,
 ) -> Generator[ReconciliationOutput, None, None]:
     if not table[root_object][root_species].infos():
-        yield ReconciliationOutput(
-            rec_input, {root_object: root_species}
-        )
+        yield ReconciliationOutput(rec_input, {root_object: root_species})
         return
 
     for info in table[root_object][root_species].infos():
@@ -243,11 +263,14 @@ def _decode_thl_table(
         )
 
         for map_left, map_right in mappings:
-            yield ReconciliationOutput(rec_input, {
-                root_object: root_species,
-                **map_left.object_species,
-                **map_right.object_species,
-            })
+            yield ReconciliationOutput(
+                rec_input,
+                {
+                    root_object: root_species,
+                    **map_left.object_species,
+                    **map_right.object_species,
+                },
+            )
 
 
 def reconcile_thl(
@@ -271,9 +294,11 @@ def reconcile_thl(
     results: Entry[int, ReconciliationOutput] = Entry(MergePolicy.MIN, policy)
 
     for root_species in rec_input.species_lca.tree.traverse():
-        results.update(*map(
-            lambda output: Candidate(output.cost(), output),
-            _decode_thl_table(root_object, root_species, rec_input, table),
-        ))
+        results.update(
+            *map(
+                lambda output: Candidate(output.cost(), output),
+                _decode_thl_table(root_object, root_species, rec_input, table),
+            )
+        )
 
     return results.infos()

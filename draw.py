@@ -11,11 +11,10 @@ import sys
 from ete3 import Tree
 from superrec2.draw import compute_layout, render_to_tikz
 from superrec2.model.synteny import parse_synteny_mapping
-from superrec2.model.tree_mapping import (
-    get_species_mapping, parse_tree_mapping
-)
+from superrec2.model.tree_mapping import get_species_mapping, parse_tree_mapping
 from superrec2.model.reconciliation import (
-    SuperReconciliationInput, SuperReconciliationOutput
+    SuperReconciliationInput,
+    SuperReconciliationOutput,
 )
 from superrec2.utils.trees import LowestCommonAncestor
 from superrec2.utils.tex import xelatex_compile, TeXError

@@ -84,26 +84,32 @@ class TestComputeReconciliation(unittest.TestCase):
         # Check that all expected results are returned
         self.assertEqual(len(results), 2)
         self.assertIn(
-            ReconciliationOutput(self.rec_input, {
-                **self.leaf_gene_species,
-                self.gene_tree & "1": self.species_tree & "XYZ",
-                self.gene_tree & "2": self.species_tree & "YZ",
-                self.gene_tree & "3": self.species_tree & "X",
-                self.gene_tree & "4": self.species_tree & "X",
-                self.gene_tree & "5": self.species_tree & "YZ",
-            }),
+            ReconciliationOutput(
+                self.rec_input,
+                {
+                    **self.leaf_gene_species,
+                    self.gene_tree & "1": self.species_tree & "XYZ",
+                    self.gene_tree & "2": self.species_tree & "YZ",
+                    self.gene_tree & "3": self.species_tree & "X",
+                    self.gene_tree & "4": self.species_tree & "X",
+                    self.gene_tree & "5": self.species_tree & "YZ",
+                },
+            ),
             results,
         )
 
         self.assertIn(
-            ReconciliationOutput(self.rec_input, {
-                **self.leaf_gene_species,
-                self.gene_tree & "1": self.species_tree & "XYZ",
-                self.gene_tree & "2": self.species_tree & "YZ",
-                self.gene_tree & "3": self.species_tree & "X",
-                self.gene_tree & "4": self.species_tree & "YZ",
-                self.gene_tree & "5": self.species_tree & "YZ",
-            }),
+            ReconciliationOutput(
+                self.rec_input,
+                {
+                    **self.leaf_gene_species,
+                    self.gene_tree & "1": self.species_tree & "XYZ",
+                    self.gene_tree & "2": self.species_tree & "YZ",
+                    self.gene_tree & "3": self.species_tree & "X",
+                    self.gene_tree & "4": self.species_tree & "YZ",
+                    self.gene_tree & "5": self.species_tree & "YZ",
+                },
+            ),
             results,
         )
 

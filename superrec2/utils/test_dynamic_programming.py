@@ -1,9 +1,15 @@
 import unittest
 from infinity import inf
 from .dynamic_programming import (
-    Table, TableProxy, Candidate, Entry, EntryProxy,
-    DictDimension, ListDimension,
-    MergePolicy, RetentionPolicy,
+    Table,
+    TableProxy,
+    Candidate,
+    Entry,
+    EntryProxy,
+    DictDimension,
+    ListDimension,
+    MergePolicy,
+    RetentionPolicy,
 )
 
 
@@ -45,9 +51,9 @@ class TestDynamicProgramming(unittest.TestCase):
 
         self.assertEqual(i, 10)
 
-        table_lll = Table([
-            ListDimension(10), ListDimension(20), ListDimension(30)
-        ])
+        table_lll = Table(
+            [ListDimension(10), ListDimension(20), ListDimension(30)]
+        )
         table_lll[3][2][1] = Candidate(0)
         self.assertEqual(list(table_lll.keys()), list(range(10)))
         self.assertEqual(list(table_lll[1].keys()), list(range(20)))
@@ -102,25 +108,26 @@ class TestDynamicProgramming(unittest.TestCase):
         table[4][18] = Candidate(3)
         self.assertEqual(table[4][18], table.entry(3, []))
 
-        table[4][18] = Candidate(3, 'tag1')
-        self.assertEqual(table[4][18], table.entry(3, ['tag1']))
-        self.assertEqual(table[4][18].info(), 'tag1')
+        table[4][18] = Candidate(3, "tag1")
+        self.assertEqual(table[4][18], table.entry(3, ["tag1"]))
+        self.assertEqual(table[4][18].info(), "tag1")
 
-        table[4][18] = Candidate(3, 'tag2')
-        self.assertEqual(table[4][18], table.entry(3, ['tag1', 'tag2']))
-        self.assertIn(table[4][18].info(), ['tag1', 'tag2'])
+        table[4][18] = Candidate(3, "tag2")
+        self.assertEqual(table[4][18], table.entry(3, ["tag1", "tag2"]))
+        self.assertIn(table[4][18].info(), ["tag1", "tag2"])
 
-        table[4][18] = Candidate(3, 'tagA')
-        table[4][18] = Candidate(3, 'tagB')
-        table[4][18] = Candidate(3, 'tag0')
-        self.assertEqual(table[4][18], table.entry(3, [
-            'tag1', 'tag2', 'tagA', 'tagB', 'tag0'
-        ]))
+        table[4][18] = Candidate(3, "tagA")
+        table[4][18] = Candidate(3, "tagB")
+        table[4][18] = Candidate(3, "tag0")
+        self.assertEqual(
+            table[4][18],
+            table.entry(3, ["tag1", "tag2", "tagA", "tagB", "tag0"]),
+        )
 
-        table[4][18] = Candidate(3, 'tag4')
-        table[4][18] = Candidate(2, 'tagα')
-        table[4][18] = Candidate(3, 'tag5')
-        self.assertEqual(table[4][18], table.entry(2, ['tagα']))
+        table[4][18] = Candidate(3, "tag4")
+        table[4][18] = Candidate(2, "tagα")
+        table[4][18] = Candidate(3, "tag5")
+        self.assertEqual(table[4][18], table.entry(2, ["tagα"]))
 
     def test_max_all(self):
         table = Table(
@@ -140,26 +147,27 @@ class TestDynamicProgramming(unittest.TestCase):
         table[4][18] = Candidate(5)
         self.assertEqual(table[4][18], table.entry(5, []))
 
-        table[4][18] = Candidate(5, 'tag1')
-        self.assertEqual(table[4][18], table.entry(5, ['tag1']))
-        self.assertEqual(table[4][18].info(), 'tag1')
+        table[4][18] = Candidate(5, "tag1")
+        self.assertEqual(table[4][18], table.entry(5, ["tag1"]))
+        self.assertEqual(table[4][18].info(), "tag1")
 
-        table[4][18] = Candidate(5, 'tag2')
-        self.assertEqual(table[4][18], table.entry(5, ['tag1', 'tag2']))
-        self.assertIn(table[4][18].info(), ['tag1', 'tag2'])
+        table[4][18] = Candidate(5, "tag2")
+        self.assertEqual(table[4][18], table.entry(5, ["tag1", "tag2"]))
+        self.assertIn(table[4][18].info(), ["tag1", "tag2"])
 
-        table[4][18] = Candidate(5, 'tagA')
-        table[4][18] = Candidate(5, 'tagB')
-        table[4][18] = Candidate(5, 'tag0')
+        table[4][18] = Candidate(5, "tagA")
+        table[4][18] = Candidate(5, "tagB")
+        table[4][18] = Candidate(5, "tag0")
 
-        self.assertEqual(table[4][18], table.entry(5, [
-            'tag1', 'tag2', 'tagA', 'tagB', 'tag0'
-        ]))
+        self.assertEqual(
+            table[4][18],
+            table.entry(5, ["tag1", "tag2", "tagA", "tagB", "tag0"]),
+        )
 
-        table[4][18] = Candidate(5, 'tag4')
-        table[4][18] = Candidate(6, 'tagα')
-        table[4][18] = Candidate(5, 'tag5')
-        self.assertEqual(table[4][18], table.entry(6, ['tagα']))
+        table[4][18] = Candidate(5, "tag4")
+        table[4][18] = Candidate(6, "tagα")
+        table[4][18] = Candidate(5, "tag5")
+        self.assertEqual(table[4][18], table.entry(6, ["tagα"]))
 
     def test_max_any(self):
         table = Table(
@@ -179,85 +187,95 @@ class TestDynamicProgramming(unittest.TestCase):
         table[4][18] = Candidate(5)
         self.assertEqual(table[4][18], table.entry(5, []))
 
-        table[4][18] = Candidate(5, 'tag1')
-        self.assertEqual(table[4][18], table.entry(5, ['tag1']))
-        self.assertEqual(table[4][18].info(), 'tag1')
+        table[4][18] = Candidate(5, "tag1")
+        self.assertEqual(table[4][18], table.entry(5, ["tag1"]))
+        self.assertEqual(table[4][18].info(), "tag1")
 
-        table[4][18] = Candidate(5, 'tag2')
+        table[4][18] = Candidate(5, "tag2")
         self.assertEqual(table[4][18].value(), 5)
         self.assertEqual(len(table[4][18].infos()), 1)
-        self.assertIn(table[4][18].info(), ['tag1', 'tag2'])
+        self.assertIn(table[4][18].info(), ["tag1", "tag2"])
 
-        table[4][18] = Candidate(5, 'tagA')
-        table[4][18] = Candidate(5, 'tagB')
-        table[4][18] = Candidate(5, 'tag0')
+        table[4][18] = Candidate(5, "tagA")
+        table[4][18] = Candidate(5, "tagB")
+        table[4][18] = Candidate(5, "tag0")
         self.assertEqual(table[4][18].value(), 5)
         self.assertEqual(len(table[4][18].infos()), 1)
         self.assertIn(
-            table[4][18].info(),
-            ['tag1', 'tag2', 'tagA', 'tagB', 'tag0']
+            table[4][18].info(), ["tag1", "tag2", "tagA", "tagB", "tag0"]
         )
 
-        table[4][18] = Candidate(5, 'tag4')
-        table[4][18] = Candidate(6, 'tagα')
-        table[4][18] = Candidate(5, 'tag5')
-        self.assertEqual(table[4][18], table.entry(infos=['tagα'], value=6))
+        table[4][18] = Candidate(5, "tag4")
+        table[4][18] = Candidate(6, "tagα")
+        table[4][18] = Candidate(5, "tag5")
+        self.assertEqual(table[4][18], table.entry(infos=["tagα"], value=6))
 
     def test_standalone_entries(self):
         entry_1 = Entry(MergePolicy.MIN, RetentionPolicy.ALL)
         entry_2 = Entry(MergePolicy.MIN, RetentionPolicy.ALL)
 
         entry_1.update(
-            Candidate(5, 'tag1'),
-            Candidate(5, 'tag2'),
-            Candidate(6, 'tag3'),
-            Candidate(5, 'tag4'),
+            Candidate(5, "tag1"),
+            Candidate(5, "tag2"),
+            Candidate(6, "tag3"),
+            Candidate(5, "tag4"),
         )
 
         entry_2.update(
-            Candidate(2, 'tag1'),
-            Candidate(3, 'tag2'),
-            Candidate(3, 'tag3'),
-            Candidate(2, 'tag4'),
+            Candidate(2, "tag1"),
+            Candidate(3, "tag2"),
+            Candidate(3, "tag3"),
+            Candidate(2, "tag4"),
         )
 
         entry = entry_1.combine(
             entry_2,
             lambda x, y: Candidate(x.value + y.value, (x.info, y.info)),
         )
-        self.assertEqual(entry, Entry(7, [
-            ('tag1', 'tag1'),
-            ('tag1', 'tag4'),
-            ('tag2', 'tag1'),
-            ('tag2', 'tag4'),
-            ('tag4', 'tag1'),
-            ('tag4', 'tag4'),
-        ], MergePolicy.MIN, RetentionPolicy.ALL))
+        self.assertEqual(
+            entry,
+            Entry(
+                7,
+                [
+                    ("tag1", "tag1"),
+                    ("tag1", "tag4"),
+                    ("tag2", "tag1"),
+                    ("tag2", "tag4"),
+                    ("tag4", "tag1"),
+                    ("tag4", "tag4"),
+                ],
+                MergePolicy.MIN,
+                RetentionPolicy.ALL,
+            ),
+        )
 
-        self.assertCountEqual(list(entry_2), [
-            Candidate(2, 'tag1'),
-            Candidate(2, 'tag4'),
-        ])
+        self.assertCountEqual(
+            list(entry_2),
+            [
+                Candidate(2, "tag1"),
+                Candidate(2, "tag4"),
+            ],
+        )
 
         entry_1.update(*entry_2)
         self.assertEqual(entry_1.value(), 2)
-        self.assertEqual(entry_1.infos(), {'tag1', 'tag4'})
+        self.assertEqual(entry_1.infos(), {"tag1", "tag4"})
 
         entry_1 = Entry(MergePolicy.MIN, RetentionPolicy.ANY)
         entry_2 = Entry(MergePolicy.MIN, RetentionPolicy.ANY)
 
         entry_1.update(
-            Candidate(5, 'tag1'),
-            Candidate(5, 'tag2'),
-            Candidate(6, 'tag3'),
-            Candidate(5, 'tag4'),
+            Candidate(5, "tag1"),
+            Candidate(5, "tag2"),
+            Candidate(6, "tag3"),
+            Candidate(5, "tag4"),
         )
 
         entry_2.update(
-            Candidate(2, 'tag1'),
-            Candidate(3, 'tag2'),
-            Candidate(3, 'tag3'),
-            Candidate(2, 'tag4'),
+            Candidate(2, "tag1"),
+            Candidate(3, "tag2"),
+            Candidate(3, "tag3"),
+            Candidate(2, "tag4"),
         )
 
         entry = entry_1.combine(
@@ -266,21 +284,28 @@ class TestDynamicProgramming(unittest.TestCase):
         )
         self.assertEqual(entry.value(), 7)
         self.assertEqual(len(entry.infos()), 1)
-        self.assertIn(entry.info(), [
-            ('tag1', 'tag1'),
-            ('tag1', 'tag4'),
-            ('tag2', 'tag1'),
-            ('tag2', 'tag4'),
-            ('tag4', 'tag1'),
-            ('tag4', 'tag4'),
-        ])
+        self.assertIn(
+            entry.info(),
+            [
+                ("tag1", "tag1"),
+                ("tag1", "tag4"),
+                ("tag2", "tag1"),
+                ("tag2", "tag4"),
+                ("tag4", "tag1"),
+                ("tag4", "tag4"),
+            ],
+        )
 
     @staticmethod
     def edit_distance(w1, w2, retention):
-        table = Table([
-            ListDimension(len(w1) + 1),
-            ListDimension(len(w2) + 1),
-        ], MergePolicy.MIN, retention)
+        table = Table(
+            [
+                ListDimension(len(w1) + 1),
+                ListDimension(len(w2) + 1),
+            ],
+            MergePolicy.MIN,
+            retention,
+        )
 
         table[0][0] = Candidate(0)
 
@@ -294,7 +319,7 @@ class TestDynamicProgramming(unittest.TestCase):
             for j in range(1, len(w2) + 1):
                 table[i][j] = Candidate(
                     table[i - 1][j - 1].value()
-                        + (1 if w1[i - 1] != w2[j - 1] else 0),
+                    + (1 if w1[i - 1] != w2[j - 1] else 0),
                     (i - 1, j - 1),
                 )
                 table[i][j] = Candidate(table[i][j - 1].value() + 1, (i, j - 1))
@@ -303,7 +328,7 @@ class TestDynamicProgramming(unittest.TestCase):
         return table
 
     @staticmethod
-    def get_alignments(w1, w2, table, i = None, j = None):
+    def get_alignments(w1, w2, table, i=None, j=None):
         if i is None:
             i = len(w1)
 
@@ -311,14 +336,15 @@ class TestDynamicProgramming(unittest.TestCase):
             j = len(w2)
 
         if i == 0 and j == 0:
-            yield ('', '')
+            yield ("", "")
 
         if not table[i][j].infos():
             return
 
         for prec in table[i][j].infos():
             for align in TestDynamicProgramming.get_alignments(
-                    w1, w2, table, *prec):
+                w1, w2, table, *prec
+            ):
                 if prec == (i - 1, j - 1):
                     yield (
                         align[0] + w1[i - 1],
@@ -326,18 +352,18 @@ class TestDynamicProgramming(unittest.TestCase):
                     )
                 elif prec == (i, j - 1):
                     yield (
-                        align[0] + '-',
+                        align[0] + "-",
                         align[1] + w2[j - 1],
                     )
                 else:
                     yield (
                         align[0] + w1[i - 1],
-                        align[1] + '-',
+                        align[1] + "-",
                     )
 
     def test_edit_distance(self):
-        w1 = 'elephant'
-        w2 = 'relevant'
+        w1 = "elephant"
+        w2 = "relevant"
 
         table_all = self.edit_distance(w1, w2, RetentionPolicy.ALL)
         table_any = self.edit_distance(w1, w2, RetentionPolicy.ANY)
@@ -371,7 +397,7 @@ class TestDynamicProgramming(unittest.TestCase):
 
         self.assertEqual(
             all_solutions,
-            {('-elephant', 'rele-vant'), ('-elephant', 'relev-ant')},
+            {("-elephant", "rele-vant"), ("-elephant", "relev-ant")},
         )
         self.assertEqual(len(any_solution), 1)
         self.assertIn(any_solution[0], all_solutions)

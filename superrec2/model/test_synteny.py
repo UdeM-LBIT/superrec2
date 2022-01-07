@@ -1,8 +1,10 @@
 import unittest
 from ete3 import Tree
 from .synteny import (
-    parse_synteny, serialize_synteny,
-    parse_synteny_mapping, serialize_synteny_mapping
+    parse_synteny,
+    serialize_synteny,
+    parse_synteny_mapping,
+    serialize_synteny_mapping,
 )
 
 
@@ -49,8 +51,7 @@ class TestModelSynteny(unittest.TestCase):
 
     def test_serialize_synteny(self):
         self.assertEqual(
-            serialize_synteny(["a", "b", "c", "d", "e", "f"]),
-            r"abcdef"
+            serialize_synteny(["a", "b", "c", "d", "e", "f"]), r"abcdef"
         )
         self.assertEqual(
             serialize_synteny(["a", "(", ")", "\\"]),
@@ -70,7 +71,7 @@ class TestModelSynteny(unittest.TestCase):
             {
                 self.tree & "x_3": ["a", "b", "c", "d", "e", "f"],
                 self.tree & "z_2": ["cas1", "a", "b", "c", "cas3"],
-            }
+            },
         )
         self.assertEqual(
             parse_synteny_mapping(
@@ -80,7 +81,7 @@ class TestModelSynteny(unittest.TestCase):
             {
                 self.tree & "x_3": ["a", "b", "c", "d", "e", "f"],
                 self.tree & "z_2": ["cas1", "a", "b", "c", "cas3"],
-            }
+            },
         )
         self.assertEqual(
             parse_synteny_mapping(
@@ -89,7 +90,7 @@ class TestModelSynteny(unittest.TestCase):
             ),
             {
                 self.tree & "x_3": ["a", "b", "c", "d", "e", "f"],
-            }
+            },
         )
         self.assertEqual(
             parse_synteny_mapping(
@@ -99,21 +100,26 @@ class TestModelSynteny(unittest.TestCase):
             {
                 self.comma_tree & "x,3": ["a", "b", "c", ",", "d", "e", "f"],
                 self.comma_tree & "z,2": ["a", "abc, def", "f"],
-            }
+            },
         )
 
     def test_serialize_synteny_mapping(self):
         self.assertEqual(
-            serialize_synteny_mapping({
-                self.tree & "x_3": ["a", "b", "c", "d", "e", "f"],
-                self.tree & "z_2": ["cas1", "a", "b", "c", "cas3"],
-            }),
+            serialize_synteny_mapping(
+                {
+                    self.tree & "x_3": ["a", "b", "c", "d", "e", "f"],
+                    self.tree & "z_2": ["cas1", "a", "b", "c", "cas3"],
+                }
+            ),
             r"x_3:abcdef,z_2:(cas1)abc(cas3)",
         )
         self.assertEqual(
-            serialize_synteny_mapping({
-                self.comma_tree & "x,3": ["a", "b", "c", ",", "d", "e", "f"],
-                self.comma_tree & "z,2": ["a", "abc, def", "f"],
-            }),
+            serialize_synteny_mapping(
+                {
+                    self.comma_tree
+                    & "x,3": ["a", "b", "c", ",", "d", "e", "f"],
+                    self.comma_tree & "z,2": ["a", "abc, def", "f"],
+                }
+            ),
             r"x\,3:abc\,def,z\,2:a(abc\, def)f",
         )

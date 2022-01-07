@@ -10,7 +10,8 @@ from .tree_mapping import (
 class TestReconciliationTools(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.gene_tree = Tree("""
+        cls.gene_tree = Tree(
+            """
             (
                 ((x_1,z_1)3,(w_1,w_2)4)2,
                 (
@@ -21,7 +22,9 @@ class TestReconciliationTools(unittest.TestCase):
                     (w_3,(z_3,(t_1,t_2)14)13)12
                 )5
             )1;
-        """, format=1)
+        """,
+            format=1,
+        )
         cls.species_tree = Tree("(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;", format=1)
 
     def test_parse_tree_mapping(self):
@@ -47,7 +50,7 @@ class TestReconciliationTools(unittest.TestCase):
                 self.gene_tree & "12": self.species_tree & "WT",
                 self.gene_tree & "13": self.species_tree & "T",
                 self.gene_tree & "14": self.species_tree & "T",
-            }
+            },
         )
         self.assertEqual(
             parse_tree_mapping(
@@ -68,7 +71,7 @@ class TestReconciliationTools(unittest.TestCase):
                 12 : WT,
                 13 : T,
                 14 : T,
-                """
+                """,
             ),
             {
                 self.gene_tree & "1": self.species_tree & "XYZWT",
@@ -85,7 +88,7 @@ class TestReconciliationTools(unittest.TestCase):
                 self.gene_tree & "12": self.species_tree & "WT",
                 self.gene_tree & "13": self.species_tree & "T",
                 self.gene_tree & "14": self.species_tree & "T",
-            }
+            },
         )
         self.assertEqual(
             parse_tree_mapping(
@@ -108,7 +111,7 @@ class TestReconciliationTools(unittest.TestCase):
                 self.gene_tree & "12": self.species_tree & "WT",
                 self.gene_tree & "13": self.species_tree & "T",
                 self.gene_tree & "14": self.species_tree & "T",
-            }
+            },
         )
 
     def test_get_species_mapping(self):
@@ -130,16 +133,18 @@ class TestReconciliationTools(unittest.TestCase):
                 self.gene_tree & "w_3": self.species_tree & "W",
                 self.gene_tree & "t_1": self.species_tree & "T",
                 self.gene_tree & "t_2": self.species_tree & "T",
-            }
+            },
         )
 
     def test_serialize_tree_mapping(self):
         self.assertEqual(
-            serialize_tree_mapping({
-                self.gene_tree & "x_1": self.species_tree & "X",
-                self.gene_tree & "2": self.species_tree & "XYZ",
-                self.gene_tree & "x_2": self.species_tree & "X",
-                self.gene_tree & "3": self.species_tree & "XYZ",
-            }),
+            serialize_tree_mapping(
+                {
+                    self.gene_tree & "x_1": self.species_tree & "X",
+                    self.gene_tree & "2": self.species_tree & "XYZ",
+                    self.gene_tree & "x_2": self.species_tree & "X",
+                    self.gene_tree & "3": self.species_tree & "XYZ",
+                }
+            ),
             "2:XYZ,3:XYZ,x_1:X,x_2:X",
         )

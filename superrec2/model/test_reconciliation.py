@@ -5,7 +5,7 @@ from .reconciliation import (
     ReconciliationInput,
     ReconciliationOutput,
     EdgeEvent,
-    NodeEvent
+    NodeEvent,
 )
 
 
@@ -55,23 +55,26 @@ class TestModelReconciliation(unittest.TestCase):
             cls.leaf_object_species,
         )
 
-        cls.rec_output = ReconciliationOutput(cls.rec_input, {
-            **cls.leaf_object_species,
-            cls.gene_tree & "1": cls.species_tree & "XYZWT",
-            cls.gene_tree & "2": cls.species_tree & "XYZ",
-            cls.gene_tree & "3": cls.species_tree & "XYZ",
-            cls.gene_tree & "4": cls.species_tree & "W",
-            cls.gene_tree & "5": cls.species_tree & "XYZWT",
-            cls.gene_tree & "6": cls.species_tree & "XYZ",
-            cls.gene_tree & "7": cls.species_tree & "XY",
-            cls.gene_tree & "8": cls.species_tree & "XYZ",
-            cls.gene_tree & "9": cls.species_tree & "XY",
-            cls.gene_tree & "10": cls.species_tree & "Y",
-            cls.gene_tree & "11": cls.species_tree & "Y",
-            cls.gene_tree & "12": cls.species_tree & "WT",
-            cls.gene_tree & "13": cls.species_tree & "T",
-            cls.gene_tree & "14": cls.species_tree & "T",
-        })
+        cls.rec_output = ReconciliationOutput(
+            cls.rec_input,
+            {
+                **cls.leaf_object_species,
+                cls.gene_tree & "1": cls.species_tree & "XYZWT",
+                cls.gene_tree & "2": cls.species_tree & "XYZ",
+                cls.gene_tree & "3": cls.species_tree & "XYZ",
+                cls.gene_tree & "4": cls.species_tree & "W",
+                cls.gene_tree & "5": cls.species_tree & "XYZWT",
+                cls.gene_tree & "6": cls.species_tree & "XYZ",
+                cls.gene_tree & "7": cls.species_tree & "XY",
+                cls.gene_tree & "8": cls.species_tree & "XYZ",
+                cls.gene_tree & "9": cls.species_tree & "XY",
+                cls.gene_tree & "10": cls.species_tree & "Y",
+                cls.gene_tree & "11": cls.species_tree & "Y",
+                cls.gene_tree & "12": cls.species_tree & "WT",
+                cls.gene_tree & "13": cls.species_tree & "T",
+                cls.gene_tree & "14": cls.species_tree & "T",
+            },
+        )
 
     def test_node_event(self):
         expected_events = {
