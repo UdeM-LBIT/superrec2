@@ -1,5 +1,6 @@
 import unittest
 from ete3 import Tree
+from ..utils.dynamic_programming import RetentionPolicy
 from ..utils.trees import LowestCommonAncestor
 from ..model.tree_mapping import get_species_mapping
 from ..model.reconciliation import (
@@ -7,7 +8,7 @@ from ..model.reconciliation import (
     ReconciliationOutput,
     NodeEvent,
 )
-from .exhaustive import generate_all, exhaustive_any, exhaustive_all
+from .exhaustive import generate_all, reconcile_exhaustive
 
 
 class TestComputeExhaustive(unittest.TestCase):
@@ -199,15 +200,15 @@ class TestComputeExhaustive(unittest.TestCase):
                     NodeEvent.INVALID,
                 )
 
-    def test_exhaustive_any_all(self):
+    def test_exhaustive(self):
         all_outputs = list(generate_all(self.rec_input))
         min_cost = min(output.cost() for output in all_outputs)
-        any_min = exhaustive_any(self.rec_input)
-        all_min = exhaustive_all(self.rec_input)
+        any_min = reconcile_exhaustive(self.rec_input, RetentionPolicy.ANY)
+        all_min = reconcile_exhaustive(self.rec_input, RetentionPolicy.ALL)
 
-        self.assertIn(any_min, all_outputs)
-        self.assertIn(any_min, all_min)
-        self.assertEqual(any_min.cost(), min_cost)
+        self.assertIn(min(any_min), all_outputs)
+        self.assertIn(min(any_min), all_min)
+        self.assertEqual(min(any_min).cost(), min_cost)
 
         for a_min in all_min:
             self.assertEqual(a_min.cost(), min_cost)

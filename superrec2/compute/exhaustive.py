@@ -63,37 +63,20 @@ def generate_all(rec_input: ReconciliationInput, node: TreeNode = None) \
                 transfer_species = transfer_species.up
 
 
-def _exhaustive(
+def reconcile_exhaustive(
     rec_input: ReconciliationInput,
     policy: RetentionPolicy,
 ) -> Entry[int, ReconciliationOutput]:
+    """
+    Compute a minimum-cost reconciliation by enumerating all possible
+    reconciliations.
+
+    :param rec_input: reconciliation input
+    :returns: any minimum-cost reconciliation, if there is one
+    """
     results: Entry[int, ReconciliationOutput] = Entry(MergePolicy.MIN, policy)
 
     for output in generate_all(rec_input):
         results.update(Candidate(output.cost(), output))
 
-    return results
-
-
-def exhaustive_any(rec_input: ReconciliationInput) \
--> Optional[ReconciliationOutput]:
-    """
-    Compute a minimum-cost reconciliation by enumerating all possible
-    reconciliations and retaining any that minimizes the total cost.
-
-    :param rec_input: reconciliation input
-    :returns: any minimum-cost reconciliation, if there is one
-    """
-    return _exhaustive(rec_input, RetentionPolicy.ANY).info()
-
-
-def exhaustive_all(rec_input: ReconciliationInput) \
--> Set[ReconciliationOutput]:
-    """
-    Compute all possible minimum-cost reconciliations by enumerating all
-    possible reconciliations and all retaining the minimal ones.
-
-    :param rec_input: reconciliation input
-    :returns: generates all minimum-cost reconciliations
-    """
-    return _exhaustive(rec_input, RetentionPolicy.ALL).infos()
+    return results.infos()

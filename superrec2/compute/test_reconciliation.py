@@ -2,6 +2,7 @@ import unittest
 from infinity import inf
 from ete3 import Tree
 from ..utils.trees import LowestCommonAncestor
+from ..utils.dynamic_programming import RetentionPolicy
 from ..model.tree_mapping import get_species_mapping
 from ..model.reconciliation import (
     ReconciliationInput,
@@ -10,7 +11,7 @@ from ..model.reconciliation import (
     EdgeEvent,
 )
 from .exhaustive import generate_all
-from .reconciliation import reconcile_lca, reconcile_thl_any, reconcile_thl_all
+from .reconciliation import reconcile_lca, reconcile_thl
 
 
 class TestComputeReconciliation(unittest.TestCase):
@@ -74,11 +75,11 @@ class TestComputeReconciliation(unittest.TestCase):
         self.rec_input.costs[NodeEvent.HORIZONTAL_TRANSFER] = 1
         self.rec_input.costs[EdgeEvent.FULL_LOSS] = 1
 
-        any_result = reconcile_thl_any(self.rec_input)
-        results = list(reconcile_thl_all(self.rec_input))
+        any_result = reconcile_thl(self.rec_input, RetentionPolicy.ANY)
+        results = list(reconcile_thl(self.rec_input, RetentionPolicy.ALL))
 
         # Check that any is part of all results
-        self.assertIn(any_result, results)
+        self.assertIn(min(any_result), results)
 
         # Check that all expected results are returned
         self.assertEqual(len(results), 2)

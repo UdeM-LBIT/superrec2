@@ -1,10 +1,10 @@
 """Compute reconciliations with arbitrary event costs."""
 from itertools import product
-from typing import Generator, NamedTuple
+from typing import Generator, NamedTuple, Set
 from ete3 import TreeNode
 from ..utils.trees import LowestCommonAncestor
 from ..utils.dynamic_programming import (
-    Candidate, DictDimension, MergePolicy, RetentionPolicy, Table
+    Candidate, DictDimension, Entry, MergePolicy, RetentionPolicy, Table
 )
 from ..model.reconciliation import (
     ReconciliationInput,
@@ -250,7 +250,10 @@ def _decode_thl_table(
             })
 
 
-def reconcile_thl_any(rec_input: ReconciliationInput) -> ReconciliationOutput:
+def reconcile_thl(
+    rec_input: ReconciliationInput,
+    policy: RetentionPolicy,
+) -> Set[ReconciliationOutput]:
     """
     Compute a minimum-cost reconciliation between two trees, using the
     Tofigh—Hallett—Lagergren algorithm, taking into account the possibility of
@@ -262,37 +265,15 @@ def reconcile_thl_any(rec_input: ReconciliationInput) -> ReconciliationOutput:
     :param rec_input: reconciliation input
     :returns: any minimum-cost reconciliation
     """
-    table = _compute_thl_table(rec_input, RetentionPolicy.ANY)
-
+    table = _compute_thl_table(rec_input, policy)
     root_object = rec_input.object_tree
-    min_value, min_species = min(
-        (table[root_object][root_species].value(), root_species)
-        for root_species in rec_input.species_lca.tree.traverse()
-    )
 
-    for result in _decode_thl_table(root_object, min_species, rec_input, table):
-        return result
-
-
-def reconcile_thl_all(rec_input: ReconciliationInput) \
--> Generator[ReconciliationOutput, None, None]:
-    """
-    Compute all possible minimum-cost reconciliations between two trees, using
-    the Tofigh—Hallett—Lagergren algorithm.
-
-    :param rec_input: reconciliation input
-    :returns: generates all minimum-cost reconciliations
-    """
-    table = _compute_thl_table(rec_input, RetentionPolicy.ALL)
-
-    root_object = rec_input.object_tree
-    min_value = min(
-        table[root_object][root_species].value()
-        for root_species in rec_input.species_lca.tree.traverse()
-    )
+    results: Entry[int, ReconciliationOutput] = Entry(MergePolicy.MIN, policy)
 
     for root_species in rec_input.species_lca.tree.traverse():
-        if table[root_object][root_species].value() == min_value:
-            yield from _decode_thl_table(
-                root_object, root_species, rec_input, table
-            )
+        results.update(*map(
+            lambda output: Candidate(output.cost(), output),
+            _decode_thl_table(root_object, root_species, rec_input, table),
+        ))
+
+    return results.infos()

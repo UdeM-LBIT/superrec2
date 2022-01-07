@@ -15,6 +15,7 @@ import sys
 from infinity import inf
 from ete3 import Tree
 from superrec2.utils.trees import LowestCommonAncestor
+from superrec2.utils.dynamic_programming import RetentionPolicy
 from superrec2.model.synteny import parse_synteny_mapping
 from superrec2.model.tree_mapping import (
     get_species_mapping, parse_tree_mapping
@@ -24,26 +25,23 @@ from superrec2.model.reconciliation import (
     ReconciliationInput, SuperReconciliationInput,
     ReconciliationOutput,
 )
-from superrec2.compute.exhaustive import (
-    exhaustive_any, exhaustive_all,
-)
+from superrec2.compute.exhaustive import reconcile_exhaustive
 from superrec2.compute.reconciliation import (
-    reconcile_lca, reconcile_thl_any, reconcile_thl_all,
+    reconcile_lca, reconcile_thl,
 )
 from superrec2.compute.super_reconciliation import (
-    label_syntenies_any, label_syntenies_all,
+    sreconcile_base_spfs, sreconcile_extended_spfs,
 )
 
 
 algorithms = {
-    "exh_any": exhaustive_any,
-    "exh_all": exhaustive_all,
+    "exh": reconcile_exhaustive,
     "lca": reconcile_lca,
-    "thl_any": reconcile_thl_any,
-    "thl_all": reconcile_thl_all,
-    "spfs_any": label_syntenies_any,
-    "spfs_all": label_syntenies_all,
+    "thl": reconcile_thl,
+    "base_spfs": sreconcile_base_spfs,
+    "ext_spfs": sreconcile_extended_spfs,
 }
+
 
 cost_events = {
     NodeEvent.SPECIATION: ("spe", "a speciation"),
@@ -78,6 +76,12 @@ def parse_arguments():
         metavar="ALGO",
         help="algorithm to use to reconcile",
         choices=set(algorithms.keys()),
+    )
+    parser.add_argument(
+        "policy",
+        metavar="POLICY",
+        help="whether to generate any solution or all possible solutions",
+        choices=("any", "all"),
     )
     parser.add_argument(
         "object_tree",
@@ -136,18 +140,28 @@ def call_algorithm(args):
 
     algo = algorithms[args.algorithm]
     algo_signature = inspect.signature(algo)
-    input_param = list(algo_signature.parameters.values())[0]
+    params = list(algo_signature.parameters.values())
 
-    if input_param.annotation != type(rec_input):
-        if input_param.annotation == ReconciliationInput:
+    if params[0].annotation != type(rec_input):
+        if params[0].annotation == ReconciliationInput:
             print(f"Warning: '{args.algorithm}' is not a super-reconciliation \
-algorithm: the LEAF_SYNTENIES argument will be ignored")
+algorithm: the LEAF_SYNTENIES argument will be ignored", file=sys.stderr)
         else:
             print(f"Error: '{args.algorithm}' is a super-reconciliation \
-algorithm: you need to provide the LEAF_SYNTENIES argument")
+algorithm: you need to provide the LEAF_SYNTENIES argument", file=sys.stderr)
             return None
 
-    return algo(rec_input)
+    if len(params) == 1:
+        return algo(rec_input)
+
+    if len(params) == 2 and params[1].annotation == RetentionPolicy:
+        return algo(
+            rec_input,
+            RetentionPolicy.ALL if args.policy == "all"
+            else RetentionPolicy.ANY
+        )
+
+    return None
 
 
 def main():
@@ -157,9 +171,17 @@ def main():
     if result is None:
         return 1
     elif isinstance(result, ReconciliationOutput):
+        print("Minimum cost:", result.cost(), file=sys.stderr)
         print(result)
     else:
-        for next_result in result:
+        results = list(result)
+
+        if not results:
+            print("No solution", file=sys.stderr)
+            return 1
+
+        print("Minimum cost:", results[0].cost(), file=sys.stderr)
+        for next_result in results:
             print(next_result)
 
 
