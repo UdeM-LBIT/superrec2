@@ -154,6 +154,9 @@ algorithm: you need to provide leaf syntenies",
     else:
         results = list(output)
 
+    if not results:
+        return 1
+
     print("Minimum cost:", results[0].cost(), file=sys.stderr)
 
     for result in results:
