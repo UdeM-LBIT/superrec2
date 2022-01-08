@@ -5,8 +5,17 @@ from enum import Enum, auto
 from ete3 import Tree, TreeNode
 from textwrap import indent
 from infinity import inf, Infinity
-from .tree_mapping import TreeMapping, serialize_tree_mapping
-from .synteny import SyntenyMapping, serialize_synteny_mapping
+from .tree_mapping import (
+    TreeMapping,
+    get_species_mapping,
+    parse_tree_mapping,
+    serialize_tree_mapping,
+)
+from .synteny import (
+    SyntenyMapping,
+    parse_synteny_mapping,
+    serialize_synteny_mapping,
+)
 from ..utils.subsequences import (
     subseq_complete,
     mask_from_subseq,
@@ -79,23 +88,70 @@ class ReconciliationInput:
     # Costs of evolutionary events
     costs: CostValues = field(default_factory=get_default_cost)
 
-    def _repr(self):
-        object_tree = self.object_tree.write(format=8, format_root_node=True)
-        species_tree = self.species_lca.tree.write(
-            format=8, format_root_node=True
-        )
-        leaf_object_species = serialize_tree_mapping(self.leaf_object_species)
-        return ",\n".join(
-            (
-                f'object_tree="{object_tree}"',
-                f'species_tree="{species_tree}"',
-                f'leaf_object_species="{leaf_object_species}"',
-                f"costs={self.costs}",
-            )
-        )
+    def to_dict(self):
+        return {
+            "object_tree": self.object_tree.write(
+                format=8, format_root_node=True
+            ),
+            "species_tree": self.species_lca.tree.write(
+                format=8, format_root_node=True
+            ),
+            "leaf_object_species": serialize_tree_mapping(
+                self.leaf_object_species
+            ),
+            "costs": dict(
+                ((event.name, value) for event, value in self.costs.items())
+            ),
+        }
 
     def __repr__(self):
-        return f'{self.__class__.__name__}(\n{indent(self._repr(), "    ")}\n)'
+        params = ",\n".join(
+            f"{key}={repr(value)}" for key, value in self.to_dict().items()
+        )
+        return f'{self.__class__.__name__}(\n{indent(params, " " * 2)}\n)'
+
+    @classmethod
+    def _from_dict(cls, data):
+        object_tree = Tree(data["object_tree"], format=1)
+        species_tree = Tree(data["species_tree"], format=1)
+
+        if "leaf_object_species" in data:
+            leaf_object_species = parse_tree_mapping(
+                object_tree, species_tree, data["leaf_object_species"]
+            )
+        else:
+            leaf_object_species = get_species_mapping(
+                object_tree,
+                species_tree,
+            )
+
+        if "costs" in data:
+            costs = dict(
+                (
+                    (
+                        event
+                        if isinstance(event, Event)
+                        else getattr(NodeEvent, event)
+                        if hasattr(NodeEvent, event)
+                        else getattr(EdgeEvent, event),
+                        value,
+                    )
+                    for event, value in data["costs"].items()
+                )
+            )
+        else:
+            costs = get_default_cost()
+
+        return {
+            "object_tree": object_tree,
+            "species_lca": LowestCommonAncestor(species_tree),
+            "leaf_object_species": leaf_object_species,
+            "costs": costs,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(**cls._from_dict(data))
 
     def __hash__(self):
         return hash(
@@ -124,17 +180,35 @@ class ReconciliationOutput:
     # Mapping of the object tree onto the species tree
     object_species: TreeMapping
 
-    def _repr(self):
-        object_species = serialize_tree_mapping(self.object_species)
-        return ",\n".join(
-            (
-                f"input={repr(self.input)}",
-                f'object_species="{object_species}"',
-            )
-        )
+    def to_dict(self):
+        return {
+            "input": self.input.to_dict(),
+            "object_species": serialize_tree_mapping(self.object_species),
+        }
 
     def __repr__(self):
-        return f'{self.__class__.__name__}(\n{indent(self._repr(), "    ")}\n)'
+        keyvals = self.to_dict()
+        keyvals["input"] = self.input
+        params = ",\n".join(
+            f"{key}={repr(value)}" for key, value in keyvals.items()
+        )
+        return f'{self.__class__.__name__}(\n{indent(params, " " * 2)}\n)'
+
+    @classmethod
+    def _from_dict(cls, data):
+        input = ReconciliationInput.from_dict(data["input"])
+        return {
+            "input": input,
+            "object_species": parse_tree_mapping(
+                input.object_tree,
+                input.species_lca.tree,
+                data["object_species"],
+            ),
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(**cls._from_dict(data))
 
     def node_event(self, node: TreeNode) -> NodeEvent:
         """
@@ -242,21 +316,29 @@ class ReconciliationOutput:
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class SuperReconciliationInput(ReconciliationInput):
     """Input to the super-reconciliation problem."""
 
     # Extant syntenies at the leaves of the synteny tree
     leaf_syntenies: SyntenyMapping = field(default_factory=dict)
 
-    def _repr(self):
-        leaf_syntenies = serialize_synteny_mapping(self.leaf_syntenies)
-        return "\n".join(
-            (super()._repr(), f'leaf_syntenies="{leaf_syntenies}"')
-        )
+    def to_dict(self):
+        return {
+            **super().to_dict(),
+            "leaf_syntenies": serialize_synteny_mapping(self.leaf_syntenies),
+        }
 
-    def __repr__(self):
-        return super().__repr__()
+    @classmethod
+    def _from_dict(cls, data):
+        parent = super()._from_dict(data)
+        return {
+            **parent,
+            "leaf_syntenies": parse_synteny_mapping(
+                parent["object_tree"],
+                data["leaf_syntenies"],
+            ),
+        }
 
     def __hash__(self):
         return hash(
@@ -267,7 +349,7 @@ class SuperReconciliationInput(ReconciliationInput):
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class SuperReconciliationOutput(ReconciliationOutput):
     """Output for the reconciliation problem."""
 
@@ -277,12 +359,22 @@ class SuperReconciliationOutput(ReconciliationOutput):
     # Mapping of internal nodes to syntenies
     syntenies: SyntenyMapping
 
-    def _repr(self):
-        syntenies = serialize_synteny_mapping(self.syntenies)
-        return "\n".join((super()._repr(), f'syntenies="{syntenies}"'))
+    def to_dict(self):
+        return {
+            **super().to_dict(),
+            "syntenies": serialize_synteny_mapping(self.syntenies),
+        }
 
-    def __repr__(self):
-        return super().__repr__()
+    @classmethod
+    def _from_dict(cls, data):
+        parent = super()._from_dict(data)
+        return {
+            **parent,
+            "syntenies": parse_synteny_mapping(
+                parent["input"].object_tree,
+                data["syntenies"],
+            ),
+        }
 
     def reconciliation_cost(self):
         """Compute the cost of the reconciliation part."""

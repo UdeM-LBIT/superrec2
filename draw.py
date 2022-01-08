@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
-"""
-Draw a representation of the (super-)reconciliation of two trees.
-
-Input arguments OBJECT_TREE, SPECIES_TREE, RECONCILIATION and SYNTENIES can
-be passed either as plain strings or as a path to a file.
-"""
+"""Draw a representation of the (super-)reconciliation of two trees."""
 import argparse
+import json
 import textwrap
 import sys
 from ete3 import Tree
@@ -24,73 +20,61 @@ def parse_arguments():
     """Retrieve arguments or show help."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "object_tree",
-        metavar="OBJECT_TREE",
-        help="embedded object tree (Newick format)",
-    )
-    parser.add_argument(
-        "species_tree",
-        metavar="SPECIES_TREE",
-        help="host species tree (Newick format)",
-    )
-    parser.add_argument(
-        "reconciliation",
-        metavar="RECONCILIATION",
-        help="mapping of internal genes onto species",
-    )
-    parser.add_argument(
-        "syntenies",
-        metavar="SYNTENIES",
+        "output_type",
+        metavar="TYPE",
         nargs="?",
-        help="synteny labeling of gene nodes",
+        choices=("tikz", "pdf"),
+        help="kind of output to generate (default: guess based on output file \
+extension, or 'tikz' for output to stdout)",
+    )
+    parser.add_argument(
+        "--input",
+        metavar="PATH",
+        default="-",
+        help="path to a file defining the reconciliation input \
+(default: read from stdin)",
     )
     parser.add_argument(
         "--output",
         metavar="PATH",
         default="-",
-        help="where to output the result (default: output to stdout)",
+        help="path where the result will be stored (default: output to stdout)",
     )
     return parser.parse_args()
 
 
 def generate_tikz(args):
     """Generate TikZ code corresponding to the given reconciliation."""
-    object_tree = Tree(args.object_tree, format=1)
-    species_tree = Tree(args.species_tree, format=1)
-
-    mapping = {
-        **get_species_mapping(object_tree, species_tree),
-        **parse_tree_mapping(object_tree, species_tree, args.reconciliation),
-    }
-    syntenies = (
-        parse_synteny_mapping(object_tree, args.syntenies)
-        if args.syntenies is not None
-        else {}
-    )
-    srec_input = SuperReconciliationInput(
-        object_tree=object_tree,
-        species_lca=LowestCommonAncestor(species_tree),
-        leaf_object_species={},
-        costs={},
-        leaf_syntenies={},
-    )
-    srec_output = SuperReconciliationOutput(
-        input=srec_input,
-        object_species=mapping,
-        syntenies=syntenies,
-    )
-    layout_info = compute_layout(srec_output)
-    return render_to_tikz(srec_output, layout_info)
+    infile = open(args.input, "r") if args.input != "-" else sys.stdin
+    data = json.load(infile)
+    rec_output = SuperReconciliationOutput.from_dict(data)
+    layout_info = compute_layout(rec_output)
+    return render_to_tikz(rec_output, layout_info)
 
 
 def output(args, tikz):
     """Generate output."""
-    if args.output == "-":
-        print(tikz, end="")
-    elif args.output.endswith(".tex"):
-        with open(args.output, "w") as tex_source:
-            tex_source.write(tikz)
-    elif args.output.endswith(".pdf"):
+    outfile = (
+        open(args.output, "wb") if args.output != "-" else sys.stdout.buffer
+    )
+    output_type = args.output_type
+
+    if output_type is None:
+        if args.output == "-" or args.output.endswith(".tex"):
+            output_type = "tikz"
+        elif args.output.endswith(".pdf"):
+            output_type = "pdf"
+        else:
+            print(
+                "Error: Unknown file extension, please specify output \
+type explicitly",
+                file=sys.stderr,
+            )
+            return 1
+
+    if output_type == "tikz":
+        outfile.write(tikz.encode())
+    elif output_type == "pdf":
         try:
             xelatex_compile(
                 source=textwrap.dedent(
@@ -110,7 +94,7 @@ def output(args, tikz):
                     \end{document}
                     """
                 ).lstrip(),
-                dest=args.output,
+                dest=outfile,
             )
         except TeXError as err:
             print(f"XeLaTeX returned an error (code: {err.code})")
@@ -120,8 +104,6 @@ def output(args, tikz):
                 print(f"> {line}")
 
             return 1
-    else:
-        raise RuntimeError(f"Unrecognized file extension: {args.output}")
 
     return 0
 

@@ -3,7 +3,7 @@ import os
 import subprocess
 import shutil
 import tempfile
-from typing import Iterable, List, NamedTuple
+from typing import Iterable, IO, List, NamedTuple
 from .geometry import Size
 
 
@@ -16,7 +16,7 @@ class TeXError(Exception):
         self.message = message
 
 
-def xelatex_compile(source: str, dest: str = None) -> str:
+def xelatex_compile(source: str, dest: IO = None) -> str:
     """
     Compile a LaTeX source file.
 
@@ -47,7 +47,8 @@ def xelatex_compile(source: str, dest: str = None) -> str:
             raise TeXError(result.returncode, out)
 
         if dest is not None:
-            shutil.move(pdf_path, dest)
+            with open(pdf_path, "rb") as output_file:
+                shutil.copyfileobj(output_file, dest)
 
         return out
 

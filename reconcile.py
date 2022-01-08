@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
-"""
-Compute a minimum-cost (super-)reconciliation of two trees.
-
-Input arguments OBJECT_TREE, SPECIES_TREE, and LEAF_SYNTENIES can be passed
-either as plain strings or as a path to a file.
-
-Available algorithms are:
-
-"""
+"""Compute a minimum-cost (super-)reconciliation of two trees."""
 import argparse
 import inspect
+import json
 import textwrap
 import sys
 from infinity import inf
@@ -56,6 +49,8 @@ cost_events = {
 
 
 # Append each algorithm’s description to this module help string
+__doc__ += "\nAvailable algorithms:\n\n"
+
 for key, impl in algorithms.items():
     paragraphs = textwrap.dedent(impl.__doc__).split("\n\n")
     unwrapped = " ".join(paragraphs[0].split("\n")).strip()
@@ -77,7 +72,7 @@ def parse_arguments():
     parser.add_argument(
         "algorithm",
         metavar="ALGO",
-        help="algorithm to use to reconcile",
+        help="reconciliation algorithm to use",
         choices=set(algorithms.keys()),
     )
     parser.add_argument(
@@ -87,20 +82,18 @@ def parse_arguments():
         choices=("any", "all"),
     )
     parser.add_argument(
-        "object_tree",
-        metavar="OBJECT_TREE",
-        help="object tree to embed (Newick format)",
+        "--input",
+        metavar="PATH",
+        default="-",
+        help="path to a file defining the reconciliation input \
+(default: read from stdin)",
     )
     parser.add_argument(
-        "species_tree",
-        metavar="SPECIES_TREE",
-        help="host species tree (Newick format)",
-    )
-    parser.add_argument(
-        "leaf_syntenies",
-        metavar="LEAF_SYNTENIES",
-        nargs="?",
-        help="labelling of leaf objects with syntenies (if applicable)",
+        "--output",
+        metavar="PATH",
+        default="-",
+        help="path where the resulting reconciliations will be stored \
+(default: output to stdout)",
     )
     for kind, (argname, fullname) in cost_events.items():
         parser.add_argument(
@@ -114,32 +107,14 @@ def parse_arguments():
 
 
 def call_algorithm(args):
-    object_tree = Tree(args.object_tree, format=1)
-    species_tree = Tree(args.species_tree, format=1)
-    costs = dict(
-        (
-            (kind, getattr(args, f"cost_{argname}"))
-            for kind, (argname, _) in cost_events.items()
-        )
-    )
+    infile = open(args.input, "r") if args.input != "-" else sys.stdin
+    outfile = open(args.output, "w") if args.output != "-" else sys.stdout
+    data = json.load(infile)
 
-    if args.leaf_syntenies is None:
-        rec_input = ReconciliationInput(
-            object_tree=object_tree,
-            species_lca=LowestCommonAncestor(species_tree),
-            leaf_object_species=get_species_mapping(object_tree, species_tree),
-            costs=costs,
-        )
+    if "leaf_syntenies" in data:
+        rec_input = SuperReconciliationInput.from_dict(data)
     else:
-        rec_input = SuperReconciliationInput(
-            object_tree=object_tree,
-            species_lca=LowestCommonAncestor(species_tree),
-            leaf_object_species=get_species_mapping(object_tree, species_tree),
-            costs=costs,
-            leaf_syntenies=parse_synteny_mapping(
-                object_tree, args.leaf_syntenies
-            ),
-        )
+        rec_input = ReconciliationInput.from_dict(data)
 
     algo = algorithms[args.algorithm]
     algo_signature = inspect.signature(algo)
@@ -149,50 +124,48 @@ def call_algorithm(args):
         if params[0].annotation == ReconciliationInput:
             print(
                 f"Warning: '{args.algorithm}' is not a super-reconciliation \
-algorithm: the LEAF_SYNTENIES argument will be ignored",
+algorithm: declared leaf syntenies will be ignored",
                 file=sys.stderr,
             )
         else:
             print(
                 f"Error: '{args.algorithm}' is a super-reconciliation \
-algorithm: you need to provide the LEAF_SYNTENIES argument",
+algorithm: you need to provide leaf syntenies",
                 file=sys.stderr,
             )
-            return None
+            return 1
 
     if len(params) == 1:
-        return algo(rec_input)
-
-    if len(params) == 2 and params[1].annotation == RetentionPolicy:
-        return algo(
+        output = algo(rec_input)
+    elif len(params) == 2 and params[1].annotation == RetentionPolicy:
+        output = algo(
             rec_input,
             RetentionPolicy.ALL
             if args.policy == "all"
             else RetentionPolicy.ANY,
         )
+    else:
+        return 1
 
-    return None
+    if output is None:
+        results = []
+    elif isinstance(output, ReconciliationOutput):
+        results = [output]
+    else:
+        results = list(output)
+
+    print("Minimum cost:", results[0].cost(), file=sys.stderr)
+
+    for result in results:
+        json.dump(result.to_dict(), outfile)
+        print(file=outfile)
+
+    return 0
 
 
 def main():
     args = parse_arguments()
-    result = call_algorithm(args)
-
-    if result is None:
-        return 1
-    elif isinstance(result, ReconciliationOutput):
-        print("Minimum cost:", result.cost(), file=sys.stderr)
-        print(result)
-    else:
-        results = list(result)
-
-        if not results:
-            print("No solution", file=sys.stderr)
-            return 1
-
-        print("Minimum cost:", results[0].cost(), file=sys.stderr)
-        for next_result in results:
-            print(next_result)
+    return call_algorithm(args)
 
 
 if __name__ == "__main__":
