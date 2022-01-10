@@ -111,3 +111,43 @@ def toposort_all(graph: Mapping[Node, Set[Node]]) -> List[List[Node]]:
         subresult.reverse()
 
     return results
+
+
+def find_cycle(graph: Mapping[Node, Set[Node]]) -> Optional[List[Node]]:
+    """
+    Find a directed cycle in a graph.
+
+    :param graph: a dict mapping nodes of the graph to their successor nodes
+    :returns: a directed cycle, if there is any
+    """
+    stack: List[Node] = []
+    parents: Dict[Node, Node] = {}
+
+    cycle_start = None
+    initial = next(iter(graph.keys()))
+    stack.append(initial)
+    parents[initial] = initial
+
+    while stack and cycle_start is None:
+        current = stack.pop()
+
+        for neighbor in graph[current]:
+            if neighbor in parents:
+                parents[neighbor] = current
+                cycle_start = neighbor
+                break
+            else:
+                parents[neighbor] = current
+                stack.append(neighbor)
+
+    if cycle_start is None:
+        return None
+
+    cycle: List[Node] = [cycle_start]
+    current = parents[cycle_start]
+
+    while current != cycle_start and current != parents[current]:
+        cycle.append(current)
+        current = parents[current]
+
+    return cycle

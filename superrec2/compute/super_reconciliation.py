@@ -11,9 +11,10 @@ from typing import (
     Sequence,
     Set,
 )
+import sys
 from ete3 import Tree, TreeNode
 from .reconciliation import reconcile_lca
-from ..utils.toposort import toposort_all
+from ..utils.toposort import toposort_all, find_cycle
 from ..utils.trees import LowestCommonAncestor
 from ..utils.subsequences import (
     subseq_complete,
@@ -362,12 +363,21 @@ def _spfs(
     allowed_species: Callable[[TreeNode], Iterable[TreeNode]],
     allowed_syntenies: Callable[[TreeNode], Iterable[int]],
 ) -> Set[SuperReconciliationOutput]:
-    rec_output = reconcile_lca(srec_input)
     synteny_tree = srec_input.object_tree
     leaf_syntenies = srec_input.leaf_syntenies
 
     if synteny_tree not in leaf_syntenies:
-        root_orderings = toposort_all(_make_prec_graph(leaf_syntenies))
+        prec_graph = _make_prec_graph(leaf_syntenies)
+        root_orderings = toposort_all(prec_graph)
+
+        if not root_orderings:
+            cycle = find_cycle(prec_graph)
+
+            if cycle:
+                print(
+                    f"Warning: Family cycle detected: {', '.join(cycle)}",
+                    file=sys.stderr,
+                )
     else:
         root_orderings = (leaf_syntenies[synteny_tree],)
 

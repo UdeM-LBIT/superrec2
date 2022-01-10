@@ -1,6 +1,26 @@
 from itertools import permutations
+from typing import List, TypeVar
 import unittest
-from .toposort import toposort, toposort_all
+from .toposort import toposort, toposort_all, find_cycle
+
+
+T = TypeVar("T")
+
+
+def assertRotationOf(l1: List[T], l2: List[T]):
+    if len(l1) != len(l2):
+        raise AssertionError(f"'{l1}' is not a rotation of '{l2}': lengths \
+differ")
+
+    for i in range(len(l1)):
+        if l1[i:] + l1[:i] == l2:
+            return
+
+    for i in range(len(l1)):
+        if l1[i::-1] + l1[:i:-1] == l2:
+            return
+
+    raise AssertionError(f"'{l1}' is not a rotation of '{l2}'")
 
 
 class TestUtilsToposort(unittest.TestCase):
@@ -106,4 +126,58 @@ class TestUtilsToposort(unittest.TestCase):
                 }
             ),
             [],
+        )
+
+    def test_find_cycle(self):
+        assertRotationOf(
+            find_cycle(
+                {
+                    0: [1],
+                    1: [2],
+                    2: [0],
+                }
+            ),
+            [0, 1, 2],
+        )
+
+        self.assertEqual(
+            find_cycle(
+                {
+                    0: [0],
+                    1: [],
+                    2: [3],
+                    3: [1],
+                    4: [0, 1],
+                    5: [0, 2],
+                }
+            ),
+            [0],
+        )
+
+        assertRotationOf(
+            find_cycle(
+                {
+                    0: [1],
+                    1: [2],
+                    2: [3, 4],
+                    3: [4, 5],
+                    4: [6],
+                    5: [4],
+                    6: [1],
+                }
+            ),
+            [1, 2, 4, 6],
+        )
+
+        self.assertIsNone(
+            find_cycle(
+                {
+                    0: [],
+                    1: [],
+                    2: [3],
+                    3: [1],
+                    4: [0, 1],
+                    5: [0, 2],
+                }
+            )
         )
