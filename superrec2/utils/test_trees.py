@@ -8,6 +8,10 @@ from .trees import (
     all_trees_from_triples,
     supertree,
     all_supertrees,
+    is_binary,
+    graft,
+    arrange_leaves,
+    binarize,
 )
 
 
@@ -241,4 +245,122 @@ class TestSupertree(unittest.TestCase):
                 Tree("(((Z1,Y1),X1),(X3,X2));").get_topology_id(),
                 Tree("((Z1,(X1,Y1)),(X3,X2));").get_topology_id(),
             ),
+        )
+
+class TestBinary(unittest.TestCase):
+    def assertTreeResults(self, expect, actual):
+        self.assertCountEqual(
+            list(map(lambda tree: tree.get_topology_id(), expect)),
+            list(map(lambda tree: tree.get_topology_id(), actual)),
+        )
+
+    def test_is_binary(self):
+        self.assertTrue(is_binary(Tree("A;")))
+        self.assertTrue(is_binary(Tree("(A,B);")))
+        self.assertTrue(is_binary(Tree("(A,(B,C));")))
+        self.assertTrue(is_binary(Tree("((A,B),C);")))
+        self.assertTrue(is_binary(Tree("((A,B),(C,D));")))
+        self.assertTrue(is_binary(Tree("((((A,B),C),D),E);")))
+        self.assertTrue(is_binary(Tree("(A,(B,(C,(D,E))));")))
+        self.assertTrue(is_binary(Tree("(A,(B,(C,(D,E))));")))
+        self.assertFalse(is_binary(Tree("(A);")))
+        self.assertFalse(is_binary(Tree("(A,B,C);")))
+        self.assertFalse(is_binary(Tree("(((((A,B,C),D),E),F),G);")))
+        self.assertFalse(is_binary(Tree("(A,(B,(C,(D,(E,F,G)))));")))
+        self.assertFalse(is_binary(Tree("(A,(B,(C,(D),E),F),G);")))
+
+    def test_graft(self):
+        self.assertTreeResults(
+            graft(Tree("A;"), Tree("X;")),
+            (Tree("(A,X);"),),
+        )
+        self.assertTreeResults(
+            graft(Tree("(A,B);"), Tree("X;")),
+            (Tree("((A,X),B);"), Tree("(A,(B,X));"), Tree("((A,B),X);")),
+        )
+        self.assertTreeResults(
+            graft(Tree("(A,(B,C));"), Tree("X;")),
+            (
+                Tree("(X,(A,(B,C)));"),
+                Tree("((A,X),(B,C));"),
+                Tree("(A,(X,(B,C)));"),
+                Tree("(A,((B,X),C));"),
+                Tree("(A,(B,(C,X)));"),
+            ),
+        )
+
+    def test_arrange_leaves(self):
+        self.assertTreeResults(arrange_leaves(()), ())
+        self.assertTreeResults(arrange_leaves((Tree("A;"),)), (Tree("A;"),))
+        self.assertTreeResults(
+            arrange_leaves((Tree("A;"), Tree("B;"))),
+            (Tree("(A,B);"),)
+        )
+        self.assertTreeResults(
+            arrange_leaves((Tree("A;"), Tree("B;"), Tree("C;"))),
+            (
+                Tree("(A,(B,C));"),
+                Tree("(B,(A,C));"),
+                Tree("(C,(A,B));"),
+            ),
+        )
+
+    def test_binarize(self):
+        self.assertTreeResults(
+            binarize(Tree("(((A,B),(C,D,E,F),G),H);")),
+            (
+                Tree("((((A,B),(((C,D),E),F)),G),H);"),
+                Tree("((((A,B),(((C,D),F),E)),G),H);"),
+                Tree("((((A,B),((C,D),(E,F))),G),H);"),
+                Tree("((((A,B),(((C,E),D),F)),G),H);"),
+                Tree("((((A,B),(((C,E),F),D)),G),H);"),
+                Tree("((((A,B),((C,E),(D,F))),G),H);"),
+                Tree("((((A,B),(((C,F),D),E)),G),H);"),
+                Tree("((((A,B),(((C,F),E),D)),G),H);"),
+                Tree("((((A,B),((C,F),(E,D))),G),H);"),
+                Tree("((((A,B),(((D,E),C),F)),G),H);"),
+                Tree("((((A,B),(((D,E),F),C)),G),H);"),
+                Tree("((((A,B),(((D,F),C),E)),G),H);"),
+                Tree("((((A,B),(((D,F),E),C)),G),H);"),
+                Tree("((((A,B),(((E,F),C),D)),G),H);"),
+                Tree("((((A,B),(((E,F),D),C)),G),H);"),
+                Tree("((((A,B),G),(((C,D),E),F)),H);"),
+                Tree("((((A,B),G),(((C,D),F),E)),H);"),
+                Tree("((((A,B),G),((C,D),(E,F))),H);"),
+                Tree("((((A,B),G),(((C,E),D),F)),H);"),
+                Tree("((((A,B),G),(((C,E),F),D)),H);"),
+                Tree("((((A,B),G),((C,E),(D,F))),H);"),
+                Tree("((((A,B),G),(((C,F),D),E)),H);"),
+                Tree("((((A,B),G),(((C,F),E),D)),H);"),
+                Tree("((((A,B),G),((C,F),(E,D))),H);"),
+                Tree("((((A,B),G),(((D,E),C),F)),H);"),
+                Tree("((((A,B),G),(((D,E),F),C)),H);"),
+                Tree("((((A,B),G),(((D,F),C),E)),H);"),
+                Tree("((((A,B),G),(((D,F),E),C)),H);"),
+                Tree("((((A,B),G),(((E,F),C),D)),H);"),
+                Tree("((((A,B),G),(((E,F),D),C)),H);"),
+                Tree("(((A,B),((((C,D),E),F),G)),H);"),
+                Tree("(((A,B),((((C,D),F),E),G)),H);"),
+                Tree("(((A,B),(((C,D),(E,F)),G)),H);"),
+                Tree("(((A,B),((((C,E),D),F),G)),H);"),
+                Tree("(((A,B),((((C,E),F),D),G)),H);"),
+                Tree("(((A,B),(((C,E),(D,F)),G)),H);"),
+                Tree("(((A,B),((((C,F),D),E),G)),H);"),
+                Tree("(((A,B),((((C,F),E),D),G)),H);"),
+                Tree("(((A,B),(((C,F),(E,D)),G)),H);"),
+                Tree("(((A,B),((((D,E),C),F),G)),H);"),
+                Tree("(((A,B),((((D,E),F),C),G)),H);"),
+                Tree("(((A,B),((((D,F),C),E),G)),H);"),
+                Tree("(((A,B),((((D,F),E),C),G)),H);"),
+                Tree("(((A,B),((((E,F),C),D),G)),H);"),
+                Tree("(((A,B),((((E,F),D),C),G)),H);"),
+            ),
+        )
+        self.assertTreeResults(
+            binarize(Tree("(((A,B),(C,D,E,F),G),H);")),
+            (
+                Tree(newick, quoted_node_names=True)
+                for newick
+                in Tree("(((A,B),(C,D,E,F),G),H);").expand_polytomies()
+            )
         )

@@ -1,6 +1,6 @@
-from typing import Mapping, Union
+from typing import Generator, Mapping, Type, TypeVar, Union
 from dataclasses import dataclass, field
-from itertools import chain
+from itertools import chain, product
 from enum import Enum, auto
 from ete3 import Tree, TreeNode
 from textwrap import indent
@@ -21,7 +21,7 @@ from ..utils.subsequences import (
     mask_from_subseq,
     subseq_segment_dist,
 )
-from ..utils.trees import LowestCommonAncestor
+from ..utils.trees import LowestCommonAncestor, is_binary, binarize
 
 
 class NodeEvent(Enum):
@@ -70,6 +70,9 @@ def get_default_cost() -> CostValues:
         EdgeEvent.FULL_LOSS: 1,
         EdgeEvent.SEGMENTAL_LOSS: 1,
     }
+
+
+Self = TypeVar("Self", bound="ReconciliationInput")
 
 
 @dataclass(frozen=True)
@@ -150,8 +153,51 @@ class ReconciliationInput:
         }
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls: Type[Self], data) -> Self:
         return cls(**cls._from_dict(data))
+
+    def binarize(self: Self) -> Generator[Self, None, None]:
+        """
+        Generate all possible inputs that can be derived from this one
+        by resolving polytomies in the object and species trees. If the
+        input is already binary, it is returned unchanged.
+        """
+        if is_binary(self.object_tree) and is_binary(self.species_lca.tree):
+            yield self
+            return
+
+        for object_tree, species_tree in product(
+            binarize(self.object_tree),
+            binarize(self.species_lca.tree),
+        ):
+            result = self.__class__.from_dict({
+                **self.to_dict(),
+                "object_tree": object_tree.write(format=8),
+                "species_tree": species_tree.write(format=8),
+            })
+            yield result
+
+    def label_internal(self) -> None:
+        """
+        Ensure that all internal nodes have a label by automatically
+        generating new ones for unlabeled nodes.
+        """
+        next_object = 0
+        next_species = 0
+
+        for node_object in self.object_tree.traverse("preorder"):
+            if not node_object.name or node_object.name == "NoName":
+                while f"O{next_object}" in self.object_tree:
+                    next_object += 1
+
+                node_object.name = f"O{next_object}"
+
+        for node_species in self.species_lca.tree.traverse("preorder"):
+            if not node_species.name or node_species.name == "NoName":
+                while f"S{next_species}" in self.species_lca.tree:
+                    next_species += 1
+
+                node_species.name = f"S{next_species}"
 
     def __hash__(self):
         return hash(

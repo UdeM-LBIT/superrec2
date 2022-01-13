@@ -1,5 +1,5 @@
 test:
-	python -m unittest discover --buffer
+	python -m unittest discover --buffer --verbose
 
 lint:
 	pylint --ignore-patterns "test_" *.py superrec2

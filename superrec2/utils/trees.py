@@ -1,6 +1,6 @@
 """Common operations on trees."""
-from itertools import product
-from typing import Dict, Iterable, List, Optional, Tuple
+from itertools import product, chain
+from typing import Dict, Generator, Iterable, List, Optional, Set, Tuple
 from ete3 import Tree, TreeNode
 from .range_min_query import RangeMinQuery
 from .disjoint_set import DisjointSet
@@ -375,3 +375,81 @@ def all_supertrees(trees: Iterable[Tree]) -> List[Tree]:
         (may be empty)
     """
     return all_trees_from_triples(*trees_to_triples(trees))
+
+
+def is_binary(tree: Tree) -> bool:
+    """Check if a tree is binary."""
+    return tree.is_leaf() or (
+        len(tree.children) == 2
+        and all(is_binary(child) for child in tree.children)
+    )
+
+
+def graft(tree: Tree, leaf: Tree, ignore: Optional[Set[int]] = None) \
+-> Generator[Tree, None, None]:
+    """
+    Generate all binary trees that can be obtained by grafting a new leaf at
+    any position in a binary tree. Recursion inside some nodes of :param:`tree`
+    can be restricted by adding their topology ID to the `ignore` set.
+    """
+    result = Tree()
+    result.add_child(leaf.copy())
+    result.add_child(tree.copy())
+    yield result
+
+    if (
+        not tree.is_leaf() and
+        (ignore is None or tree.get_topology_id() not in ignore)
+    ):
+        left, right = tree.children
+
+        for graft_left in graft(left, leaf, ignore):
+            result = Tree()
+            result.add_child(graft_left)
+            result.add_child(right.copy())
+            yield result
+
+        for graft_right in graft(right, leaf, ignore):
+            result = Tree()
+            result.add_child(left.copy())
+            result.add_child(graft_right)
+            yield result
+
+
+def arrange_leaves(leaves: List[Tree]) -> Generator[Tree, None, None]:
+    """Generate all binary trees that display a set of leaves."""
+    if len(leaves) == 0:
+        return
+
+    if len(leaves) == 1:
+        yield leaves[0].copy()
+        return
+
+    for subtree in arrange_leaves(leaves[1:]):
+        yield from graft(
+            subtree,
+            leaves[0],
+            ignore=set(leaf.get_topology_id() for leaf in leaves[1:]),
+        )
+
+
+def binarize(tree: Tree) -> List[Tree]:
+    """
+    Generate all (partially) binary trees obtained by expanding polytomies in a
+    tree containing nodes with three or more children.
+    """
+    subtrees = {}
+
+    for node in tree.traverse("postorder"):
+        if node.is_leaf():
+            subtrees[node] = node
+        else:
+            subtrees[node] = [
+                subtree
+                for descs in product(
+                    *(subtrees[desc] for desc in node.children)
+                )
+                for subtree in arrange_leaves(descs)
+            ]
+
+    return subtrees[tree]
