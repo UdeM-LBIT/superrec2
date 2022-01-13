@@ -1,5 +1,5 @@
 """Compute and represent synteny-labeled reconciliations."""
-from itertools import product
+from itertools import product, islice
 from typing import (
     Any,
     Callable,
@@ -12,6 +12,7 @@ from typing import (
     Set,
 )
 import sys
+from tqdm import tqdm
 from ete3 import Tree, TreeNode
 from .reconciliation import reconcile_lca
 from ..utils.toposort import toposort_all, find_cycle
@@ -22,7 +23,7 @@ from ..utils.subsequences import (
     subseq_from_mask,
     subseq_segment_dist,
 )
-from ..model.synteny import Synteny, SyntenyMapping
+from ..model.synteny import Synteny, SyntenyMapping, serialize_synteny
 from ..model.reconciliation import (
     ReconciliationOutput,
     SuperReconciliationInput,
@@ -240,7 +241,13 @@ def _compute_spfs_table(
         retention_policy,
     )
 
-    for root_object in srec_input.object_tree.traverse("postorder"):
+    for root_object in tqdm(
+        srec_input.object_tree.traverse("postorder"),
+        desc="Table entries",
+        total=sum(1 for _ in srec_input.object_tree.traverse()),
+        ascii=True,
+        leave=False,
+    ):
         if root_object.is_leaf():
             synteny = mask_from_subseq(
                 srec_input.leaf_syntenies[root_object], root_ordering
@@ -250,9 +257,20 @@ def _compute_spfs_table(
         else:
             # Test all possible species mapping and synteny subsequences for
             # the current node’s synteny
-            for root_species, root_synteny in product(
+            options_count = sum(1 for _ in product(
                 allowed_species(srec_input.species_lca.tree, root_object),
                 allowed_syntenies(root_ordering, root_object),
+            ))
+
+            for root_species, root_synteny in tqdm(
+                product(
+                    allowed_species(srec_input.species_lca.tree, root_object),
+                    allowed_syntenies(root_ordering, root_object),
+                ),
+                desc="Object assignments",
+                total=options_count,
+                ascii=True,
+                leave=False,
             ):
                 _compute_spfs_entry(
                     srec_input.species_lca,
@@ -363,52 +381,68 @@ def _spfs(
     allowed_species: Callable[[TreeNode], Iterable[TreeNode]],
     allowed_syntenies: Callable[[TreeNode], Iterable[int]],
 ) -> Set[SuperReconciliationOutput]:
-    synteny_tree = srec_input.object_tree
-    leaf_syntenies = srec_input.leaf_syntenies
-
-    if synteny_tree not in leaf_syntenies:
-        prec_graph = _make_prec_graph(leaf_syntenies)
-        root_orderings = toposort_all(prec_graph)
-
-        if not root_orderings:
-            cycle = find_cycle(prec_graph)
-
-            if cycle:
-                print(
-                    f"Warning: Family cycle detected: {', '.join(cycle)}",
-                    file=sys.stderr,
-                )
-    else:
-        root_orderings = (leaf_syntenies[synteny_tree],)
-
     results: Entry[int, SuperReconciliationOutput] = Entry(
         MergePolicy.MIN, policy
     )
 
-    for root_species, root_ordering in product(
-        srec_input.species_lca.tree.traverse(), root_orderings
+    for srec_input_bin in tqdm(
+        srec_input.binarize(),
+        desc="Multifurcation resolutions",
+        total=sum(1 for _ in srec_input.binarize()),
+        ascii=True,
     ):
-        table = _compute_spfs_table(
-            srec_input,
-            root_ordering,
-            allowed_species,
-            allowed_syntenies,
-            policy,
-        )
+        synteny_tree = srec_input_bin.object_tree
+        leaf_syntenies = srec_input_bin.leaf_syntenies
 
-        results.update(
-            *map(
-                lambda output: Candidate(output.cost(), output),
-                _decode_spfs_table(
-                    root_ordering,
-                    synteny_tree,
-                    root_species,
-                    subseq_complete(root_ordering),
-                    srec_input,
-                    table,
-                ),
+        if synteny_tree not in leaf_syntenies:
+            prec_graph = _make_prec_graph(leaf_syntenies)
+            root_orderings = toposort_all(prec_graph)
+
+            if not root_orderings:
+                cycle = find_cycle(prec_graph)
+
+                if cycle:
+                    print(
+                        f"Warning: Family cycle detected: {', '.join(cycle)}",
+                        file=sys.stderr,
+                    )
+        else:
+            root_orderings = (leaf_syntenies[synteny_tree],)
+
+        for root_ordering in tqdm(
+            root_orderings,
+            desc="Root synteny orderings",
+            ascii=True,
+            leave=False,
+        ):
+            table = _compute_spfs_table(
+                srec_input_bin,
+                root_ordering,
+                allowed_species,
+                allowed_syntenies,
+                policy,
             )
-        )
+
+            for root_species in tqdm(
+                srec_input_bin.species_lca.tree.traverse(),
+                desc="Generate solutions",
+                total=sum(1 for _ in srec_input.species_lca.tree.traverse()),
+                ascii=True,
+                leave=False,
+            ):
+                results.update(
+                    *map(
+                        lambda output: Candidate(output.cost(), output),
+                        _decode_spfs_table(
+                            root_ordering,
+                            synteny_tree,
+                            root_species,
+                            subseq_complete(root_ordering),
+                            srec_input_bin,
+                            table,
+                        ),
+                    )
+                )
 
     return results.infos()
 
