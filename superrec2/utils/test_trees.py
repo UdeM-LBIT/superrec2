@@ -247,6 +247,7 @@ class TestSupertree(unittest.TestCase):
             ),
         )
 
+
 class TestBinary(unittest.TestCase):
     def assertTreeResults(self, expect, actual):
         self.assertCountEqual(
@@ -293,8 +294,7 @@ class TestBinary(unittest.TestCase):
         self.assertTreeResults(arrange_leaves(()), ())
         self.assertTreeResults(arrange_leaves((Tree("A;"),)), (Tree("A;"),))
         self.assertTreeResults(
-            arrange_leaves((Tree("A;"), Tree("B;"))),
-            (Tree("(A,B);"),)
+            arrange_leaves((Tree("A;"), Tree("B;"))), (Tree("(A,B);"),)
         )
         self.assertTreeResults(
             arrange_leaves((Tree("A;"), Tree("B;"), Tree("C;"))),
@@ -360,7 +360,8 @@ class TestBinary(unittest.TestCase):
             binarize(Tree("(((A,B),(C,D,E,F),G),H);")),
             (
                 Tree(newick, quoted_node_names=True)
-                for newick
-                in Tree("(((A,B),(C,D,E,F),G),H);").expand_polytomies()
-            )
+                for newick in Tree(
+                    "(((A,B),(C,D,E,F),G),H);"
+                ).expand_polytomies()
+            ),
         )

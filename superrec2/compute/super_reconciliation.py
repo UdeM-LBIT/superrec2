@@ -257,10 +257,13 @@ def _compute_spfs_table(
         else:
             # Test all possible species mapping and synteny subsequences for
             # the current node’s synteny
-            options_count = sum(1 for _ in product(
-                allowed_species(srec_input.species_lca.tree, root_object),
-                allowed_syntenies(root_ordering, root_object),
-            ))
+            options_count = sum(
+                1
+                for _ in product(
+                    allowed_species(srec_input.species_lca.tree, root_object),
+                    allowed_syntenies(root_ordering, root_object),
+                )
+            )
 
             for root_species, root_synteny in tqdm(
                 product(

@@ -385,8 +385,9 @@ def is_binary(tree: Tree) -> bool:
     )
 
 
-def graft(tree: Tree, leaf: Tree, ignore: Optional[Set[int]] = None) \
--> Generator[Tree, None, None]:
+def graft(
+    tree: Tree, leaf: Tree, ignore: Optional[Set[int]] = None
+) -> Generator[Tree, None, None]:
     """
     Generate all binary trees that can be obtained by grafting a new leaf at
     any position in a binary tree. Recursion inside some nodes of :param:`tree`
@@ -397,9 +398,8 @@ def graft(tree: Tree, leaf: Tree, ignore: Optional[Set[int]] = None) \
     result.add_child(tree.copy())
     yield result
 
-    if (
-        not tree.is_leaf() and
-        (ignore is None or tree.get_topology_id() not in ignore)
+    if not tree.is_leaf() and (
+        ignore is None or tree.get_topology_id() not in ignore
     ):
         left, right = tree.children
 

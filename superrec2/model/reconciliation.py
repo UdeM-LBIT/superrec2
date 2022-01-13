@@ -170,11 +170,13 @@ class ReconciliationInput:
             binarize(self.object_tree),
             binarize(self.species_lca.tree),
         ):
-            result = self.__class__.from_dict({
-                **self.to_dict(),
-                "object_tree": object_tree.write(format=8),
-                "species_tree": species_tree.write(format=8),
-            })
+            result = self.__class__.from_dict(
+                {
+                    **self.to_dict(),
+                    "object_tree": object_tree.write(format=8),
+                    "species_tree": species_tree.write(format=8),
+                }
+            )
             yield result
 
     def label_internal(self) -> None:

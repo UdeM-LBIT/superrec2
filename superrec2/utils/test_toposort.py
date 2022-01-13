@@ -9,8 +9,10 @@ T = TypeVar("T")
 
 def assertRotationOf(l1: List[T], l2: List[T]):
     if len(l1) != len(l2):
-        raise AssertionError(f"'{l1}' is not a rotation of '{l2}': lengths \
-differ")
+        raise AssertionError(
+            f"'{l1}' is not a rotation of '{l2}': lengths \
+differ"
+        )
 
     for i in range(len(l1)):
         if l1[i:] + l1[:i] == l2:
