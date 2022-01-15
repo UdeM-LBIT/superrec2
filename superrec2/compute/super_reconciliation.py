@@ -1,4 +1,4 @@
-"""Compute and represent synteny-labeled reconciliations."""
+"""Compute synteny-labeled reconciliations."""
 from itertools import product, islice
 from typing import (
     Any,
@@ -394,6 +394,7 @@ def _spfs(
         total=sum(1 for _ in srec_input.binarize()),
         ascii=True,
     ):
+        srec_input_bin.label_internal()
         synteny_tree = srec_input_bin.object_tree
         leaf_syntenies = srec_input_bin.leaf_syntenies
 
