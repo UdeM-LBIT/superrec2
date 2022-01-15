@@ -71,6 +71,14 @@ class MeasureBox(NamedTuple):
         return Size(w=self.width, h=self.height + self.depth)
 
 
+def escape(text: str) -> str:
+    """Escape a string for inclusion in a TeX document."""
+    return (
+        text.replace("\\", "\\\\")
+            .replace(r"_", r"\_")
+    )
+
+
 def measure(texts: Iterable[str], preamble="") -> List[MeasureBox]:
     """
     Measure dimensions of TeX boxes.

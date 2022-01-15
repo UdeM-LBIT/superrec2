@@ -13,7 +13,7 @@ from .model.reconciliation import (
     SuperReconciliationOutput,
 )
 from .model.tree_mapping import TreeMapping
-from .model.synteny import SyntenyMapping
+from .model.synteny import Synteny, SyntenyMapping
 
 
 class Branch(NamedTuple):
@@ -276,6 +276,13 @@ def _add_losses(
     return prev_gene
 
 
+def _format_synteny(synteny: Synteny) -> str:
+    if all(len(family) == 1 for family in synteny):
+        return "".join(map(tex.escape, synteny))
+    else:
+        return ",".join(map(tex.escape, synteny))
+
+
 def _compute_branches(  # pylint:disable=too-many-locals
     layout_state: Dict[TreeNode, Dict],
     rec: ReconciliationOutput,
@@ -303,10 +310,13 @@ def _compute_branches(  # pylint:disable=too-many-locals
             if root_gene.is_leaf():
                 # Create branches even for leaf genes
                 if root_gene in syntenies:
-                    name = "".join(syntenies[root_gene])
+                    name = _format_synteny(syntenies[root_gene])
                 else:
                     species_name, gene_name = root_gene.name.split("_")
-                    name = rf"{species_name}\textsubscript{{{gene_name}}}"
+                    name = (
+                        rf"{tex.escape(species_name)}"
+                        rf"\textsubscript{{{tex.escape(gene_name)}}}"
+                    )
 
                 state["anchor_nodes"].add(root_gene)
                 state["branches"][root_gene] = {
@@ -319,7 +329,7 @@ def _compute_branches(  # pylint:disable=too-many-locals
                 event = rec.node_event(root_gene)
 
                 name = (
-                    rf"{''.join(syntenies[root_gene])}"
+                    rf"{_format_synteny(syntenies[root_gene])}"
                     if root_gene in syntenies
                     else ""
                 )
@@ -735,7 +745,7 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
                 layout.rect.top_left()
                     + layout.trunk.bottom_left()
                     + leaf_shift
-            }) -- node[species label] {{{species_node.name}}} ({
+            }) -- node[species label] {{{tex.escape(species_node.name)}}} ({
                 layout.rect.top_left()
                     + layout.trunk.bottom_right()
                     + leaf_shift
