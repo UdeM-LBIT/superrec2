@@ -110,6 +110,10 @@ def call_algorithm(args):
     infile = open(args.input, "r") if args.input != "-" else sys.stdin
     outfile = open(args.output, "w") if args.output != "-" else sys.stdout
     data = json.load(infile)
+    data["costs"] = dict(
+        (kind, getattr(args, f"cost_{argname}"))
+        for kind, (argname, _) in cost_events.items()
+    )
 
     if "leaf_syntenies" in data:
         rec_input = SuperReconciliationInput.from_dict(data)
