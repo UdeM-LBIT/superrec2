@@ -28,6 +28,10 @@ from superrec2.compute.super_reconciliation import (
     sreconcile_base_spfs,
     sreconcile_extended_spfs,
 )
+from superrec2.compute.unordered_super_reconciliation import (
+    usreconcile_base_uspfs,
+    usreconcile_extended_uspfs,
+)
 
 
 algorithms = {
@@ -36,6 +40,8 @@ algorithms = {
     "thl": reconcile_thl,
     "base_spfs": sreconcile_base_spfs,
     "ext_spfs": sreconcile_extended_spfs,
+    "base_uspfs": usreconcile_base_uspfs,
+    "ext_uspfs": usreconcile_extended_uspfs,
 }
 
 
@@ -161,7 +167,10 @@ algorithm: you need to provide leaf syntenies",
     if not results:
         return 1
 
-    print("Minimum cost:", results[0].cost(), file=sys.stderr)
+    if args.algorithm in ("base_uspfs", "ext_uspfs"):
+        print("Minimum cost:", results[0].unordered_cost(), file=sys.stderr)
+    else:
+        print("Minimum cost:", results[0].cost(), file=sys.stderr)
 
     for result in results:
         json.dump(result.to_dict(), outfile)

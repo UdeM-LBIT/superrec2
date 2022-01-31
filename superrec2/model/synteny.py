@@ -1,10 +1,11 @@
 import re
-from typing import Dict, List, Mapping, Sequence
+from typing import Dict, List, Mapping, Sequence, Set
 from ete3 import Tree, TreeNode
 from ..utils.escape import escape, unescape
 
 
 Synteny = Sequence[str]
+UnorderedSynteny = Set[str]
 SyntenyMapping = Mapping[TreeNode, Synteny]
 
 # Set of characters that must be escaped from names

@@ -324,7 +324,8 @@ class ReconciliationOutput:
 
         if event == NodeEvent.SPECIATION:
             return (
-                left_cost
+                costs[NodeEvent.SPECIATION]
+                + left_cost
                 + right_cost
                 + costs[EdgeEvent.FULL_LOSS] * (left_dist + right_dist - 2)
             )
@@ -429,13 +430,15 @@ class SuperReconciliationOutput(ReconciliationOutput):
         return super().cost()
 
     def labeling_cost(self):
-        """Compute the cost of the labeling part."""
+        """Compute the ordered segmental loss cost of the labeling."""
         tree = self.input.object_tree
         rec = self.object_species
 
         total_cost = 0
         root_syn = self.syntenies[tree]
         masks = {tree: subseq_complete(root_syn)}
+
+        sloss_cost = self.input.costs[EdgeEvent.SEGMENTAL_LOSS]
 
         for node in tree.traverse("preorder"):
             if not node.is_leaf():
@@ -452,9 +455,10 @@ class SuperReconciliationOutput(ReconciliationOutput):
                 )
 
                 if event == NodeEvent.SPECIATION:
-                    total_cost += subseq_segment_dist(
-                        left_mask, sub_mask, True
-                    ) + subseq_segment_dist(right_mask, sub_mask, True)
+                    total_cost += (
+                        subseq_segment_dist(left_mask, sub_mask, True)
+                        + subseq_segment_dist(right_mask, sub_mask, True)
+                    ) * sloss_cost
                 elif event == NodeEvent.DUPLICATION:
                     total_cost += min(
                         (
@@ -465,21 +469,68 @@ class SuperReconciliationOutput(ReconciliationOutput):
                             subseq_segment_dist(left_mask, sub_mask, False)
                             + subseq_segment_dist(right_mask, sub_mask, True)
                         ),
-                    )
+                    ) * sloss_cost
                 else:
                     assert event == NodeEvent.HORIZONTAL_TRANSFER
                     keep_left = self.input.species_lca.is_comparable(
                         rec[node], rec[left_node]
                     )
-                    total_cost += subseq_segment_dist(
-                        left_mask, sub_mask, keep_left
-                    ) + subseq_segment_dist(right_mask, sub_mask, not keep_left)
+                    total_cost += (
+                        subseq_segment_dist(left_mask, sub_mask, keep_left)
+                        + subseq_segment_dist(
+                            right_mask, sub_mask, not keep_left
+                        )
+                    ) * sloss_cost
+
+        return total_cost
+
+    def unordered_labeling_cost(self):
+        """Compute the unordered segmental loss cost of the labeling."""
+        tree = self.input.object_tree
+        rec = self.object_species
+
+        total_cost = 0
+        sloss_cost = self.input.costs[EdgeEvent.SEGMENTAL_LOSS]
+
+        for node in tree.traverse("preorder"):
+            if not node.is_leaf():
+                event = self.node_event(node)
+                left_node, right_node = node.children
+
+                node_set = set(self.syntenies[node])
+                left_cost = (
+                    sloss_cost
+                    if node_set != set(self.syntenies[left_node])
+                    else 0
+                )
+                right_cost = (
+                    sloss_cost
+                    if node_set != set(self.syntenies[right_node])
+                    else 0
+                )
+
+                if event == NodeEvent.SPECIATION:
+                    total_cost += left_cost + right_cost
+                elif event == NodeEvent.DUPLICATION:
+                    total_cost += min(left_cost, right_cost)
+                else:
+                    assert event == NodeEvent.HORIZONTAL_TRANSFER
+                    if self.input.species_lca.is_comparable(
+                        rec[node], rec[left_node]
+                    ):
+                        total_cost += left_cost
+                    else:
+                        total_cost += right_cost
 
         return total_cost
 
     def cost(self):
-        """Compute the total cost of this super-reconciliation."""
+        """Compute the ordered cost of this super-reconciliation."""
         return self.reconciliation_cost() + self.labeling_cost()
+
+    def unordered_cost(self):
+        """Compute the unordered cost of this super-reconciliation."""
+        return self.reconciliation_cost() + self.unordered_labeling_cost()
 
     def __hash__(self):
         return hash(

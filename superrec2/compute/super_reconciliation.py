@@ -56,10 +56,7 @@ class ChildrenAssignment(NamedTuple):
     right: ObjectAssignment
 
 
-SPFSTable = Table[ChildrenAssignment, int]
-
-
-class SpeciesMappingChoices(NamedTuple):
+class MappingChoices(NamedTuple):
     """Available mapping choices for an object."""
 
     # Mapping to a species of the left species subtree
@@ -77,6 +74,9 @@ class SpeciesMappingChoices(NamedTuple):
     # Mapping to any species in a separate subtree (i.e. neither a descendant
     # nor an ancestor of the current species) with a segment synteny
     separate: Entry[ObjectAssignment, int]
+
+
+SPFSTable = Table[ChildrenAssignment, int]
 
 
 def _make_event_combinator(event_cost: int):
@@ -105,8 +105,8 @@ def _compute_spfs_entry(
     floss_cost = costs[EdgeEvent.FULL_LOSS]
 
     subprobs = tuple(
-        SpeciesMappingChoices._make(
-            table.entry() for _ in range(len(SpeciesMappingChoices._fields))
+        MappingChoices._make(
+            table.entry() for _ in range(len(MappingChoices._fields))
         )
         for _ in range(2)
     )
