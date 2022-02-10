@@ -1,0 +1,11 @@
+{
+    "input": {
+        "object_tree": "(y_1,x_1)1;",
+        "species_tree": "((X,Y)XY,Z)XYZ;",
+        "leaf_object_species": "",
+        "costs": {},
+        "leaf_syntenies": {}
+    },
+    "object_species": "x_1:X,y_1:Y,1:XYZ",
+    "syntenies": ""
+}

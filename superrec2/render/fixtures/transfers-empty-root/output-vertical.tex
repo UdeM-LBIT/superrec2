@@ -1,0 +1,96 @@
+\tikzset{
+    x={1pt},
+    y={-1pt},
+    species border/.style={
+        line width={1pt},
+        shorten <={-1pt / 2 + 0.05pt},
+        shorten >={-1pt / 2 + 0.05pt},
+    },
+    species label/.style={
+        font=\bfseries,
+        midway,
+        yshift=-10
+    },
+    branch/.style={
+        line width={0.5pt},
+        preaction={
+            draw, white, -{},
+            line width={4pt},
+            shorten <={0.5pt},
+            shorten >={0.5pt},
+        },
+    },
+    transfer branch/.style={
+        branch,
+        -Stealth,
+    },
+    loss/.style={
+        draw, cross out, thick,
+        line width={0.5pt},
+        inner sep=0pt,
+        outer sep=0pt,
+        minimum width={3},
+        minimum height={3},
+    },
+    extant gene/.style={
+        circle, fill,
+        outer sep=0pt, inner sep=0pt,
+        minimum size={3},
+        label={
+            [font={{\strut}},
+                    fill=white,
+                    inner xsep=0pt, inner ysep=2pt,
+                    outer xsep=0pt, outer ysep=0pt]
+                below:#1
+        },
+    },
+    branch node/.style={
+        draw, fill=white,
+        outer sep=0pt, inner xsep=0pt, inner ysep=2pt,
+        line width={0.5pt},
+    },
+    speciation/.style={
+        branch node, rounded rectangle,
+        inner xsep=4pt,
+        minimum width={8},
+        minimum height={8},
+    },
+    duplication/.style={
+        branch node, rectangle,
+        inner xsep=4pt,
+        minimum width={8},
+        minimum height={8},
+    },
+    horizontal gene transfer/.style={
+        branch node, signal, signal to=east and west,
+        minimum width={8},
+        minimum height={8},
+    },
+}
+\begin{tikzpicture}
+% species
+\draw[species border] (0,45.0) |- (30.262999999999998,10) -- (30.262999999999998,0);
+\draw[species border] (81.276185,10.0) |- (30.262999999999998,10) -- (30.262999999999998,0);
+\draw[species border] (17.762999999999998,45.0) |- (30.262999999999998,10) -| (64.775815,10.0);
+\draw[species border] (0,45.0) -- (0,75.0) -- node[species label] {X} (17.762999999999998,75.0) -- (17.762999999999998,45.0);
+\draw[species border] (42.763,45.0) |- (64.775815,28.5) -- (64.775815,10.0);
+\draw[species border] (102.449,45.0) |- (81.276185,28.5) -- (81.276185,10.0);
+\draw[species border] (60.525999999999996,45.0) |- (64.775815,45.0) -| (85.526,45.0);
+\draw[species border] (42.763,45.0) -- (42.763,75.0) -- node[species label] {Y} (60.525999999999996,75.0) -- (60.525999999999996,45.0);
+\draw[species border] (85.526,45.0) -- (85.526,75.0) -- node[species label] {Z} (102.449,75.0) -- (102.449,45.0);
+% gene branches
+\draw[branch] (8.881499999999999,64.5) -- (8.881499999999999,45.0);
+\draw[branch] (51.644499999999994,45.0) |- (73.026,36.75) -| (93.9875,45.0);
+\draw[branch] (73.026,24.25) -- (73.026,10.0);
+\draw[branch] (73.026,36.75) |- (73.026,24.25);
+\draw[branch] (51.6445,64.5) -- (51.644499999999994,45.0);
+\draw[branch] (93.9875,64.5) -- (93.9875,45.0);
+% gene transfers
+\draw[transfer branch] (73.026,24.25) to[bend right=35] (8.881499999999999,45.0);
+% events
+\node[extant gene={x\textsubscript{1}}] at (8.881499999999999,56.5) {};
+\node[speciation] at (73.026,36.75) {};
+\node[horizontal gene transfer] at (73.026,24.25) {};
+\node[extant gene={y\textsubscript{1}}] at (51.6445,56.5) {};
+\node[extant gene={z\textsubscript{1}}] at (93.9875,56.5) {};
+\end{tikzpicture}
