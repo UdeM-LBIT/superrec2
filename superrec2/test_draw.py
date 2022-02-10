@@ -111,7 +111,6 @@ class TestReconciliationDraw(unittest.TestCase):
         )
 
     def test_speciations(self):
-        self.maxDiff = None
         self.assertRender(
             gene_text="((x_1,y_1)2,z_1)1;",
             species_text="((X,Y)XY,Z)XYZ;",

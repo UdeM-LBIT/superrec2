@@ -5,7 +5,7 @@ import json
 import textwrap
 import sys
 from ete3 import Tree
-from superrec2.draw import compute_layout, render_to_tikz
+from superrec2.draw import compute_layout, render_to_tikz, DrawParams, Orientation
 from superrec2.model.synteny import parse_synteny_mapping
 from superrec2.model.tree_mapping import get_species_mapping, parse_tree_mapping
 from superrec2.model.reconciliation import (
@@ -40,6 +40,12 @@ extension, or 'tikz' for output to stdout)",
         default="-",
         help="path where the result will be stored (default: output to stdout)",
     )
+    parser.add_argument(
+        "--orientation",
+        choices=("vertical", "horizontal"),
+        default="vertical",
+        help="growing direction of the tree (default: %(default)s)",
+    )
     return parser.parse_args()
 
 
@@ -47,9 +53,12 @@ def generate_tikz(args):
     """Generate TikZ code corresponding to the given reconciliation."""
     infile = open(args.input, "r") if args.input != "-" else sys.stdin
     data = json.load(infile)
+    params = DrawParams(
+        orientation=Orientation[args.orientation.upper()],
+    )
     rec_output = SuperReconciliationOutput.from_dict(data)
-    layout_info = compute_layout(rec_output)
-    return render_to_tikz(rec_output, layout_info)
+    layout_info = compute_layout(rec_output, params)
+    return render_to_tikz(rec_output, layout_info, params)
 
 
 def output(args, tikz):
