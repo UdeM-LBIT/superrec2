@@ -15,7 +15,7 @@ def get_tikz_definitions(params: DrawParams):
     """Get TikZ definitions matching a set of drawing parameters."""
     if params.orientation == Orientation.VERTICAL:
         leaf_label_style = textwrap.dedent(
-            """
+            r"""
             [font={{\strut}},
                 fill=white,
                 inner xsep=0pt, inner ysep=2pt,
@@ -23,13 +23,29 @@ def get_tikz_definitions(params: DrawParams):
             below:#1
             """
         )
+        species_label_style = textwrap.dedent(
+            rf"""
+            font=\bfseries,
+            midway,
+            anchor=north,
+            yshift=-{params.species_label_spacing}
+            """
+        )
     else:
         leaf_label_style = textwrap.dedent(
-            """
+            r"""
             [fill=white,
                 inner xsep=4pt, inner ysep=0pt,
                 outer xsep=0pt, outer ysep=0pt]
             right:#1
+            """
+        )
+        species_label_style = textwrap.dedent(
+            rf"""
+            font=\bfseries,
+            midway,
+            anchor=west,
+            xshift={params.species_label_spacing}
             """
         )
 
@@ -44,12 +60,7 @@ def get_tikz_definitions(params: DrawParams):
                 shorten >={{-{params.species_border_thickness} / 2 + 0.05pt}},
             }},
             species label/.style={{
-                font=\bfseries,
-                midway,
-                {
-                    "yshift=-" if params.orientation == Orientation.VERTICAL
-                    else "xshift="
-                }{params.species_label_spacing}
+                {textwrap.indent(species_label_style, " " * 16).strip()}
             }},
             branch/.style={{
                 line width={{{params.branch_thickness}}},
@@ -77,7 +88,7 @@ def get_tikz_definitions(params: DrawParams):
                 outer sep=0pt, inner sep=0pt,
                 minimum size={{{params.extant_gene_diameter}}},
                 label={{
-                    {textwrap.indent(leaf_label_style, " " * 24).strip()}
+                    {textwrap.indent(leaf_label_style, " " * 20).strip()}
                 }},
             }},
             branch node/.style={{
