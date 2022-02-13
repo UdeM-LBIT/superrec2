@@ -104,5 +104,5 @@ class TestReconciliationTools(unittest.TestCase):
                 "3": "XYZ",
                 "x_1": "X",
                 "x_2": "X",
-            }
+            },
         )

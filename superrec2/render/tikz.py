@@ -5,7 +5,10 @@ from ete3 import TreeNode
 from .model import DrawParams, Orientation, SubtreeLayout, Layout
 from ..utils import tex
 from ..model.reconciliation import (
-    Event, NodeEvent, EdgeEvent, ReconciliationOutput
+    Event,
+    NodeEvent,
+    EdgeEvent,
+    ReconciliationOutput,
 )
 from ..model.tree_mapping import TreeMapping
 from ..utils.geometry import Position
@@ -182,8 +185,7 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
             inner_fork = (
                 left_layout.trunk.top_right(),
                 "|-",
-                layout.trunk.bottom_left()
-                    + Position(0, layout.fork_thickness),
+                layout.trunk.bottom_left() + Position(0, layout.fork_thickness),
                 "-|",
                 right_layout.trunk.top_left(),
             )
@@ -206,7 +208,7 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
                 left_layout.trunk.bottom_left(),
                 "-|",
                 layout.trunk.bottom_right()
-                    + Position(layout.fork_thickness, 0),
+                + Position(layout.fork_thickness, 0),
                 "|-",
                 right_layout.trunk.top_left(),
             )
@@ -303,14 +305,12 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
 
         if branch.kind == NodeEvent.LEAF:
             if params.orientation == Orientation.VERTICAL:
-                leaf_pos = (
-                    branch.rect.top()
-                    + Position(0, params.extant_gene_diameter / 2)
+                leaf_pos = branch.rect.top() + Position(
+                    0, params.extant_gene_diameter / 2
                 )
             else:
-                leaf_pos = (
-                    branch.rect.left()
-                    + Position(params.extant_gene_diameter / 2, 0)
+                leaf_pos = branch.rect.left() + Position(
+                    params.extant_gene_diameter / 2, 0
                 )
 
             layers["events"].append(

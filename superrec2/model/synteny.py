@@ -22,6 +22,7 @@ def sort_synteny(synteny: Synteny) -> OrderedSynteny:
     :param synteny: original synteny, with or without a defined order
     :returns: synteny in canonical order
     """
+
     def key(obj: str):
         parts = DIGITS.split(obj)
         return [int(part) if part.isdigit() else part for part in parts]
@@ -44,8 +45,9 @@ def format_synteny(synteny: Synteny) -> str:
         return ",".join(sequence)
 
 
-def parse_synteny_mapping(tree: Tree, data: Dict[str, Synteny]) \
--> SyntenyMapping:
+def parse_synteny_mapping(
+    tree: Tree, data: Dict[str, Synteny]
+) -> SyntenyMapping:
     """
     Convert a plain mapping of syntenies to tree node names to a mapping
     to node objects.
@@ -54,14 +56,12 @@ def parse_synteny_mapping(tree: Tree, data: Dict[str, Synteny]) \
     :param data: plain mapping to map from
     :returns: parsed mapping
     """
-    return {
-        tree & node: synteny
-        for node, synteny in data.items()
-    }
+    return {tree & node: synteny for node, synteny in data.items()}
 
 
-def serialize_synteny_mapping(mapping: SyntenyMapping) \
--> Dict[str, OrderedSynteny]:
+def serialize_synteny_mapping(
+    mapping: SyntenyMapping,
+) -> Dict[str, OrderedSynteny]:
     """
     Convert a mapping of tree nodes to syntenies to a plain mapping.
 
@@ -70,9 +70,7 @@ def serialize_synteny_mapping(mapping: SyntenyMapping) \
     """
     return {
         node.name: (
-            sort_synteny(synteny)
-            if isinstance(synteny, set)
-            else list(synteny)
+            sort_synteny(synteny) if isinstance(synteny, set) else list(synteny)
         )
         for node, synteny in mapping.items()
     }

@@ -45,7 +45,7 @@ class RangeMinQuery(Generic[Element]):  # pylint:disable=too-few-public-methods
         self.sparse_table[0] = list(data)
 
         for depth in range(1, levels):
-            for i in range(length - 2 ** depth + 1):
+            for i in range(length - 2**depth + 1):
                 left = self.sparse_table[depth - 1][i]
                 assert left is not None
                 right = self.sparse_table[depth - 1][i + 2 ** (depth - 1)]
@@ -68,5 +68,5 @@ class RangeMinQuery(Generic[Element]):  # pylint:disable=too-few-public-methods
         depth = _ilog2(stop - start)
         return min(
             self.sparse_table[depth][start],
-            self.sparse_table[depth][stop - 2 ** depth],
+            self.sparse_table[depth][stop - 2**depth],
         )

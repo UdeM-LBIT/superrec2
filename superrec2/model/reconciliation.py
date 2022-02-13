@@ -208,9 +208,7 @@ class ReconciliationInput:
                 self.species_lca,
                 tuple(
                     sorted(
-                        serialize_tree_mapping(
-                            self.leaf_object_species
-                        ).items()
+                        serialize_tree_mapping(self.leaf_object_species).items()
                     ),
                 ),
                 tuple(
@@ -477,16 +475,15 @@ class SuperReconciliationOutput(ReconciliationOutput):
                         + subseq_segment_dist(right_mask, sub_mask, True)
                     ) * sloss_cost
                 elif event == NodeEvent.DUPLICATION:
-                    total_cost += min(
-                        (
+                    total_cost += (
+                        min(
                             subseq_segment_dist(left_mask, sub_mask, True)
-                            + subseq_segment_dist(right_mask, sub_mask, False)
-                        ),
-                        (
+                            + subseq_segment_dist(right_mask, sub_mask, False),
                             subseq_segment_dist(left_mask, sub_mask, False)
-                            + subseq_segment_dist(right_mask, sub_mask, True)
-                        ),
-                    ) * sloss_cost
+                            + subseq_segment_dist(right_mask, sub_mask, True),
+                        )
+                        * sloss_cost
+                    )
                 else:
                     assert event == NodeEvent.HORIZONTAL_TRANSFER
                     keep_left = self.input.species_lca.is_comparable(
@@ -557,10 +554,11 @@ class SuperReconciliationOutput(ReconciliationOutput):
                     sorted(
                         (
                             (node, tuple(synteny))
-                            for node, synteny in
-                            serialize_synteny_mapping(self.syntenies).items()
+                            for node, synteny in serialize_synteny_mapping(
+                                self.syntenies
+                            ).items()
                         )
                     )
-                )
+                ),
             )
         )

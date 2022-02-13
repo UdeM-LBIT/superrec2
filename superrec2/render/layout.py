@@ -3,11 +3,19 @@ from typing import Dict
 from ete3 import Tree, TreeNode
 from .tikz import measure_nodes
 from .model import (
-    Branch, GeneAnchor, DrawParams, Orientation, Layout, SubtreeLayout,
+    Branch,
+    GeneAnchor,
+    DrawParams,
+    Orientation,
+    Layout,
+    SubtreeLayout,
     PseudoGene,
 )
 from ..model.reconciliation import (
-    NodeEvent, EdgeEvent, ReconciliationOutput, SuperReconciliationOutput
+    NodeEvent,
+    EdgeEvent,
+    ReconciliationOutput,
+    SuperReconciliationOutput,
 )
 from ..model.synteny import Synteny, format_synteny
 from ..utils import tex
@@ -251,25 +259,31 @@ def _layout_branches(  # pylint:disable=too-many-locals
 
                 if params.orientation == Orientation.VERTICAL:
                     across = (
-                        (left_rect.center() + right_rect.center()).x
-                        - size.w
+                        (left_rect.center() + right_rect.center()).x - size.w
                     ) / 2
-                    sequence = min(
-                        params.species_branch_padding,
-                        left_rect.y,
-                        right_rect.y
-                    ) - params.species_branch_padding - size.h
+                    sequence = (
+                        min(
+                            params.species_branch_padding,
+                            left_rect.y,
+                            right_rect.y,
+                        )
+                        - params.species_branch_padding
+                        - size.h
+                    )
                     pos = Position(across, sequence)
                 else:
                     across = (
-                        (left_rect.center() + right_rect.center()).y
-                        - size.h
+                        (left_rect.center() + right_rect.center()).y - size.h
                     ) / 2
-                    sequence = min(
-                        params.species_branch_padding,
-                        left_rect.x,
-                        right_rect.x
-                    ) - params.species_branch_padding - size.w
+                    sequence = (
+                        min(
+                            params.species_branch_padding,
+                            left_rect.x,
+                            right_rect.x,
+                        )
+                        - params.species_branch_padding
+                        - size.w
+                    )
                     pos = Position(sequence, across)
             elif branch["kind"] == NodeEvent.HORIZONTAL_TRANSFER:
                 cons_rect = layout["branches"][branch["left"]]["rect"]
@@ -350,31 +364,61 @@ def _layout_subtrees(
 
         if state["branches"]:
             if params.orientation == Orientation.VERTICAL:
-                trunk_width = max(
-                    -branch["rect"].top_left().x
-                    for branch in state["branches"].values()
-                ) + params.species_branch_padding
-                trunk_height = max(0, max(
-                    -branch["rect"].top_left().y
-                    for branch in state["branches"].values()
-                )) + params.trunk_overhead
-                fork_thickness = max(0, max(
-                    branch["rect"].bottom_right().y
-                    for branch in state["branches"].values()
-                )) + params.species_branch_padding
+                trunk_width = (
+                    max(
+                        -branch["rect"].top_left().x
+                        for branch in state["branches"].values()
+                    )
+                    + params.species_branch_padding
+                )
+                trunk_height = (
+                    max(
+                        0,
+                        max(
+                            -branch["rect"].top_left().y
+                            for branch in state["branches"].values()
+                        ),
+                    )
+                    + params.trunk_overhead
+                )
+                fork_thickness = (
+                    max(
+                        0,
+                        max(
+                            branch["rect"].bottom_right().y
+                            for branch in state["branches"].values()
+                        ),
+                    )
+                    + params.species_branch_padding
+                )
             else:
-                trunk_width = max(0, max(
-                    -branch["rect"].top_left().x
-                    for branch in state["branches"].values()
-                )) + params.trunk_overhead
-                trunk_height = max(
-                    -branch["rect"].top_left().y
-                    for branch in state["branches"].values()
-                ) + params.species_branch_padding
-                fork_thickness = max(0, max(
-                    branch["rect"].bottom_right().x
-                    for branch in state["branches"].values()
-                )) + params.species_branch_padding
+                trunk_width = (
+                    max(
+                        0,
+                        max(
+                            -branch["rect"].top_left().x
+                            for branch in state["branches"].values()
+                        ),
+                    )
+                    + params.trunk_overhead
+                )
+                trunk_height = (
+                    max(
+                        -branch["rect"].top_left().y
+                        for branch in state["branches"].values()
+                    )
+                    + params.species_branch_padding
+                )
+                fork_thickness = (
+                    max(
+                        0,
+                        max(
+                            branch["rect"].bottom_right().x
+                            for branch in state["branches"].values()
+                        ),
+                    )
+                    + params.species_branch_padding
+                )
         else:
             # Empty subtree
             fork_thickness = 0
@@ -406,8 +450,7 @@ def _layout_subtrees(
                 )
             else:
                 subtree_span = (
-                    max(left_info["size"].w, right_info["size"].w)
-                    + trunk_width
+                    max(left_info["size"].w, right_info["size"].w) + trunk_width
                 )
 
             subtree_span += params.level_spacing + fork_thickness

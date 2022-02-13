@@ -40,6 +40,7 @@ from ..utils.dynamic_programming import (
 
 class SyntenyAssignment(Enum):
     """Kinds of assignments of a synteny set to an object."""
+
     # Assigned to the set of all families in the object’s subtree
     LCA = auto()
 
@@ -86,7 +87,7 @@ USPFSTable = Table[ChildrenAssignment, int]
 
 
 def _compute_lca_sets(
-    srec_input: SuperReconciliationInput
+    srec_input: SuperReconciliationInput,
 ) -> Dict[TreeNode, UnorderedSynteny]:
     result = {}
 
@@ -129,12 +130,15 @@ def _compute_uspfs_entry(
     inh = SyntenyAssignment.INHERIT
 
     subprobs = tuple(
-        dict((
-            kind,
-            MappingChoices._make(
-                table.entry() for _ in range(len(MappingChoices._fields))
+        dict(
+            (
+                kind,
+                MappingChoices._make(
+                    table.entry() for _ in range(len(MappingChoices._fields))
+                ),
             )
-        ) for kind in SyntenyAssignment)
+            for kind in SyntenyAssignment
+        )
         for _ in range(2)
     )
 
@@ -232,7 +236,9 @@ def _compute_uspfs_entry(
                     if species_lca.is_ancestor_of(left_species, desc_species):
                         subprobs[child_index][inh].left.update(*inh_candidates)
                         subprobs[child_index][lca].left.update(*lca_candidates)
-                    elif species_lca.is_ancestor_of(right_species, desc_species):
+                    elif species_lca.is_ancestor_of(
+                        right_species, desc_species
+                    ):
                         subprobs[child_index][inh].right.update(*inh_candidates)
                         subprobs[child_index][lca].right.update(*lca_candidates)
             elif not species_lca.is_ancestor_of(desc_species, root_species):
@@ -313,8 +319,10 @@ def _compute_uspfs_table(
                 allowed_species(srec_input.species_lca.tree, root_object),
                 desc="Object assignments",
                 total=sum(
-                    1 for _ in
-                    allowed_species(srec_input.species_lca.tree, root_object)
+                    1
+                    for _ in allowed_species(
+                        srec_input.species_lca.tree, root_object
+                    )
                 ),
                 ascii=True,
                 leave=False,
@@ -409,6 +417,7 @@ def _decode_uspfs_table(
                     **map_right.syntenies,
                 },
             )
+
 
 def _uspfs(
     srec_input: SuperReconciliationInput,

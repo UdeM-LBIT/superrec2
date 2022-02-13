@@ -6,7 +6,10 @@ import textwrap
 import sys
 from ete3 import Tree
 from superrec2.render import (
-    compute_layout, render_to_tikz, DrawParams, Orientation
+    compute_layout,
+    render_to_tikz,
+    DrawParams,
+    Orientation,
 )
 from superrec2.model.synteny import parse_synteny_mapping
 from superrec2.model.tree_mapping import get_species_mapping, parse_tree_mapping

@@ -65,6 +65,5 @@ def serialize_tree_mapping(mapping: TreeMapping) -> Dict[str, str]:
     :returns: representation that can be used to serialize the mapping
     """
     return {
-        from_node.name: to_node.name
-        for from_node, to_node in mapping.items()
+        from_node.name: to_node.name for from_node, to_node in mapping.items()
     }

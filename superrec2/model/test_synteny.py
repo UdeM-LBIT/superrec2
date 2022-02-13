@@ -73,7 +73,7 @@ class TestModelSynteny(unittest.TestCase):
             {
                 "x_3": ["a", "b", "c", "d", "e", "f"],
                 "z_2": ["cas1", "a", "b", "c", "cas3"],
-            }
+            },
         )
         self.assertEqual(
             serialize_synteny_mapping(
@@ -85,5 +85,5 @@ class TestModelSynteny(unittest.TestCase):
             {
                 "x_3": ["a", "b", "c", "d", "e", "f"],
                 "z_2": ["a", "b", "cas1", "cas2", "cas10"],
-            }
+            },
         )

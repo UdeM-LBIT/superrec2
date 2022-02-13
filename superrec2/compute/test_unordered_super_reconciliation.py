@@ -12,7 +12,8 @@ from ..utils.dynamic_programming import RetentionPolicy
 from ..model.tree_mapping import get_species_mapping
 from .reconciliation import reconcile_lca
 from .unordered_super_reconciliation import (
-    usreconcile_base_uspfs, usreconcile_extended_uspfs
+    usreconcile_base_uspfs,
+    usreconcile_extended_uspfs,
 )
 
 

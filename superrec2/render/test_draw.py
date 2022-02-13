@@ -25,7 +25,7 @@ class TestDraw(unittest.TestCase):
                         "--orientation",
                         orientation_name,
                         "--input",
-                        input_path
+                        input_path,
                     ],
                     capture_output=True,
                     check=True,
@@ -33,10 +33,10 @@ class TestDraw(unittest.TestCase):
                 self.assertEqual(
                     result.stdout.decode(),
                     output_expect.decode(),
-                    f"{fixture.name} ({orientation}): valid output"
+                    f"{fixture.name} ({orientation}): valid output",
                 )
                 self.assertEqual(
                     result.stderr.decode(),
                     "",
-                    f"{fixture.name} ({orientation}): no error"
+                    f"{fixture.name} ({orientation}): no error",
                 )

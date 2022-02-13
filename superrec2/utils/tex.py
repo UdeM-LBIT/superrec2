@@ -73,10 +73,7 @@ class MeasureBox(NamedTuple):
 
 def escape(text: str) -> str:
     """Escape a string for inclusion in a TeX document."""
-    return (
-        text.replace("\\", "\\\\")
-            .replace(r"_", r"\_")
-    )
+    return text.replace("\\", "\\\\").replace(r"_", r"\_")
 
 
 def measure(texts: Iterable[str], preamble="") -> List[MeasureBox]:
