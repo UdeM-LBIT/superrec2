@@ -31,12 +31,12 @@ class TestDraw(unittest.TestCase):
                     check=True,
                 )
                 self.assertEqual(
-                    result.stdout,
-                    output_expect,
+                    result.stdout.decode(),
+                    output_expect.decode(),
                     f"{fixture.name} ({orientation}): valid output"
                 )
                 self.assertEqual(
-                    result.stderr,
-                    b"",
+                    result.stderr.decode(),
+                    "",
                     f"{fixture.name} ({orientation}): no error"
                 )

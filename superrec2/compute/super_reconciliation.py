@@ -23,7 +23,7 @@ from ..utils.subsequences import (
     subseq_from_mask,
     subseq_segment_dist,
 )
-from ..model.synteny import Synteny, SyntenyMapping, serialize_synteny
+from ..model.synteny import Synteny, SyntenyMapping
 from ..model.reconciliation import (
     ReconciliationOutput,
     SuperReconciliationInput,

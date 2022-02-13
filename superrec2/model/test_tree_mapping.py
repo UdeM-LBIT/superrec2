@@ -32,8 +32,22 @@ class TestReconciliationTools(unittest.TestCase):
             parse_tree_mapping(
                 self.gene_tree,
                 self.species_tree,
-                "1:XYZWT,2:XYZ,3:XYZ,4:W,5:XYZWT,6:XYZ,7:XY,"
-                "8:XYZ,9:XY,10:Y,11:Y,12:WT,13:T,14:T",
+                {
+                    "1": "XYZWT",
+                    "2": "XYZ",
+                    "3": "XYZ",
+                    "4": "W",
+                    "5": "XYZWT",
+                    "6": "XYZ",
+                    "7": "XY",
+                    "8": "XYZ",
+                    "9": "XY",
+                    "10": "Y",
+                    "11": "Y",
+                    "12": "WT",
+                    "13": "T",
+                    "14": "T",
+                },
             ),
             {
                 self.gene_tree & "1": self.species_tree & "XYZWT",
@@ -45,67 +59,6 @@ class TestReconciliationTools(unittest.TestCase):
                 self.gene_tree & "7": self.species_tree & "XY",
                 self.gene_tree & "8": self.species_tree & "XYZ",
                 self.gene_tree & "9": self.species_tree & "XY",
-                self.gene_tree & "10": self.species_tree & "Y",
-                self.gene_tree & "11": self.species_tree & "Y",
-                self.gene_tree & "12": self.species_tree & "WT",
-                self.gene_tree & "13": self.species_tree & "T",
-                self.gene_tree & "14": self.species_tree & "T",
-            },
-        )
-        self.assertEqual(
-            parse_tree_mapping(
-                self.gene_tree,
-                self.species_tree,
-                """
-                1 : XYZWT,
-                2 : XYZ,
-                3 : XYZ,
-                4 : W,
-                5 : XYZWT,
-                6 : XYZ,
-                7 : XY,
-                8 : XYZ,
-                9 : XY,
-                10 : Y,
-                11 : Y,
-                12 : WT,
-                13 : T,
-                14 : T,
-                """,
-            ),
-            {
-                self.gene_tree & "1": self.species_tree & "XYZWT",
-                self.gene_tree & "2": self.species_tree & "XYZ",
-                self.gene_tree & "3": self.species_tree & "XYZ",
-                self.gene_tree & "4": self.species_tree & "W",
-                self.gene_tree & "5": self.species_tree & "XYZWT",
-                self.gene_tree & "6": self.species_tree & "XYZ",
-                self.gene_tree & "7": self.species_tree & "XY",
-                self.gene_tree & "8": self.species_tree & "XYZ",
-                self.gene_tree & "9": self.species_tree & "XY",
-                self.gene_tree & "10": self.species_tree & "Y",
-                self.gene_tree & "11": self.species_tree & "Y",
-                self.gene_tree & "12": self.species_tree & "WT",
-                self.gene_tree & "13": self.species_tree & "T",
-                self.gene_tree & "14": self.species_tree & "T",
-            },
-        )
-        self.assertEqual(
-            parse_tree_mapping(
-                self.gene_tree,
-                self.species_tree,
-                "1:XYZWT,2:XYZ,3:XYZ,4:W,5:XYZWT,6:XYZ,7:XY,"
-                "8:XYZ,#9:?,10:Y,11:Y,12:WT,13:T,14:T",
-            ),
-            {
-                self.gene_tree & "1": self.species_tree & "XYZWT",
-                self.gene_tree & "2": self.species_tree & "XYZ",
-                self.gene_tree & "3": self.species_tree & "XYZ",
-                self.gene_tree & "4": self.species_tree & "W",
-                self.gene_tree & "5": self.species_tree & "XYZWT",
-                self.gene_tree & "6": self.species_tree & "XYZ",
-                self.gene_tree & "7": self.species_tree & "XY",
-                self.gene_tree & "8": self.species_tree & "XYZ",
                 self.gene_tree & "10": self.species_tree & "Y",
                 self.gene_tree & "11": self.species_tree & "Y",
                 self.gene_tree & "12": self.species_tree & "WT",
@@ -146,5 +99,10 @@ class TestReconciliationTools(unittest.TestCase):
                     self.gene_tree & "3": self.species_tree & "XYZ",
                 }
             ),
-            "2:XYZ,3:XYZ,x_1:X,x_2:X",
+            {
+                "2": "XYZ",
+                "3": "XYZ",
+                "x_1": "X",
+                "x_2": "X",
+            }
         )

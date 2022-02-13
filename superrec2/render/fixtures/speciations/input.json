@@ -2,10 +2,16 @@
     "input": {
         "object_tree": "((x_1,y_1)2,z_1)1;",
         "species_tree": "((X,Y)XY,Z)XYZ;",
-        "leaf_object_species": "",
+        "leaf_object_species": {},
         "costs": {},
         "leaf_syntenies": {}
     },
-    "object_species": "x_1:X,y_1:Y,z_1:Z,1:XYZ,2:XY",
-    "syntenies": ""
+    "object_species": {
+        "x_1": "X",
+        "y_1": "Y",
+        "z_1": "Z",
+        "1": "XYZ",
+        "2": "XY"
+    },
+    "syntenies": {}
 }

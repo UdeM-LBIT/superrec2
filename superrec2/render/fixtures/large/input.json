@@ -2,10 +2,40 @@
     "input": {
         "object_tree": "(((x_1,z_1)3,(w_1,w_2)4)2,(((x_2,y_4)7,((x_3,(y_1,(y_2,y_3)11)10)9,z_2)8)6,(w_3,(z_3,(t_1,t_2)14)13)12)5)1;",
         "species_tree": "(((X,Y)XY,Z)XYZ,(W,T)WT)XYZWT;",
-        "leaf_object_species": "",
+        "leaf_object_species": {},
         "costs": {},
         "leaf_syntenies": {}
     },
-    "object_species": "x_1:X,x_2:X,x_3:X,y_1:Y,y_2:Y,y_3:Y,y_4:Y,z_1:Z,z_2:Z,z_3:Z,w_1:W,w_2:W,w_3:W,t_1:T,t_2:T,1:XYZWT,2:XYZ,3:XYZ,4:W,5:XYZWT,6:XYZ,7:XY,8:XYZ,9:XY,10:Y,11:Y,12:WT,13:T,14:T",
-    "syntenies": ""
+    "object_species": {
+        "x_1": "X",
+        "x_2": "X",
+        "x_3": "X",
+        "y_1": "Y",
+        "y_2": "Y",
+        "y_3": "Y",
+        "y_4": "Y",
+        "z_1": "Z",
+        "z_2": "Z",
+        "z_3": "Z",
+        "w_1": "W",
+        "w_2": "W",
+        "w_3": "W",
+        "t_1": "T",
+        "t_2": "T",
+        "1": "XYZWT",
+        "2": "XYZ",
+        "3": "XYZ",
+        "4": "W",
+        "5": "XYZWT",
+        "6": "XYZ",
+        "7": "XY",
+        "8": "XYZ",
+        "9": "XY",
+        "10": "Y",
+        "11": "Y",
+        "12": "WT",
+        "13": "T",
+        "14": "T"
+    },
+    "syntenies": {}
 }

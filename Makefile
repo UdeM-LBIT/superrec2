@@ -7,6 +7,7 @@ SHELL=/usr/bin/bash
 fixtures:
 	for input in superrec2/render/fixtures/*/input.json; do
 	    for orient in horizontal vertical; do
+	    	echo "draw $$input $$orient"
 		./draw.py --orientation "$$orient" < "$$input" \
 	            > "$${input%input.json}output-$$orient.tex"
 	    done

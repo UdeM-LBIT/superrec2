@@ -206,7 +206,13 @@ class ReconciliationInput:
             (
                 self.object_tree,
                 self.species_lca,
-                serialize_tree_mapping(self.leaf_object_species),
+                tuple(
+                    sorted(
+                        serialize_tree_mapping(
+                            self.leaf_object_species
+                        ).items()
+                    ),
+                ),
                 tuple(
                     (event, self.costs.get(event))
                     for event in chain(
@@ -360,7 +366,9 @@ class ReconciliationOutput:
         return hash(
             (
                 self.input,
-                serialize_tree_mapping(self.object_species),
+                tuple(
+                    sorted(serialize_tree_mapping(self.object_species).items())
+                ),
             )
         )
 
@@ -393,7 +401,16 @@ class SuperReconciliationInput(ReconciliationInput):
         return hash(
             (
                 super().__hash__(),
-                serialize_synteny_mapping(self.leaf_syntenies),
+                tuple(
+                    sorted(
+                        (
+                            (node, tuple(synteny))
+                            for node, synteny in serialize_synteny_mapping(
+                                self.leaf_syntenies
+                            ).items()
+                        )
+                    )
+                ),
             )
         )
 
@@ -536,6 +553,14 @@ class SuperReconciliationOutput(ReconciliationOutput):
         return hash(
             (
                 super().__hash__(),
-                serialize_synteny_mapping(self.syntenies),
+                tuple(
+                    sorted(
+                        (
+                            (node, tuple(synteny))
+                            for node, synteny in
+                            serialize_synteny_mapping(self.syntenies).items()
+                        )
+                    )
+                )
             )
         )

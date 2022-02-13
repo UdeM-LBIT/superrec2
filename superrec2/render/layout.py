@@ -9,7 +9,7 @@ from .model import (
 from ..model.reconciliation import (
     NodeEvent, EdgeEvent, ReconciliationOutput, SuperReconciliationOutput
 )
-from ..model.synteny import Synteny
+from ..model.synteny import Synteny, format_synteny
 from ..utils import tex
 from ..utils.geometry import Position, Rect, Size
 
@@ -55,13 +55,6 @@ def _add_losses(
     return prev_gene
 
 
-def _format_synteny(synteny: Synteny) -> str:
-    if all(len(family) == 1 for family in synteny):
-        return "".join(map(tex.escape, synteny))
-    else:
-        return ",".join(map(tex.escape, synteny))
-
-
 def _compute_branches(  # pylint:disable=too-many-locals
     layout_state: Dict[TreeNode, Dict],
     rec: ReconciliationOutput,
@@ -89,7 +82,7 @@ def _compute_branches(  # pylint:disable=too-many-locals
             if root_gene.is_leaf():
                 # Create branches even for leaf genes
                 if root_gene in syntenies:
-                    name = _format_synteny(syntenies[root_gene])
+                    name = tex.escape(format_synteny(syntenies[root_gene]))
                 else:
                     species_name, gene_name = root_gene.name.split("_")
                     name = (
@@ -108,7 +101,7 @@ def _compute_branches(  # pylint:disable=too-many-locals
                 event = rec.node_event(root_gene)
 
                 name = (
-                    rf"{_format_synteny(syntenies[root_gene])}"
+                    rf"{tex.escape(format_synteny(syntenies[root_gene]))}"
                     if root_gene in syntenies
                     else ""
                 )

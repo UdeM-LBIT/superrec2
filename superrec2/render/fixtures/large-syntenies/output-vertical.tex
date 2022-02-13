@@ -9,6 +9,7 @@
     species label/.style={
         font=\bfseries,
         midway,
+        anchor=north,
         yshift=-10
     },
     branch/.style={
@@ -38,10 +39,10 @@
         minimum size={3},
         label={
             [font={{\strut}},
-                    fill=white,
-                    inner xsep=0pt, inner ysep=2pt,
-                    outer xsep=0pt, outer ysep=0pt]
-                below:#1
+                fill=white,
+                inner xsep=0pt, inner ysep=2pt,
+                outer xsep=0pt, outer ysep=0pt]
+            below:#1
         },
     },
     branch node/.style={

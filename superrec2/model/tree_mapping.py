@@ -1,39 +1,25 @@
-import re
 from typing import Dict, Mapping
 from ete3 import Tree, TreeNode
-from ..utils.escape import escape, unescape
 
 
 TreeMapping = Mapping[TreeNode, TreeNode]
 
-# Set of characters that must be escaped from names
-ESCAPE_CHARS = r"\,"
-MAPPING_SPLIT_REGEX = re.compile(r"(?<!\\),")
-
 
 def parse_tree_mapping(
-    from_tree: Tree, to_tree: Tree, data: str
+    from_tree: Tree, to_tree: Tree, data: Mapping[str, str]
 ) -> TreeMapping:
     """
-    Parse a string representation of a mapping between two trees.
+    Convert a plain mapping of tree node names to a mapping between two trees.
 
     :param from_tree: first tree
     :param to_tree: second tree
-    :param data: string to parse
+    :param data: plain mapping to convert from
     :returns: parsed mapping
     """
-    result: Dict[TreeNode, TreeNode] = {}
-
-    for pair in MAPPING_SPLIT_REGEX.split(data):
-        if pair.strip():
-            from_node, to_node = map(
-                lambda x: unescape(x.strip()), pair.split(":")
-            )
-
-            if not from_node.startswith("#"):
-                result[from_tree & from_node] = to_tree & to_node
-
-    return result
+    return {
+        from_tree & from_node: to_tree & to_node
+        for from_node, to_node in data.items()
+    }
 
 
 def get_species_mapping(tree: Tree, species_tree: Tree) -> TreeMapping:
@@ -71,17 +57,14 @@ def get_species_mapping(tree: Tree, species_tree: Tree) -> TreeMapping:
     return result
 
 
-def serialize_tree_mapping(mapping: TreeMapping) -> str:
+def serialize_tree_mapping(mapping: TreeMapping) -> Dict[str, str]:
     """
-    Serialize a mapping between two trees.
+    Convert a mapping between two trees to a plain dictionary.
 
     :param mapping: mapping to serialize
-    :returns: serialized representation
+    :returns: representation that can be used to serialize the mapping
     """
-    return ",".join(
-        escape(from_name, ESCAPE_CHARS) + ":" + escape(to_name, ESCAPE_CHARS)
-        for from_name, to_name in sorted(
-            (from_node.name, to_node.name)
-            for from_node, to_node in mapping.items()
-        )
-    )
+    return {
+        from_node.name: to_node.name
+        for from_node, to_node in mapping.items()
+    }
