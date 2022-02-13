@@ -377,6 +377,7 @@ def _decode_uspfs_table(
             input=srec_input,
             object_species={root_object: root_species},
             syntenies={root_object: root_synteny},
+            ordered=False,
         )
         return
 
@@ -416,6 +417,7 @@ def _decode_uspfs_table(
                     **map_left.syntenies,
                     **map_right.syntenies,
                 },
+                ordered=False,
             )
 
 
@@ -456,7 +458,7 @@ def _uspfs(
         ):
             results.update(
                 *map(
-                    lambda output: Candidate(output.unordered_cost(), output),
+                    lambda output: Candidate(output.cost(), output),
                     _decode_uspfs_table(
                         synteny_tree,
                         root_species,

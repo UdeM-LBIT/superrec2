@@ -167,10 +167,7 @@ algorithm: you need to provide leaf syntenies",
     if not results:
         return 1
 
-    if args.algorithm in ("base_uspfs", "ext_uspfs"):
-        print("Minimum cost:", results[0].unordered_cost(), file=sys.stderr)
-    else:
-        print("Minimum cost:", results[0].cost(), file=sys.stderr)
+    print("Minimum cost:", results[0].cost(), file=sys.stderr)
 
     for result in results:
         json.dump(result.to_dict(), outfile)

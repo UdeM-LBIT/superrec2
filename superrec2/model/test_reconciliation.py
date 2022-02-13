@@ -3,7 +3,9 @@ from ete3 import Tree
 from ..utils.trees import LowestCommonAncestor
 from .reconciliation import (
     ReconciliationInput,
+    SuperReconciliationInput,
     ReconciliationOutput,
+    SuperReconciliationOutput,
     EdgeEvent,
     NodeEvent,
 )
@@ -49,32 +51,92 @@ class TestModelReconciliation(unittest.TestCase):
             cls.gene_tree & "t_2": cls.species_tree & "T",
         }
 
+        cls.object_species = {
+            **cls.leaf_object_species,
+            cls.gene_tree & "1": cls.species_tree & "XYZWT",
+            cls.gene_tree & "2": cls.species_tree & "XYZ",
+            cls.gene_tree & "3": cls.species_tree & "XYZ",
+            cls.gene_tree & "4": cls.species_tree & "W",
+            cls.gene_tree & "5": cls.species_tree & "XYZWT",
+            cls.gene_tree & "6": cls.species_tree & "XYZ",
+            cls.gene_tree & "7": cls.species_tree & "XY",
+            cls.gene_tree & "8": cls.species_tree & "XYZ",
+            cls.gene_tree & "9": cls.species_tree & "XY",
+            cls.gene_tree & "10": cls.species_tree & "Y",
+            cls.gene_tree & "11": cls.species_tree & "Y",
+            cls.gene_tree & "12": cls.species_tree & "WT",
+            cls.gene_tree & "13": cls.species_tree & "T",
+            cls.gene_tree & "14": cls.species_tree & "T",
+        }
+
+        cls.leaf_syntenies = {
+            cls.gene_tree & "x_1": "abcd",
+            cls.gene_tree & "z_1": "abcd",
+            cls.gene_tree & "w_1": "ab",
+            cls.gene_tree & "w_2": "abc",
+            cls.gene_tree & "x_2": "defg",
+            cls.gene_tree & "y_4": "def",
+            cls.gene_tree & "x_3": "cdef",
+            cls.gene_tree & "y_1": "ce",
+            cls.gene_tree & "y_2": "cde",
+            cls.gene_tree & "y_3": "cde",
+            cls.gene_tree & "z_2": "cef",
+            cls.gene_tree & "w_3": "defg",
+            cls.gene_tree & "z_3": "defg",
+            cls.gene_tree & "t_1": "def",
+            cls.gene_tree & "t_2": "defg",
+        }
+
+        cls.syntenies = {
+            **cls.leaf_syntenies,
+            cls.gene_tree & "1": "abcdefg",
+            cls.gene_tree & "2": "abcd",
+            cls.gene_tree & "3": "abcd",
+            cls.gene_tree & "4": "abc",
+            cls.gene_tree & "5": "abcdefg",
+            cls.gene_tree & "6": "abcdefg",
+            cls.gene_tree & "7": "defg",
+            cls.gene_tree & "8": "cdef",
+            cls.gene_tree & "9": "cdef",
+            cls.gene_tree & "10": "cdef",
+            cls.gene_tree & "11": "cde",
+            cls.gene_tree & "12": "defg",
+            cls.gene_tree & "13": "defg",
+            cls.gene_tree & "14": "defg",
+        }
+
         cls.rec_input = ReconciliationInput(
             cls.gene_tree,
             cls.species_lca,
             cls.leaf_object_species,
         )
 
+        cls.srec_input = SuperReconciliationInput(
+            cls.gene_tree,
+            cls.species_lca,
+            cls.leaf_object_species,
+            cls.leaf_syntenies,
+        )
+
         cls.rec_output = ReconciliationOutput(
             cls.rec_input,
-            {
-                **cls.leaf_object_species,
-                cls.gene_tree & "1": cls.species_tree & "XYZWT",
-                cls.gene_tree & "2": cls.species_tree & "XYZ",
-                cls.gene_tree & "3": cls.species_tree & "XYZ",
-                cls.gene_tree & "4": cls.species_tree & "W",
-                cls.gene_tree & "5": cls.species_tree & "XYZWT",
-                cls.gene_tree & "6": cls.species_tree & "XYZ",
-                cls.gene_tree & "7": cls.species_tree & "XY",
-                cls.gene_tree & "8": cls.species_tree & "XYZ",
-                cls.gene_tree & "9": cls.species_tree & "XY",
-                cls.gene_tree & "10": cls.species_tree & "Y",
-                cls.gene_tree & "11": cls.species_tree & "Y",
-                cls.gene_tree & "12": cls.species_tree & "WT",
-                cls.gene_tree & "13": cls.species_tree & "T",
-                cls.gene_tree & "14": cls.species_tree & "T",
-            },
+            cls.object_species,
         )
+
+        cls.srec_output = SuperReconciliationOutput(
+            cls.rec_input,
+            cls.object_species,
+            cls.syntenies,
+            ordered=True
+        )
+
+        cls.usrec_output = SuperReconciliationOutput(
+            cls.rec_input,
+            cls.object_species,
+            cls.syntenies,
+            ordered=False
+        )
+
 
     def test_node_event(self):
         expected_events = {
@@ -99,6 +161,10 @@ class TestModelReconciliation(unittest.TestCase):
                 self.rec_output.node_event(self.gene_tree & name),
                 event,
             )
+
+    def test_labeling_cost(self):
+        self.assertEqual(self.srec_output.labeling_cost(), 6)
+        self.assertEqual(self.usrec_output.labeling_cost(), 5)
 
     def test_reconciliation_cost(self):
         expected_costs = {

@@ -31,11 +31,11 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
 
         if expected_results:
             self.assertTrue(any_l)
-            self.assertEqual(min(any_l).unordered_cost(), expected_cost)
+            self.assertEqual(min(any_l).cost(), expected_cost)
             self.assertIn(min(any_l), all_l)
 
             for labeling in expected_results:
-                self.assertEqual(labeling.unordered_cost(), expected_cost)
+                self.assertEqual(labeling.cost(), expected_cost)
         else:
             self.assertFalse(any_l)
 
@@ -71,6 +71,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("a"),
                         gene_tree & "1": list("ab"),
                     },
+                    ordered=False,
                 ),
             ],
         )
@@ -101,6 +102,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("abcd"),
                         gene_tree & "1": list("abcd"),
                     },
+                    ordered=False,
                 ),
             ],
         )
@@ -137,6 +139,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("a"),
                         gene_tree & "1": list("ab"),
                     },
+                    ordered=False,
                 ),
                 SuperReconciliationOutput(
                     input_1,
@@ -146,6 +149,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("ab"),
                         gene_tree & "1": list("ab"),
                     },
+                    ordered=False,
                 ),
             ],
         )
@@ -176,6 +180,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("abcd"),
                         gene_tree & "1": list("abcd"),
                     },
+                    ordered=False,
                 ),
             ],
         )
@@ -214,6 +219,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("abc"),
                         gene_tree & "3": list("abc"),
                     },
+                    ordered=False,
                 ),
             ],
         )
@@ -237,6 +243,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("abc"),
                         gene_tree & "3": list("abc"),
                     },
+                    ordered=False,
                 ),
             ],
         )

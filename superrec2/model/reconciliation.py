@@ -423,10 +423,15 @@ class SuperReconciliationOutput(ReconciliationOutput):
     # Mapping of internal nodes to syntenies
     syntenies: SyntenyMapping
 
+    # Whether the syntenies are to be considered as ordered sequences
+    # or unordered sets
+    ordered: bool
+
     def to_dict(self):
         return {
             **super().to_dict(),
             "syntenies": serialize_synteny_mapping(self.syntenies),
+            "ordered": self.ordered,
         }
 
     @classmethod
@@ -438,13 +443,14 @@ class SuperReconciliationOutput(ReconciliationOutput):
                 parent["input"].object_tree,
                 data["syntenies"],
             ),
+            "ordered": data.get("ordered", True),
         }
 
     def reconciliation_cost(self):
         """Compute the cost of the reconciliation part."""
         return super().cost()
 
-    def labeling_cost(self):
+    def _ordered_labeling_cost(self):
         """Compute the ordered segmental loss cost of the labeling."""
         tree = self.input.object_tree
         rec = self.object_species
@@ -498,7 +504,7 @@ class SuperReconciliationOutput(ReconciliationOutput):
 
         return total_cost
 
-    def unordered_labeling_cost(self):
+    def _unordered_labeling_cost(self):
         """Compute the unordered segmental loss cost of the labeling."""
         tree = self.input.object_tree
         rec = self.object_species
@@ -538,13 +544,14 @@ class SuperReconciliationOutput(ReconciliationOutput):
 
         return total_cost
 
-    def cost(self):
-        """Compute the ordered cost of this super-reconciliation."""
-        return self.reconciliation_cost() + self.labeling_cost()
+    def labeling_cost(self):
+        """Compute the segmental loss cost of the labeling."""
+        if self.ordered: return self._ordered_labeling_cost()
+        else: return self._unordered_labeling_cost()
 
-    def unordered_cost(self):
-        """Compute the unordered cost of this super-reconciliation."""
-        return self.reconciliation_cost() + self.unordered_labeling_cost()
+    def cost(self):
+        """Compute the cost of this super-reconciliation."""
+        return self.reconciliation_cost() + self.labeling_cost()
 
     def __hash__(self):
         return hash(
@@ -560,5 +567,6 @@ class SuperReconciliationOutput(ReconciliationOutput):
                         )
                     )
                 ),
+                self.ordered,
             )
         )

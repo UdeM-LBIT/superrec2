@@ -319,6 +319,7 @@ def _decode_spfs_table(
             input=srec_input,
             object_species={root_object: root_species},
             syntenies={root_object: resolv_synteny},
+            ordered=True,
         )
         return
 
@@ -356,6 +357,7 @@ def _decode_spfs_table(
                     **map_left.syntenies,
                     **map_right.syntenies,
                 },
+                ordered=True,
             )
 
 

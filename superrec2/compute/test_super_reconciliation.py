@@ -68,6 +68,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("abcde"),
                         gene_tree & "1": list("abcde"),
                     },
+                    ordered=True,
                 ),
             ],
         )
@@ -98,6 +99,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("abde"),
                         gene_tree & "1": list("abcde"),
                     },
+                    ordered=True,
                 ),
             ],
         )
@@ -128,6 +130,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("cdab"),
                         gene_tree & "1": list("cdabe"),
                     },
+                    ordered=True,
                 ),
                 SuperReconciliationOutput(
                     input_3,
@@ -137,6 +140,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("cdabe"),
                         gene_tree & "1": list("cdabe"),
                     },
+                    ordered=True,
                 ),
                 SuperReconciliationOutput(
                     input_3,
@@ -146,6 +150,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("abecd"),
                         gene_tree & "1": list("abecd"),
                     },
+                    ordered=True,
                 ),
             ],
         )
@@ -196,6 +201,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("a"),
                         gene_tree & "1": list("ab"),
                     },
+                    ordered=True,
                 ),
                 SuperReconciliationOutput(
                     input_5,
@@ -205,6 +211,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("a"),
                         gene_tree & "1": list("ba"),
                     },
+                    ordered=True,
                 ),
             ],
         )
@@ -241,6 +248,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("abcde"),
                         gene_tree & "1": list("abcde"),
                     },
+                    ordered=True,
                 ),
             ],
         )
@@ -271,6 +279,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("abde"),
                         gene_tree & "1": list("abcde"),
                     },
+                    ordered=True,
                 ),
             ],
         )
@@ -301,6 +310,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("abcde"),
                         gene_tree & "1": list("abcde"),
                     },
+                    ordered=True,
                 ),
             ],
         )
@@ -331,6 +341,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("abde"),
                         gene_tree & "1": list("abcde"),
                     },
+                    ordered=True,
                 ),
             ],
         )
@@ -361,6 +372,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("cdabe"),
                         gene_tree & "1": list("cdabe"),
                     },
+                    ordered=True,
                 ),
             ],
         )
@@ -423,6 +435,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("ab"),
                         gene_tree & "3": list("ab"),
                     },
+                    ordered=True,
                 ),
                 SuperReconciliationOutput(
                     input_1,
@@ -438,6 +451,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("ba"),
                         gene_tree & "3": list("ba"),
                     },
+                    ordered=True,
                 ),
                 SuperReconciliationOutput(
                     input_1,
@@ -453,6 +467,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("ab"),
                         gene_tree & "3": list("ab"),
                     },
+                    ordered=True,
                 ),
                 SuperReconciliationOutput(
                     input_1,
@@ -468,6 +483,7 @@ class TestComputeSuperReconciliation(unittest.TestCase):
                         gene_tree & "2": list("ba"),
                         gene_tree & "3": list("ba"),
                     },
+                    ordered=True,
                 ),
             ],
         )
