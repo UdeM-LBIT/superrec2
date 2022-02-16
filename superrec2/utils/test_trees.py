@@ -1,4 +1,5 @@
 import unittest
+from itertools import chain, combinations
 from ete3 import Tree
 from infinity import inf
 from .trees import (
@@ -67,6 +68,13 @@ def _distance_naive(start, stop, visited=None):
     return distance
 
 
+def _powerset(iterable):
+    seq = list(iterable)
+    return chain.from_iterable(
+        combinations(seq, r) for r in range(len(seq) + 1)
+    )
+
+
 class TestLowestCommonAncestor(unittest.TestCase):
     def test_lca(self):
         tree = Tree("((2,(4,5)3)1,(7,8,(10)9)6)0;", format=8)
@@ -77,6 +85,22 @@ class TestLowestCommonAncestor(unittest.TestCase):
                 ab_lca = lca(a, b)
                 self.assertEqual(ab_lca, tree.get_common_ancestor(a, b))
                 self.assertEqual(ab_lca, _get_common_ancestor_naive(a, b))
+
+        for subset in _powerset(tree.traverse()):
+            if not subset:
+                with self.assertRaises(TypeError):
+                    subset_lca = lca(*subset)
+            elif len(subset) == 1:
+                self.assertEqual(lca(*subset), subset[0])
+            else:
+                subset_lca = lca(*subset)
+                naive_lca = subset[0]
+
+                for node in subset[1:]:
+                    naive_lca = _get_common_ancestor_naive(naive_lca, node)
+
+                self.assertEqual(subset_lca, tree.get_common_ancestor(*subset))
+                self.assertEqual(subset_lca, naive_lca)
 
     def test_ancestor_relation(self):
         tree = Tree("((2,(4,5)3)1,(7,8,(10)9)6)0;", format=8)

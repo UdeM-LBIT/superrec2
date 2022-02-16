@@ -546,8 +546,10 @@ class SuperReconciliationOutput(ReconciliationOutput):
 
     def labeling_cost(self):
         """Compute the segmental loss cost of the labeling."""
-        if self.ordered: return self._ordered_labeling_cost()
-        else: return self._unordered_labeling_cost()
+        if self.ordered:
+            return self._ordered_labeling_cost()
+        else:
+            return self._unordered_labeling_cost()
 
     def cost(self):
         """Compute the cost of this super-reconciliation."""

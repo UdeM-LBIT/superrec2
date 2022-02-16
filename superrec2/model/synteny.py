@@ -3,9 +3,10 @@ from typing import Dict, Iterable, List, Mapping, Sequence, Set
 from ete3 import Tree, TreeNode
 
 
-Synteny = Iterable[str]
-OrderedSynteny = Sequence[str]
-UnorderedSynteny = Set[str]
+GeneFamily = str
+Synteny = Iterable[GeneFamily]
+OrderedSynteny = Sequence[GeneFamily]
+UnorderedSynteny = Set[GeneFamily]
 
 SyntenyMapping = Mapping[TreeNode, Synteny]
 OrderedSyntenyMapping = Mapping[TreeNode, OrderedSynteny]

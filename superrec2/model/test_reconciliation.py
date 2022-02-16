@@ -124,19 +124,12 @@ class TestModelReconciliation(unittest.TestCase):
         )
 
         cls.srec_output = SuperReconciliationOutput(
-            cls.rec_input,
-            cls.object_species,
-            cls.syntenies,
-            ordered=True
+            cls.rec_input, cls.object_species, cls.syntenies, ordered=True
         )
 
         cls.usrec_output = SuperReconciliationOutput(
-            cls.rec_input,
-            cls.object_species,
-            cls.syntenies,
-            ordered=False
+            cls.rec_input, cls.object_species, cls.syntenies, ordered=False
         )
-
 
     def test_node_event(self):
         expected_events = {

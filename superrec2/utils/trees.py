@@ -54,25 +54,27 @@ class LowestCommonAncestor:
             if node not in self.traversal_index:
                 self.traversal_index[node] = i
 
-    def __call__(self, first: TreeNode, second: TreeNode) -> TreeNode:
+    def __call__(self, *nodes: TreeNode) -> TreeNode:
         """
-        Find the lowest common ancestor of two nodes.
+        Find the lowest common ancestor of a collection of at least one node.
 
-        Complexity: O(1).
+        Complexity: O(n), the number of nodes in the collection.
 
-        :param first: first node
-        :param second: second node
-        :returns: the ancestor of both `first` and `second` that is most
-            distant from the tree root
+        :param nodes: nodes of the collection
+        :raises TypeError: if an empty set of nodes was passed
+        :returns: the ancestor of all input nodes that is most distant
+            from the tree root
         """
-        a_index = self.traversal_index[first]
-        b_index = self.traversal_index[second]
+        if not nodes:
+            raise TypeError("At least one node is needed to compute the LCA")
 
-        if a_index <= b_index:
-            result = self.range_min_query(a_index, b_index + 1)
-        else:
-            result = self.range_min_query(b_index, a_index + 1)
+        start = end = self.traversal_index[nodes[0]]
 
+        for node in nodes[1:]:
+            start = min(start, self.traversal_index[node])
+            end = max(end, self.traversal_index[node])
+
+        result = self.range_min_query(start, end + 1)
         assert result is not None
         return result[1]
 
