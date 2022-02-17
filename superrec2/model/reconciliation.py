@@ -519,14 +519,14 @@ class SuperReconciliationOutput(ReconciliationOutput):
 
                 node_set = set(self.syntenies[node])
                 left_cost = (
-                    sloss_cost
-                    if node_set != set(self.syntenies[left_node])
-                    else 0
+                    0
+                    if node_set <= set(self.syntenies[left_node])
+                    else sloss_cost
                 )
                 right_cost = (
-                    sloss_cost
-                    if node_set != set(self.syntenies[right_node])
-                    else 0
+                    0
+                    if node_set <= set(self.syntenies[right_node])
+                    else sloss_cost
                 )
 
                 if event == NodeEvent.SPECIATION:

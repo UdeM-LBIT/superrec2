@@ -19,7 +19,7 @@ from math import inf
 from ete3 import Tree, TreeNode
 from .reconciliation import reconcile_lca
 from ..utils.trees import LowestCommonAncestor
-from ..model.synteny import UnorderedSynteny
+from ..model.synteny import GeneFamily, UnorderedSynteny, sort_synteny
 from ..model.reconciliation import (
     ReconciliationOutput,
     SuperReconciliationInput,
@@ -86,17 +86,58 @@ class MappingChoices(NamedTuple):
 USPFSTable = Table[ChildrenAssignment, int]
 
 
-def _compute_lca_sets(
+def _compute_gain_sets(
     srec_input: SuperReconciliationInput,
 ) -> Dict[TreeNode, UnorderedSynteny]:
-    result = {}
+    """
+    Given a super-reconciliation input, compute the set of gene families
+    gained at each internal node of the object tree.
+
+    :param srec_input: input super-reconciliation
+    :param gains: set of families gained at each node of the object tree
+    """
+    leaves_by_family: Dict[GeneFamily, Set[TreeNode]] = defaultdict(set)
+    object_lca = LowestCommonAncestor(srec_input.object_tree)
+
+    for leaf, synteny in srec_input.leaf_syntenies.items():
+        for family in synteny:
+            leaves_by_family[family].add(leaf)
+
+    result: Dict[TreeNode, UnorderedSynteny] = {
+        node: set()
+        for node in srec_input.object_tree.traverse()
+    }
+
+    for family, leaves in leaves_by_family.items():
+        result[object_lca(*leaves)].add(family)
+
+    return result
+
+
+def _compute_lca_sets(
+    srec_input: SuperReconciliationInput,
+    gain_sets: Dict[TreeNode, UnorderedSynteny],
+) -> Dict[TreeNode, UnorderedSynteny]:
+    """
+    Given a super-reconciliation input, compute the minimal set of gene
+    families that must be contained in the synteny of each internal node
+    of the object tree.
+
+    :param srec_input: input super-reconciliation
+    :param gains: set of families gained at each node of the object tree
+    """
+    result: Dict[TreeNode, UnorderedSynteny] = {}
 
     for object_node in srec_input.object_tree.traverse("postorder"):
         if object_node.is_leaf():
             result[object_node] = set(srec_input.leaf_syntenies[object_node])
         else:
-            result[object_node] = set().union(
-                *(result[child] for child in object_node.children)
+            result[object_node] = (
+                set()
+                .union(*(result[child] for child in object_node.children))
+                .difference(
+                    *(gain_sets[child] for child in object_node.children)
+                )
             )
 
     return result
@@ -145,12 +186,12 @@ def _compute_uspfs_entry(
     for child_index in range(2):
         child_object = root_object.children[child_index]
 
-        if lca_sets[root_object] != lca_sets[child_object]:
-            lca_lca_dist = sloss_cost
-            lca_inh_dist = 0
-        else:
+        if lca_sets[root_object] <= lca_sets[child_object]:
             lca_lca_dist = 0
             lca_inh_dist = inf
+        else:
+            lca_lca_dist = sloss_cost
+            lca_inh_dist = 0
 
         for desc_species in species_lca.tree.traverse():
             child_entry = table[child_object][desc_species]
@@ -345,6 +386,7 @@ def _decode_uspfs_table(
     root_kind: SyntenyAssignment,
     ancestor_synteny: Optional[UnorderedSynteny],
     srec_input: SuperReconciliationInput,
+    gain_sets: Dict[TreeNode, UnorderedSynteny],
     lca_sets: Dict[TreeNode, UnorderedSynteny],
     table: USPFSTable,
 ) -> Generator[SuperReconciliationOutput, None, None]:
@@ -364,10 +406,11 @@ def _decode_uspfs_table(
     :returns: yields minimum-cost unordered super-reconciliations
     """
     if root_kind == SyntenyAssignment.LCA:
-        root_synteny = sorted(lca_sets[root_object])
         ancestor_synteny = lca_sets[root_object]
+        root_synteny = sort_synteny(lca_sets[root_object])
     else:
-        root_synteny = sorted(ancestor_synteny)
+        ancestor_synteny |= gain_sets[root_object]
+        root_synteny = sort_synteny(ancestor_synteny)
 
     if (
         root_object.is_leaf()
@@ -390,6 +433,7 @@ def _decode_uspfs_table(
                 info.left.synteny,
                 ancestor_synteny,
                 srec_input,
+                gain_sets,
                 lca_sets,
                 table,
             ),
@@ -399,6 +443,7 @@ def _decode_uspfs_table(
                 info.right.synteny,
                 ancestor_synteny,
                 srec_input,
+                gain_sets,
                 lca_sets,
                 table,
             ),
@@ -437,7 +482,8 @@ def _uspfs(
         ascii=True,
     ):
         srec_input_bin.label_internal()
-        lca_sets = _compute_lca_sets(srec_input_bin)
+        gain_sets = _compute_gain_sets(srec_input_bin)
+        lca_sets = _compute_lca_sets(srec_input_bin, gain_sets)
 
         synteny_tree = srec_input_bin.object_tree
         leaf_syntenies = srec_input_bin.leaf_syntenies
@@ -465,6 +511,7 @@ def _uspfs(
                         SyntenyAssignment.LCA,
                         lca_sets[synteny_tree],
                         srec_input_bin,
+                        gain_sets,
                         lca_sets,
                         table,
                     ),
