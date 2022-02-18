@@ -53,7 +53,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
                 gene_tree & "3": set("b"),
                 gene_tree & "4": set("e"),
                 gene_tree & "5": set("cd"),
-            }
+            },
         )
 
         lca_sets = _compute_lca_sets(s_input, gain_sets)
@@ -71,9 +71,8 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
                 gene_tree & "3": set("bcd"),
                 gene_tree & "4": set("cde"),
                 gene_tree & "5": set("cd"),
-            }
+            },
         )
-
 
     def assertResults(
         self,

@@ -104,8 +104,7 @@ def _compute_gain_sets(
             leaves_by_family[family].add(leaf)
 
     result: Dict[TreeNode, UnorderedSynteny] = {
-        node: set()
-        for node in srec_input.object_tree.traverse()
+        node: set() for node in srec_input.object_tree.traverse()
     }
 
     for family, leaves in leaves_by_family.items():
