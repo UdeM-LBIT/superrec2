@@ -41,7 +41,7 @@ algorithms = {
     "base_spfs": sreconcile_base_spfs,
     "ext_spfs": sreconcile_extended_spfs,
     "base_uspfs": usreconcile_base_uspfs,
-    "ext_uspfs": usreconcile_extended_uspfs,
+    "superdtl": usreconcile_extended_uspfs,
 }
 
 
@@ -55,13 +55,15 @@ cost_events = {
 
 
 # Append each algorithm’s description to this module help string
-__doc__ += "\nAvailable algorithms:\n\n"
+__doc__ += "\n\navailable algorithms:\n\n"
+indent = 22
 
 for key, impl in algorithms.items():
     paragraphs = textwrap.dedent(impl.__doc__).split("\n\n")
     unwrapped = " ".join(paragraphs[0].split("\n")).strip()
-    rewrapped = textwrap.indent(textwrap.fill(unwrapped, 70), " " * 4)
-    __doc__ += f"{key}\n{rewrapped}\n\n"
+    rewrapped = textwrap.indent(textwrap.fill(unwrapped, 70), " " * indent)
+    __doc__ += "  " + key + " " * (indent - 2 - len(key))
+    __doc__ += rewrapped.strip() + "\n\n"
 
 
 def eval_cost(cost):
@@ -73,18 +75,20 @@ def parse_arguments():
     """Retrieve arguments or show help."""
     parser = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "algorithm",
         metavar="ALGO",
-        help="reconciliation algorithm to use",
+        help="reconciliation algorithm to use (see list above)",
         choices=set(algorithms.keys()),
     )
     parser.add_argument(
-        "policy",
+        "--solutions",
         metavar="POLICY",
-        help="whether to generate any solution or all possible solutions",
+        default="any",
+        help="whether to print all minimum-cost solutions or any such \
+solution (choices: all, any; default: any)",
         choices=("any", "all"),
     )
     parser.add_argument(
@@ -150,9 +154,7 @@ algorithm: you need to provide leaf syntenies",
     elif len(params) == 2 and params[1].annotation == RetentionPolicy:
         output = algo(
             rec_input,
-            RetentionPolicy.ALL
-            if args.policy == "all"
-            else RetentionPolicy.ANY,
+            getattr(RetentionPolicy, args.solutions.upper()),
         )
     else:
         return 1

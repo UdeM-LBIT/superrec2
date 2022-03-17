@@ -548,9 +548,10 @@ def usreconcile_extended_uspfs(
     policy: RetentionPolicy,
 ) -> Set[SuperReconciliationOutput]:
     """
-    Compute a minimum-cost unordered super-reconciliation using the Extended
-    Unordered Small-Phylogeny-for-Syntenies (EUSPFS) algorithm. This can handle
-    all kinds of events and costs.
+    Compute a minimum-cost unordered super-reconciliation using the
+    SuperDTL algorithm. This is an extension of the Unordered
+    Small-Phylogeny-for-Syntenies (EUSPFS) algorithm that can handle
+    all kinds of events (including transfers) and cost values.
 
     :param srec_input: objects of the super-reconciliation
     :param policy: whether to generate any minimal solution or all possible
