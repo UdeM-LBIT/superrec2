@@ -20,7 +20,6 @@ def get_tikz_definitions(params: DrawParams):
         leaf_label_style = textwrap.dedent(
             r"""
             [font={\strut\color{#1}},
-                fill=white,
                 inner xsep=0pt, inner ysep=2pt,
                 outer xsep=0pt, outer ysep=0pt]
             below:#2
@@ -38,7 +37,6 @@ def get_tikz_definitions(params: DrawParams):
         leaf_label_style = textwrap.dedent(
             r"""
             [font={\color{#1}},
-                fill=white,
                 inner xsep=4pt, inner ysep=0pt,
                 outer xsep=0pt, outer ysep=0pt]
             right:#2
@@ -59,9 +57,13 @@ def get_tikz_definitions(params: DrawParams):
             x={{{params.x_unit}}},
             y={{-{params.y_unit}}},
             species border/.style={{
+                draw=black!15,
                 line width={{{params.species_border_thickness}}},
                 shorten <={{-{params.species_border_thickness} / 2 + 0.05pt}},
                 shorten >={{-{params.species_border_thickness} / 2 + 0.05pt}},
+            }},
+            species background/.style={{
+                fill=black!15,
             }},
             species label/.style={{
                 {textwrap.indent(species_label_style, " " * 16).strip()}
@@ -69,12 +71,6 @@ def get_tikz_definitions(params: DrawParams):
             branch/.style={{
                 draw={{#1}},
                 line width={{{params.branch_thickness}}},
-                preaction={{
-                    draw={{white}}, -{{}},
-                    line width={{{params.branch_outer_thickness}}},
-                    shorten <={{{params.branch_thickness}}},
-                    shorten >={{{params.branch_thickness}}},
-                }},
             }},
             transfer branch/.style={{
                 branch={{#1}},
@@ -220,8 +216,29 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
                 right_layout.trunk.top_left(),
             )
 
+        layers["background"].append(
+            rf"""\path[species background] ({
+                left_fork[0]
+            }) {left_fork[1]} ({
+                left_fork[2]
+            }) {left_fork[3]} ({
+                left_fork[4]
+            }) -- ({
+                right_fork[4]
+            }) {right_fork[3][::-1]} ({
+                right_fork[2]
+            }) {right_fork[1][::-1]} ({
+                right_fork[0]
+            }) -- ({
+                inner_fork[4]
+            }) {inner_fork[3][::-1]} ({
+                inner_fork[2]
+            }) {inner_fork[1][::-1]} ({
+                inner_fork[0]
+            });"""
+        )
         layers["species"].append(
-            rf"""\draw[species border] ({
+            rf"""\path[species border] ({
                 left_fork[0]
             }) {left_fork[1]} ({
                 left_fork[2]
@@ -230,7 +247,7 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
             });"""
         )
         layers["species"].append(
-            rf"""\draw[species border] ({
+            rf"""\path[species border] ({
                 right_fork[0]
             }) {right_fork[1]} ({
                 right_fork[2]
@@ -239,7 +256,7 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
             });"""
         )
         layers["species"].append(
-            rf"""\draw[species border] ({
+            rf"""\path[species border] ({
                 inner_fork[0]
             }) {inner_fork[1]} ({
                 inner_fork[2]
@@ -266,8 +283,13 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
                 layout.trunk.bottom_left(),
             )
 
+        layers["background"].append(
+            rf"""\path[species background] ({path[0]}) -- ({path[1]}) -- ({
+                path[2]
+            }) -- ({path[3]});"""
+        )
         layers["species"].append(
-            rf"""\draw[species border] ({
+            rf"""\path[species border] ({
                 path[0]
             }) -- ({
                 path[1]
@@ -461,6 +483,7 @@ def render(
     :returns: generated TikZ code
     """
     layers: Dict[str, List[str]] = {
+        "background": [],
         "species": [],
         "gene branches": [],
         "gene transfers": [],
