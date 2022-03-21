@@ -87,16 +87,27 @@ def _compute_branches(  # pylint:disable=too-many-locals
             if mapping[root_gene] != root_species:
                 continue
 
+            synteny = (
+                tex.escape(format_synteny(syntenies[root_gene]))
+                if root_gene in syntenies
+                else ""
+            )
+            equal_to_parent = (
+                syntenies.get(root_gene) == syntenies.get(root_gene.up)
+            )
+
             if root_gene.is_leaf():
                 # Create branches even for leaf genes
-                if root_gene in syntenies:
-                    name = tex.escape(format_synteny(syntenies[root_gene]))
-                else:
-                    species_name, gene_name = root_gene.name.split("_")
+                if synteny:
+                    name = synteny
+                elif root_gene.name:
+                    species_name, gene_name = root_gene.name.rsplit("_", 1)
                     name = (
                         rf"{tex.escape(species_name)}"
                         rf"\textsubscript{{{tex.escape(gene_name)}}}"
                     )
+                else:
+                    name = ""
 
                 state["anchor_nodes"].add(root_gene)
                 state["branches"][root_gene] = {
@@ -107,12 +118,7 @@ def _compute_branches(  # pylint:disable=too-many-locals
                 # Create branches for actual internal nodes
                 left_gene, right_gene = root_gene.children
                 event = rec.node_event(root_gene)
-
-                name = (
-                    rf"{tex.escape(format_synteny(syntenies[root_gene]))}"
-                    if root_gene in syntenies
-                    else ""
-                )
+                name = synteny if not equal_to_parent else ""
 
                 if event == NodeEvent.SPECIATION:
                     # Speciation nodes are located below the trunk
