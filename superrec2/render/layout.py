@@ -112,8 +112,8 @@ def _compute_branches(  # pylint:disable=too-many-locals
                 if root_gene in syntenies
                 else ""
             )
-            equal_to_parent = (
-                syntenies.get(root_gene) == syntenies.get(root_gene.up)
+            equal_to_parent = syntenies.get(root_gene) == syntenies.get(
+                root_gene.up
             )
 
             if root_gene.is_leaf():
@@ -558,6 +558,7 @@ def _layout_subtrees(
             del layout_state[right_species]["size"]
 
         # Make trunk, anchor, and branch nodes positions absolute
+        # and compute branch anchors
         this_layout["trunk"] += this_rect.top_left()
         trunk_rect = this_layout["trunk"]
 
@@ -569,6 +570,24 @@ def _layout_subtrees(
 
         for branch in this_layout["branches"].values():
             branch["rect"] += trunk_rect.bottom_right()
+            branch_rect = branch["rect"]
+
+            if branch["kind"] == EdgeEvent.FULL_LOSS:
+                branch["anchor_parent"] = branch_rect.center()
+                branch["anchor_left"] = branch_rect.center()
+                branch["anchor_right"] = branch_rect.center()
+                branch["anchor_child"] = branch_rect.center()
+            else:
+                if params.orientation == Orientation.VERTICAL:
+                    branch["anchor_parent"] = branch_rect.top()
+                    branch["anchor_left"] = branch_rect.left()
+                    branch["anchor_right"] = branch_rect.right()
+                    branch["anchor_child"] = branch_rect.bottom()
+                else:
+                    branch["anchor_parent"] = branch_rect.left()
+                    branch["anchor_left"] = branch_rect.top()
+                    branch["anchor_right"] = branch_rect.bottom()
+                    branch["anchor_child"] = branch_rect.right()
 
 
 def _finalize_layout(

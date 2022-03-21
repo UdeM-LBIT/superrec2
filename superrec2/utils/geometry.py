@@ -20,6 +20,20 @@ class Position(NamedTuple):
         """Print vector coordinates."""
         return f"{self.x},{self.y}"
 
+    def meet_hv(self, pos: tuple) -> "Position":
+        """
+        Intersect a horizontal line from this position with a vertical line
+        from another position.
+        """
+        return Position(pos[0], self.y)
+
+    def meet_vh(self, pos: tuple) -> "Position":
+        """
+        Intersect a vertical line from this position with a horizontal line
+        from another position.
+        """
+        return Position(self.x, pos[1])
+
 
 class Size(NamedTuple):
     """Dimension on the 2D plane."""

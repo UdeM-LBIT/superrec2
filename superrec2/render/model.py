@@ -25,6 +25,18 @@ class Branch(NamedTuple):
     # Size and position of the branch node
     rect: Rect
 
+    # Anchor point for the parent node edge
+    anchor_parent: Position
+
+    # Anchor point for the left child edge
+    anchor_left: Position
+
+    # Anchor point for the right child edge
+    anchor_right: Position
+
+    # Anchor point for the unique child edge (for transfers)
+    anchor_child: Position
+
     # Label of the branch node or of the extant gene
     name: str = ""
 

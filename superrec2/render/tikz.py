@@ -53,17 +53,20 @@ def get_tikz_definitions(params: DrawParams):
 
     return textwrap.dedent(
         rf"""
+        \colorlet{{species background color}}{{black!15}}
         \tikzset{{
             x={{{params.x_unit}}},
             y={{-{params.y_unit}}},
             species border/.style={{
-                draw=black!15,
                 line width={{{params.species_border_thickness}}},
                 shorten <={{-{params.species_border_thickness} / 2 + 0.05pt}},
                 shorten >={{-{params.species_border_thickness} / 2 + 0.05pt}},
             }},
             species background/.style={{
-                fill=black!15,
+                fill=species background color,
+                draw=species background color,
+                line width={{{params.species_border_thickness}}},
+                rounded corners,
             }},
             species label/.style={{
                 {textwrap.indent(species_label_style, " " * 16).strip()}
@@ -94,7 +97,8 @@ def get_tikz_definitions(params: DrawParams):
             }},
             extant gene/.default={{black}}{{}},
             branch node/.style={{
-                draw={{#1}}, fill=white, font={{\color{{#1}}}},
+                draw={{#1}}, fill={{species background color!50!white}},
+                font={{\color{{#1}}}},
                 outer sep=0pt, inner xsep=0pt, inner ysep=2pt,
                 line width={{{params.branch_thickness}}},
             }},
@@ -171,97 +175,116 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
         assert right_layout is not None
 
         if params.orientation == Orientation.VERTICAL:
+            protrude = Position(0, -10)
             left_fork = (
                 left_layout.trunk.top_left(),
-                "|-",
+                left_layout.trunk.top_left().meet_vh(
+                    layout.trunk.bottom_left()
+                ),
                 layout.trunk.bottom_left(),
-                "--",
                 layout.trunk.top_left(),
             )
             right_fork = (
                 right_layout.trunk.top_right(),
-                "|-",
+                right_layout.trunk.top_right().meet_vh(
+                    layout_trunk.bottom_right()
+                ),
                 layout.trunk.bottom_right(),
-                "--",
                 layout.trunk.top_right(),
+            )
+            fork_join = layout.trunk.bottom_left() + Position(
+                0, layout.fork_thickness
             )
             inner_fork = (
                 left_layout.trunk.top_right(),
-                "|-",
-                layout.trunk.bottom_left() + Position(0, layout.fork_thickness),
-                "-|",
+                left_layout.trunk.top_right().meet_vh(fork_join),
+                fork_join.meet_hv(right_layout.trunk.top_left()),
                 right_layout.trunk.top_left(),
             )
         else:
+            protrude = Position(10, 0)
             left_fork = (
                 left_layout.trunk.top_left(),
-                "-|",
+                left_layout.trunk.top_left().meet_hv(layout.trunk.top_right()),
                 layout.trunk.top_right(),
-                "--",
                 layout.trunk.top_left(),
             )
             right_fork = (
                 right_layout.trunk.bottom_left(),
-                "-|",
+                right_layout.trunk.bottom_left().meet_hv(
+                    layout.trunk.bottom_right()
+                ),
                 layout.trunk.bottom_right(),
-                "--",
                 layout.trunk.bottom_left(),
+            )
+            fork_join = layout.trunk.bottom_right() + Position(
+                layout.fork_thickness, 0
             )
             inner_fork = (
                 left_layout.trunk.bottom_left(),
-                "-|",
-                layout.trunk.bottom_right()
-                + Position(layout.fork_thickness, 0),
-                "|-",
+                left_layout.trunk.bottom_left().meet_hv(fork_join),
+                fork_join.meet_vh(right_layout.trunk.top_left()),
                 right_layout.trunk.top_left(),
             )
 
         layers["background"].append(
             rf"""\path[species background] ({
                 left_fork[0]
-            }) {left_fork[1]} ({
+            }) -- ({
+                left_fork[1]
+            }) -- ({
                 left_fork[2]
-            }) {left_fork[3]} ({
-                left_fork[4]
+            }) [sharp corners] -- ({
+                left_fork[3]
             }) -- ({
-                right_fork[4]
-            }) {right_fork[3][::-1]} ({
+                right_fork[3]
+            }) [rounded corners] -- ({
                 right_fork[2]
-            }) {right_fork[1][::-1]} ({
-                right_fork[0]
             }) -- ({
-                inner_fork[4]
-            }) {inner_fork[3][::-1]} ({
+                right_fork[1]
+            }) [sharp corners] -- ({
+                right_fork[0]
+            }) [rounded corners] -- ({
+                inner_fork[3] + protrude
+            }) -- ({
                 inner_fork[2]
-            }) {inner_fork[1][::-1]} ({
-                inner_fork[0]
-            });"""
+            }) -- ({
+                inner_fork[1]
+            }) [sharp corners] -- ({
+                inner_fork[0] + protrude
+            }) -- cycle;"""
         )
         layers["species"].append(
             rf"""\path[species border] ({
                 left_fork[0]
-            }) {left_fork[1]} ({
+            }) -- ({
+                left_fork[1]
+            }) -- ({
                 left_fork[2]
-            }) {left_fork[3]} ({
-                left_fork[4]
+            }) -- ({
+                left_fork[3]
             });"""
         )
         layers["species"].append(
             rf"""\path[species border] ({
                 right_fork[0]
-            }) {right_fork[1]} ({
+            }) -- ({
+                right_fork[1]
+            }) -- ({
                 right_fork[2]
-            }) {right_fork[3]} ({
-                right_fork[4]
+            }) -- ({
+                right_fork[3]
             });"""
         )
         layers["species"].append(
             rf"""\path[species border] ({
                 inner_fork[0]
-            }) {inner_fork[1]} ({
+            }) -- ({
+                inner_fork[1]
+            }) -- ({
                 inner_fork[2]
-            }) {inner_fork[3]} ({
-                inner_fork[4]
+            }) -- ({
+                inner_fork[3]
             });"""
         )
     else:
@@ -327,7 +350,7 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
         if root_gene in layout.anchors:
             layers["gene branches"].append(
                 rf"""\path[branch={{{get_color(branch.color)}}}] ({
-                    branch_pos
+                    branch.anchor_parent
                 }) -- ({
                     layout.anchors[root_gene]
                 });"""
@@ -387,7 +410,9 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
             layers["gene branches"].append(
                 rf"""\draw[branch={{{get_color(branch.color)}}}] ({
                     left_layout.anchors[left_gene]
-                }) {fork_links[0]} ({branch_pos}) {fork_links[1]} ({
+                }) {fork_links[0]} ({branch.anchor_left}) ({
+                    branch.anchor_right
+                }) {fork_links[1]} ({
                     right_layout.anchors[right_gene]
                 });"""
             )
@@ -399,9 +424,11 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
         elif branch.kind == NodeEvent.DUPLICATION:
             layers["gene branches"].append(
                 rf"""\draw[branch={{{get_color(branch.color)}}}] ({
-                    layout.branches[left_gene].rect.center()
-                }) {fork_links[0]} ({branch_pos}) {fork_links[1]} ({
-                    layout.branches[right_gene].rect.center()
+                    layout.branches[left_gene].anchor_parent
+                }) {fork_links[0]} ({branch.anchor_left}) ({
+                    branch.anchor_right
+                }) {fork_links[1]} ({
+                    layout.branches[right_gene].anchor_parent
                 });"""
             )
             layers["events"].append(
@@ -414,27 +441,29 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
             foreign_pos = foreign_layout.anchors[right_gene]
 
             if params.orientation == Orientation.VERTICAL:
-                bend_direction = (
-                    "bend left"
-                    if branch_pos.x < foreign_pos.x
-                    else "bend right"
-                )
+                if branch_pos.x < foreign_pos.x:
+                    bend_out = "out=0, in=180"
+                    anchor_out = branch.anchor_right
+                else:
+                    bend_out = "out=180, in=0"
+                    anchor_out = branch.anchor_left
             else:
-                bend_direction = (
-                    "bend left"
-                    if branch_pos.y > foreign_pos.y
-                    else "bend right"
-                )
+                if branch_pos.y > foreign_pos.y:
+                    anchor_out = branch.anchor_left
+                    bend_out = "out=90, in=-90"
+                else:
+                    anchor_out = branch.anchor_right
+                    bend_out = "out=-90, in=90"
 
             layers["gene branches"].append(
                 rf"""\draw[branch={{{get_color(branch.color)}}}] ({
-                    layout.branches[left_gene].rect.center()
-                }) |- ({branch_pos});"""
+                    layout.branches[left_gene].anchor_parent
+                }) |- ({branch.anchor_child});"""
             )
             layers["gene transfers"].append(
                 rf"""\draw[transfer branch={{{get_color(branch.color)}}}] ({
-                    branch_pos
-                }) to[{bend_direction}=35] ({foreign_pos});"""
+                    anchor_out
+                }) to[{bend_out}] ({foreign_pos});"""
             )
             # Force content for empty nodes to workaround
             # rendering bug with TikZ chamfered rectangles
