@@ -1,5 +1,5 @@
 """Generate a TikZ drawing from a reconciliation layout."""
-from typing import Dict, List, Sequence, Optional, Tuple
+from typing import Callable, Dict, List, Sequence, Optional, Tuple
 import textwrap
 from ete3 import TreeNode
 from .model import DrawParams, Orientation, SubtreeLayout, Layout
@@ -19,11 +19,11 @@ def get_tikz_definitions(params: DrawParams):
     if params.orientation == Orientation.VERTICAL:
         leaf_label_style = textwrap.dedent(
             r"""
-            [font={{\strut}},
+            [font={\strut\color{#1}},
                 fill=white,
                 inner xsep=0pt, inner ysep=2pt,
                 outer xsep=0pt, outer ysep=0pt]
-            below:#1
+            below:#2
             """
         )
         species_label_style = textwrap.dedent(
@@ -37,10 +37,11 @@ def get_tikz_definitions(params: DrawParams):
     else:
         leaf_label_style = textwrap.dedent(
             r"""
-            [fill=white,
+            [font={\color{#1}},
+                fill=white,
                 inner xsep=4pt, inner ysep=0pt,
                 outer xsep=0pt, outer ysep=0pt]
-            right:#1
+            right:#2
             """
         )
         species_label_style = textwrap.dedent(
@@ -66,53 +67,59 @@ def get_tikz_definitions(params: DrawParams):
                 {textwrap.indent(species_label_style, " " * 16).strip()}
             }},
             branch/.style={{
+                draw={{#1}},
                 line width={{{params.branch_thickness}}},
                 preaction={{
-                    draw, white, -{{}},
+                    draw={{white}}, -{{}},
                     line width={{{params.branch_outer_thickness}}},
                     shorten <={{{params.branch_thickness}}},
                     shorten >={{{params.branch_thickness}}},
                 }},
             }},
             transfer branch/.style={{
-                branch,
+                branch={{#1}},
                 -Stealth,
             }},
             loss/.style={{
-                draw, cross out, thick,
+                draw={{#1}}, cross out, thick,
                 line width={{{params.branch_thickness}}},
                 inner sep=0pt,
                 outer sep=0pt,
                 minimum width={{{params.loss_size}}},
                 minimum height={{{params.loss_size}}},
             }},
-            extant gene/.style={{
-                circle, fill,
+            extant gene/.style 2 args={{
+                circle, fill={{#1}},
                 outer sep=0pt, inner sep=0pt,
                 minimum size={{{params.extant_gene_diameter}}},
                 label={{
                     {textwrap.indent(leaf_label_style, " " * 20).strip()}
                 }},
             }},
+            extant gene/.default={{black}}{{}},
             branch node/.style={{
-                draw, fill=white,
+                draw={{#1}}, fill=white, font={{\color{{#1}}}},
                 outer sep=0pt, inner xsep=0pt, inner ysep=2pt,
                 line width={{{params.branch_thickness}}},
             }},
+            branch node/.default={{black}},
             speciation/.style={{
-                branch node, rounded rectangle,
+                branch node={{#1}}, rectangle, rounded corners,
                 inner xsep=4pt,
                 minimum width={{{params.speciation_size}}},
                 minimum height={{{params.speciation_size}}},
             }},
             duplication/.style={{
-                branch node, rectangle,
+                branch node={{#1}}, rectangle,
                 inner xsep=4pt,
                 minimum width={{{params.duplication_size}}},
                 minimum height={{{params.duplication_size}}},
             }},
             horizontal gene transfer/.style={{
-                branch node, signal, signal to=east and west,
+                branch node={{#1}}, chamfered rectangle,
+                chamfered rectangle sep={{{params.transfer_size} / 2.4}},
+                inner xsep=2pt,
+                inner ysep=-1pt,
                 minimum width={{{params.transfer_size}}},
                 minimum height={{{params.transfer_size}}},
             }},
@@ -128,7 +135,7 @@ def measure_nodes(
 
     for kind, name in nodes:
         if kind == NodeEvent.LEAF:
-            boxes.append(rf"\tikz\node[extant gene={{{name}}}] {{}};")
+            boxes.append(rf"\tikz\node[extant gene={{black}}{{{name}}}] {{}};")
         else:
             if kind == NodeEvent.SPECIATION:
                 node_type = "[speciation]"
@@ -281,6 +288,7 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
     all_layouts: Layout,
     mapping: TreeMapping,
     layers: Dict[str, List[str]],
+    get_color: Callable[str, str],
     params: DrawParams,
 ) -> None:
     """Draw the interior branches of a species subtree."""
@@ -296,7 +304,7 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
 
         if root_gene in layout.anchors:
             layers["gene branches"].append(
-                rf"""\draw[branch] ({
+                rf"""\path[branch={{{get_color(branch.color)}}}] ({
                     branch_pos
                 }) -- ({
                     layout.anchors[root_gene]
@@ -314,8 +322,9 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
                 )
 
             layers["events"].append(
-                rf"\node[extant gene={{{branch.name}}}] "
-                rf"at ({leaf_pos}) {{}};"
+                rf"""\node[extant gene={{{
+                    get_color(branch.color)
+                }}}{{{branch.name}}}] at ({leaf_pos}) {{}};"""
             )
         elif branch.kind == EdgeEvent.FULL_LOSS:
             if right_gene is None:
@@ -336,37 +345,47 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
                     loss_pos = Position(branch_pos.x, layout.trunk.top().y)
 
             layers["gene branches"].append(
-                rf"""\draw[branch] ({branch_pos}) -- ({loss_pos});"""
+                rf"""\draw[branch={{{
+                    get_color(branch.color)
+                }}}] ({branch_pos}) -- ({loss_pos});"""
             )
-            layers["events"].append(rf"""\node [loss] at ({loss_pos}) {{}};""")
+            layers["events"].append(
+                rf"""\node[loss={{{
+                    get_color(branch.color)
+                }}}] at ({loss_pos}) {{}};"""
+            )
             layers["gene branches"].append(
-                rf"""\draw[branch] ({branch_pos}) {
-                    fork_links[1]
-                } ({keep_pos});"""
+                rf"""\draw[branch={{{
+                    get_color(branch.color)
+                }}}] ({branch_pos}) {fork_links[1]} ({keep_pos});"""
             )
         elif branch.kind == NodeEvent.SPECIATION:
             assert left_layout is not None
             assert right_layout is not None
             layers["gene branches"].append(
-                rf"""\draw[branch] ({
+                rf"""\draw[branch={{{get_color(branch.color)}}}] ({
                     left_layout.anchors[left_gene]
                 }) {fork_links[0]} ({branch_pos}) {fork_links[1]} ({
                     right_layout.anchors[right_gene]
                 });"""
             )
             layers["events"].append(
-                rf"\node[speciation] at ({branch_pos}) {{{branch.name}}};"
+                rf"""\node[speciation={{{get_color(branch.color)}}}] at ({
+                    branch_pos
+                }) {{{branch.name}}};"""
             )
         elif branch.kind == NodeEvent.DUPLICATION:
             layers["gene branches"].append(
-                rf"""\draw[branch] ({
+                rf"""\draw[branch={{{get_color(branch.color)}}}] ({
                     layout.branches[left_gene].rect.center()
                 }) {fork_links[0]} ({branch_pos}) {fork_links[1]} ({
                     layout.branches[right_gene].rect.center()
                 });"""
             )
             layers["events"].append(
-                rf"\node[duplication] at ({branch_pos}) {{{branch.name}}};"
+                rf"""\node[duplication={{{get_color(branch.color)}}}] at ({
+                    branch_pos
+                }) {{{branch.name}}};"""
             )
         elif branch.kind == NodeEvent.HORIZONTAL_TRANSFER:
             foreign_layout = all_layouts[mapping[right_gene]]
@@ -386,18 +405,22 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
                 )
 
             layers["gene branches"].append(
-                rf"""\draw[branch] ({
+                rf"""\draw[branch={{{get_color(branch.color)}}}] ({
                     layout.branches[left_gene].rect.center()
                 }) |- ({branch_pos});"""
             )
             layers["gene transfers"].append(
-                rf"""\draw[transfer branch] ({
+                rf"""\draw[transfer branch={{{get_color(branch.color)}}}] ({
                     branch_pos
                 }) to[{bend_direction}=35] ({foreign_pos});"""
             )
+            # Force content for empty nodes to workaround
+            # rendering bug with TikZ chamfered rectangles
+            name = branch.name or r"\phantom{-}"
             layers["events"].append(
-                r"\node[horizontal gene transfer] at "
-                rf"({branch_pos}) {{{branch.name}}};"
+                rf"""\node[horizontal gene transfer={{{
+                    get_color(branch.color)
+                }}}] at ({branch_pos}) {{{name}}};"""
             )
         else:
             raise ValueError("Invalid node type")
@@ -437,16 +460,21 @@ def render(
     :param params: rendering parameters
     :returns: generated TikZ code
     """
-    result = [
-        get_tikz_definitions(params),
-        r"\begin{tikzpicture}",
-    ]
     layers: Dict[str, List[str]] = {
         "species": [],
         "gene branches": [],
         "gene transfers": [],
         "events": [],
     }
+    colors: List[str] = []
+    color_prefix = "reccolor"
+
+    def get_color(html: str) -> str:
+        if html in colors:
+            return f"{color_prefix}{colors.index(html)}"
+        else:
+            colors.append(html)
+            return f"{color_prefix}{len(colors) - 1}"
 
     for species_node in rec.input.species_lca.tree.traverse("preorder"):
         node_layout = layout[species_node]
@@ -469,12 +497,23 @@ def render(
             layout,
             rec.object_species,
             layers,
+            get_color,
             params,
         )
+
+    result = [get_tikz_definitions(params)]
+
+    # Define colors used in the rendering
+    for i, html in enumerate(colors):
+        result.append(rf"\definecolor{{{color_prefix}{i}}}{{HTML}}{{{html}}}")
+
+    # Append layers in order
+    result.append(r"\begin{tikzpicture}")
 
     for name, layer in layers.items():
         result.append(f"% {name}")
         result.extend(layer)
 
-    result.append("\\end{tikzpicture}\n")
+    result.append(r"\end{tikzpicture}")
+    result.append("")
     return "\n".join(result)

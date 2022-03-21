@@ -39,6 +39,7 @@ def _add_losses(
     :returns: first virtual child created in the process
     """
     prev_gene = gene
+    color = getattr(gene, "color", None)
     prev_species = start_species
     start_species = start_species.up
 
@@ -55,6 +56,9 @@ def _add_losses(
             "left": prev_gene if is_left else None,
             "right": prev_gene if is_right else None,
         }
+
+        if color is not None:
+            state["branches"][cur_gene]["color"] = color
 
         prev_gene = cur_gene
         prev_species = start_species
@@ -76,6 +80,22 @@ def _compute_branches(  # pylint:disable=too-many-locals
         rec.syntenies if isinstance(rec, SuperReconciliationOutput) else {}
     )
 
+    # Propagate color feature downwards in the tree
+    last_color = None
+    last_color_node = None
+
+    for root_gene in gene_tree.traverse("preorder"):
+        if hasattr(root_gene, "color"):
+            last_color = root_gene.color
+            last_color_node = root_gene
+        elif last_color_node is not None:
+            if last_color_node in root_gene.iter_ancestors():
+                root_gene.add_feature("color", last_color)
+            else:
+                last_color = None
+                last_color_node = None
+
+    # Find gene tree nodes associated to each species and create branches
     for root_species in species_tree.traverse("postorder"):
         state: Dict[str, Any] = {
             "branches": {},
@@ -204,6 +224,9 @@ def _compute_branches(  # pylint:disable=too-many-locals
                     }
                 else:
                     raise ValueError("Invalid event")
+
+            if hasattr(root_gene, "color"):
+                state["branches"][root_gene]["color"] = root_gene.color
 
 
 def _layout_branches(  # pylint:disable=too-many-locals

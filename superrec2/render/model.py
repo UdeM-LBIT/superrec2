@@ -28,6 +28,9 @@ class Branch(NamedTuple):
     # Label of the branch node or of the extant gene
     name: str = ""
 
+    # Color of the node and its incoming edge (HTML notation)
+    color: str = "000000"
+
     # Children genes
     # * If this is a full loss branch, either `left` or `right` will be None,
     #   which corresponds to the lost gene copy.
