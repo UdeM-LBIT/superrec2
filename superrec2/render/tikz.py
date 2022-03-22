@@ -20,6 +20,7 @@ def get_tikz_definitions(params: DrawParams):
         leaf_label_style = textwrap.dedent(
             r"""
             [font={\strut\color{#1}},
+                align=center,
                 inner xsep=0pt, inner ysep=2pt,
                 outer xsep=0pt, outer ysep=0pt]
             below:#2
@@ -37,6 +38,7 @@ def get_tikz_definitions(params: DrawParams):
         leaf_label_style = textwrap.dedent(
             r"""
             [font={\color{#1}},
+                align=center,
                 inner xsep=4pt, inner ysep=0pt,
                 outer xsep=0pt, outer ysep=0pt]
             right:#2
@@ -98,6 +100,7 @@ def get_tikz_definitions(params: DrawParams):
             extant gene/.default={{black}}{{}},
             branch node/.style={{
                 draw={{#1}}, fill={{species background color!50!white}},
+                align=center,
                 font={{\color{{#1}}}},
                 outer sep=0pt, inner xsep=0pt, inner ysep=2pt,
                 line width={{{params.branch_thickness}}},

@@ -108,7 +108,9 @@ def _compute_branches(  # pylint:disable=too-many-locals
                 continue
 
             synteny = (
-                tex.escape(format_synteny(syntenies[root_gene]))
+                format_synteny(map(tex.escape, syntenies[root_gene])).replace(
+                    "\n", "\\\\",
+                )
                 if root_gene in syntenies
                 else ""
             )
