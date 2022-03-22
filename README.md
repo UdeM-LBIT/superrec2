@@ -105,9 +105,9 @@ The basic usage of the command is as follows:
 $ ./draw.py --input example.out.json --orientation horizontal --output example.out.pdf
 ```
 
-This generates the following diagram:
+This generates the following diagram, representing the reconciliation result:
 
-![Reconciliation diagram generated from the output above](data/example.out.svg)
+<img src="data/example.out.svg" alt="Reconciliation diagram generated from the output above" width="460">
 
 ## References
 

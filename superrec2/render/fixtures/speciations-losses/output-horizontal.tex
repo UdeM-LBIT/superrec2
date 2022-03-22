@@ -1,3 +1,4 @@
+\colorlet{species background color}{black!15}
 \tikzset{
     x={1pt},
     y={-1pt},
@@ -6,6 +7,12 @@
         shorten <={-1pt / 2 + 0.05pt},
         shorten >={-1pt / 2 + 0.05pt},
     },
+    species background/.style={
+        fill=species background color,
+        draw=species background color,
+        line width={1pt},
+        rounded corners,
+    },
     species label/.style={
         font=\bfseries,
         midway,
@@ -13,87 +20,99 @@
         xshift=10
     },
     branch/.style={
+        draw={#1},
         line width={0.5pt},
-        preaction={
-            draw, white, -{},
-            line width={4pt},
-            shorten <={0.5pt},
-            shorten >={0.5pt},
-        },
     },
     transfer branch/.style={
-        branch,
+        branch={#1},
         -Stealth,
     },
     loss/.style={
-        draw, cross out, thick,
+        draw={#1}, cross out, thick,
         line width={0.5pt},
         inner sep=0pt,
         outer sep=0pt,
         minimum width={3},
         minimum height={3},
     },
-    extant gene/.style={
-        circle, fill,
+    extant gene/.style 2 args={
+        circle, fill={#1},
         outer sep=0pt, inner sep=0pt,
         minimum size={3},
         label={
-            [fill=white,
+            [font={\color{#1}},
+                align=center,
                 inner xsep=4pt, inner ysep=0pt,
                 outer xsep=0pt, outer ysep=0pt]
-            right:#1
+            right:#2
         },
     },
+    extant gene/.default={black}{},
     branch node/.style={
-        draw, fill=white,
+        draw={#1}, fill={species background color!50!white},
+        align=center,
+        font={\color{#1}},
         outer sep=0pt, inner xsep=0pt, inner ysep=2pt,
         line width={0.5pt},
     },
+    branch node/.default={black},
     speciation/.style={
-        branch node, rounded rectangle,
+        branch node={#1}, rectangle, rounded corners,
         inner xsep=4pt,
         minimum width={8},
         minimum height={8},
     },
     duplication/.style={
-        branch node, rectangle,
+        branch node={#1}, rectangle,
         inner xsep=4pt,
         minimum width={8},
         minimum height={8},
     },
     horizontal gene transfer/.style={
-        branch node, signal, signal to=east and west,
+        branch node={#1}, chamfered rectangle,
+        chamfered rectangle sep={8 / 2.4},
+        inner xsep=2pt,
+        inner ysep=-1pt,
         minimum width={8},
         minimum height={8},
     },
 }
+\definecolor{reccolor0}{HTML}{000000}
 \begin{tikzpicture}
+% background
+\path[species background] (48.0,0) -- (10,0) -- (10,18.05997) [sharp corners] -- (0,18.05997) -- (0,34.55997) [rounded corners] -- (10,34.55997) -- (10,71.41996) [sharp corners] -- (26.5,71.41996) [rounded corners] -- (36.5,59.91996) -- (26.5,59.91996) -- (26.5,13.80997) [sharp corners] -- (58.0,13.80997) -- cycle;
+\path[species background] (48.0,0) -- (79.763,0) -- (79.763,13.80997) -- (48.0,13.80997);
+\path[species background] (48.0,38.80997) -- (36.5,38.80997) -- (36.5,59.91996) [sharp corners] -- (26.5,59.91996) -- (26.5,71.41996) [rounded corners] -- (36.5,71.41996) -- (36.5,90.66996) [sharp corners] -- (58.763000000000005,90.66996) [rounded corners] -- (68.763,90.66996) -- (48.0,90.66996) -- (48.0,53.16996) [sharp corners] -- (58.0,53.16996) -- cycle;
+\path[species background] (48.0,38.80997) -- (79.763,38.80997) -- (79.763,53.16996) -- (48.0,53.16996);
+\path[species background] (68.763,78.16996) -- (68.763,78.16996) -- (68.763,90.66996) [sharp corners] -- (58.763000000000005,90.66996) -- (58.763000000000005,90.66996) [rounded corners] -- (68.763,90.66996) -- (68.763,103.16996) [sharp corners] -- (68.763,103.16996) [rounded corners] -- (78.763,103.16996) -- (68.763,103.16996) -- (68.763,78.16996) [sharp corners] -- (78.763,78.16996) -- cycle;
+\path[species background] (68.763,78.16996) -- (79.763,78.16996) -- (79.763,78.16996) -- (68.763,78.16996);
+\path[species background] (68.763,103.16996) -- (79.763,103.16996) -- (79.763,103.16996) -- (68.763,103.16996);
 % species
-\draw[species border] (48.0,0) -| (10,18.05997) -- (0,18.05997);
-\draw[species border] (26.5,71.41996) -| (10,34.55997) -- (0,34.55997);
-\draw[species border] (48.0,13.80997) -| (26.5,34.55997) |- (26.5,59.91996);
-\draw[species border] (48.0,0) -- (79.763,0) -- node[species label] {X} (79.763,13.80997) -- (48.0,13.80997);
-\draw[species border] (48.0,38.80997) -| (36.5,59.91996) -- (26.5,59.91996);
-\draw[species border] (58.763000000000005,90.66996) -| (36.5,71.41996) -- (26.5,71.41996);
-\draw[species border] (48.0,53.16996) -| (48.0,71.41996) |- (58.763000000000005,90.66996);
-\draw[species border] (48.0,38.80997) -- (79.763,38.80997) -- node[species label] {Y} (79.763,53.16996) -- (48.0,53.16996);
-\draw[species border] (68.763,78.16996) -| (68.763,90.66996) -- (58.763000000000005,90.66996);
-\draw[species border] (68.763,103.16996) -| (68.763,90.66996) -- (58.763000000000005,90.66996);
-\draw[species border] (68.763,78.16996) -| (68.763,90.66996) |- (68.763,103.16996);
-\draw[species border] (68.763,78.16996) -- (79.763,78.16996) -- node[species label] {Z} (79.763,78.16996) -- (68.763,78.16996);
-\draw[species border] (68.763,103.16996) -- (79.763,103.16996) -- node[species label] {W} (79.763,103.16996) -- (68.763,103.16996);
+\path[species border] (48.0,0) -- (10,0) -- (10,18.05997) -- (0,18.05997);
+\path[species border] (26.5,71.41996) -- (10,71.41996) -- (10,34.55997) -- (0,34.55997);
+\path[species border] (48.0,13.80997) -- (26.5,13.80997) -- (26.5,59.91996) -- (26.5,59.91996);
+\path[species border] (48.0,0) -- (79.763,0) -- node[species label] {X} (79.763,13.80997) -- (48.0,13.80997);
+\path[species border] (48.0,38.80997) -- (36.5,38.80997) -- (36.5,59.91996) -- (26.5,59.91996);
+\path[species border] (58.763000000000005,90.66996) -- (36.5,90.66996) -- (36.5,71.41996) -- (26.5,71.41996);
+\path[species border] (48.0,53.16996) -- (48.0,53.16996) -- (48.0,90.66996) -- (58.763000000000005,90.66996);
+\path[species border] (48.0,38.80997) -- (79.763,38.80997) -- node[species label] {Y} (79.763,53.16996) -- (48.0,53.16996);
+\path[species border] (68.763,78.16996) -- (68.763,78.16996) -- (68.763,90.66996) -- (58.763000000000005,90.66996);
+\path[species border] (68.763,103.16996) -- (68.763,103.16996) -- (68.763,90.66996) -- (58.763000000000005,90.66996);
+\path[species border] (68.763,78.16996) -- (68.763,78.16996) -- (68.763,103.16996) -- (68.763,103.16996);
+\path[species border] (68.763,78.16996) -- (79.763,78.16996) -- node[species label] {Z} (79.763,78.16996) -- (68.763,78.16996);
+\path[species border] (68.763,103.16996) -- (79.763,103.16996) -- node[species label] {W} (79.763,103.16996) -- (68.763,103.16996);
 % gene branches
-\draw[branch] (18.25,26.30997) -- (0,26.30997);
-\draw[branch] (48.0,6.904985) -| (18.25,26.30997) |- (26.5,65.66996);
-\draw[branch] (68.3815,6.904985) -- (48.0,6.904985);
-\draw[branch] (42.25,65.66996) -- (26.5,65.66996);
-\draw[branch] (42.25,65.66996) -- (42.25,71.41996);
-\draw[branch] (42.25,65.66996) |- (48.0,45.989965000000005);
-\draw[branch] (68.3815,45.989965000000005) -- (48.0,45.989965000000005);
+\path[branch={reccolor0}] (14,26.30997) -- (0,26.30997);
+\draw[branch={reccolor0}] (48.0,6.904985) -| (18.25,22.05997) (18.25,30.55997) |- (26.5,65.66996);
+\path[branch={reccolor0}] (58.0,6.904985) -- (48.0,6.904985);
+\path[branch={reccolor0}] (42.25,65.66996) -- (26.5,65.66996);
+\draw[branch={reccolor0}] (42.25,65.66996) -- (42.25,71.41996);
+\draw[branch={reccolor0}] (42.25,65.66996) |- (48.0,45.989965000000005);
+\path[branch={reccolor0}] (58.0,45.989965000000005) -- (48.0,45.989965000000005);
 % gene transfers
 % events
-\node[speciation] at (18.25,26.30997) {};
-\node[extant gene={x\textsubscript{1}}] at (59.5,6.904985) {};
-\node [loss] at (42.25,71.41996) {};
-\node[extant gene={y\textsubscript{1}}] at (59.5,45.989965000000005) {};
+\node[speciation={reccolor0}] at (18.25,26.30997) {};
+\node[extant gene={reccolor0}{x\textsubscript{1}}] at (59.5,6.904985) {};
+\node[loss={reccolor0}] at (42.25,71.41996) {};
+\node[extant gene={reccolor0}{y\textsubscript{1}}] at (59.5,45.989965000000005) {};
 \end{tikzpicture}

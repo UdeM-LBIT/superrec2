@@ -178,7 +178,7 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
         assert right_layout is not None
 
         if params.orientation == Orientation.VERTICAL:
-            protrude = Position(0, -10)
+            protrude = Position(0, 10)
             left_fork = (
                 left_layout.trunk.top_left(),
                 left_layout.trunk.top_left().meet_vh(
@@ -190,7 +190,7 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
             right_fork = (
                 right_layout.trunk.top_right(),
                 right_layout.trunk.top_right().meet_vh(
-                    layout_trunk.bottom_right()
+                    layout.trunk.bottom_right()
                 ),
                 layout.trunk.bottom_right(),
                 layout.trunk.top_right(),

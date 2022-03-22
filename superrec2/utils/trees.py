@@ -446,6 +446,7 @@ def binarize(tree: Tree) -> List[Tree]:
         if node.is_leaf():
             subtrees[node] = node
         else:
+            # Generate binarizations for direct children
             subtrees[node] = [
                 subtree
                 for descs in product(
@@ -453,5 +454,10 @@ def binarize(tree: Tree) -> List[Tree]:
                 )
                 for subtree in arrange_leaves(descs)
             ]
+
+            # Copy attributes from original node
+            for key in node.features:
+                for subtree in subtrees[node]:
+                    subtree.add_feature(key, getattr(node, key))
 
     return subtrees[tree]

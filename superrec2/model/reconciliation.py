@@ -94,10 +94,10 @@ class ReconciliationInput:
     def to_dict(self):
         return {
             "object_tree": self.object_tree.write(
-                format=8, format_root_node=True
+                format=8, format_root_node=True, features=["color"],
             ),
             "species_tree": self.species_lca.tree.write(
-                format=8, format_root_node=True
+                format=8, format_root_node=True, features=["color"],
             ),
             "leaf_object_species": serialize_tree_mapping(
                 self.leaf_object_species
@@ -173,8 +173,12 @@ class ReconciliationInput:
             result = self.__class__.from_dict(
                 {
                     **self.to_dict(),
-                    "object_tree": object_tree.write(format=8),
-                    "species_tree": species_tree.write(format=8),
+                    "object_tree": object_tree.write(
+                        format=8, format_root_node=True, features=["color"],
+                    ),
+                    "species_tree": species_tree.write(
+                        format=8, format_root_node=True, features=["color"],
+                    ),
                 }
             )
             yield result

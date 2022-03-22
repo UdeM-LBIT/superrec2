@@ -19,32 +19,32 @@ class TestModelSynteny(unittest.TestCase):
             ["a", "d", "e", "s", "t"],
         )
         self.assertEqual(
-            format_synteny("dates"),
-            "dates",
+            format_synteny("dates", width=21),
+            "d, a, t, e, s",
         )
         self.assertEqual(
             sort_synteny(set("dates")),
             ["a", "d", "e", "s", "t"],
         )
         self.assertEqual(
-            format_synteny(set("dates")),
-            "adest",
+            format_synteny(set("dates"), width=21),
+            "a, d, e, s, t",
         )
         self.assertEqual(
             sort_synteny(["gene1", "gene7", "gene10", "gene7a1"]),
             ["gene1", "gene7", "gene7a1", "gene10"],
         )
         self.assertEqual(
-            format_synteny(["gene1", "gene7", "gene10", "gene7a1"]),
-            "gene1,gene7,gene10,gene7a1",
+            format_synteny(["gene1", "gene7", "gene10", "gene7a1"], width=21),
+            "gene1, gene7,\ngene10, gene7a1",
         )
         self.assertEqual(
             sort_synteny({"gene1", "gene7", "gene10", "gene7a1"}),
             ["gene1", "gene7", "gene7a1", "gene10"],
         )
         self.assertEqual(
-            format_synteny({"gene1", "gene7", "gene10", "gene7a1"}),
-            "gene1,gene7,gene7a1,gene10",
+            format_synteny({"gene1", "gene7", "gene10", "gene7a1"}, width=21),
+            "gene1, gene7,\ngene7a1, gene10",
         )
 
     def test_parse_synteny_mapping(self):

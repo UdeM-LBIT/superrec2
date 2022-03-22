@@ -1,5 +1,5 @@
 {
-    "object_tree": "(((I-B,I-C,I-G),I-D,(I-E,((I-F1,I-F3),I-F2)))TypeI,((IV-A,IV-B),IV-C)TypeIV,((III-A,(III-D,III-E)),III-F)TypeIII)Class1;",
+    "object_tree": "(((I-B,I-C,I-G),I-D,(I-E,((I-F1,I-F3),I-F2)))TypeI[&&NHX:color=0037DB],((IV-A,IV-B),IV-C)TypeIV[&&NHX:color=DB0505],((III-A,(III-D,III-E)),III-F)TypeIII[&&NHX:color=0C8F00])Class1;",
     "species_tree": "((((((Clostridium kluyveri DSM 555,(Bacillus halodurans C-125,Staphylococcus epidermidis)Bacillales)Firmicutes,Rhodococcus jostii RHA1)Actinobacteriota+Firmicutes,Thermoflexia bacterium)Actinobacteriota+Firmicutes+Chloroflexota,(Cyanothece sp. PCC 8802,Synechocystis sp. 6803)Cyanobacteria)Terrabacteria,Thermotoga lettingae TMO)DST+Terrabacteria,(Candidatus Scalindua brodae,(Geobacter sulfurreducens,(Thioalkalivibrio sp. K90mix,(Shewanella putrefaciens CN-32,(Vibrio crassostreae J5 20,(Yersinia pseudotuberculosis,Escherichia coli K12)Enterobacteriales)Vibrionales+Enterobacteriales)Alteromonadales+Vibrionales+Enterobacteriales)Gammaproteobacteria)Proteobacteria)Gracilicutes)BACTERIA;",
     "leaf_object_species": {
         "I-B": "Clostridium kluyveri DSM 555",
