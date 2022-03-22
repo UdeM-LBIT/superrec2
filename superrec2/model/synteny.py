@@ -1,6 +1,6 @@
 import re
-from typing import Dict, Iterable, List, Mapping, Sequence, Set
-from textwrap import wrap
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Set
+from ..utils.text import balanced_wrap
 from ete3 import Tree, TreeNode
 
 
@@ -32,43 +32,23 @@ def sort_synteny(synteny: Synteny) -> OrderedSynteny:
     return sorted(synteny, key=key)
 
 
-def _wrap_badness(lines: List[str]) -> int:
-    max_len = max(len(line) for line in lines)
-    return sum((len(line) - max_len) ** 2 for line in lines)
-
-
-def format_synteny(synteny: Synteny, width: int = 21) -> str:
+def format_synteny(synteny: Synteny, width: Optional[int] = None) -> str:
     """
     Convert a synteny to a human-readable string.
 
     :param synteny: input synteny
-    :param width: produce lines not exceeding the given character width
+    :param width: wrap synteny to the given width - if omitted, do not
+        wrap the synteny
     :returns: string representation
     """
-    source = ", ".join(
+    result = ", ".join(
         sort_synteny(synteny) if isinstance(synteny, set) else synteny
     )
 
-    best_result = wrap(source, width)
-    best_badness = _wrap_badness(best_result)
-    line_count = len(best_result)
+    if width is not None:
+        result = balanced_wrap(result, width)
 
-    # Reduce wrap width looking for the most balanced solution
-    # while keeping the same number of lines
-    while width > 1:
-        width -= 1
-        next_result = wrap(source, width)
-
-        if len(next_result) != line_count:
-            break
-
-        next_badness = _wrap_badness(next_result)
-
-        if next_badness < best_badness:
-            best_result = next_result
-            best_badness = next_badness
-
-    return "\n".join(best_result)
+    return result
 
 
 def parse_synteny_mapping(

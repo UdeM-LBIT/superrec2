@@ -154,11 +154,19 @@ class DrawParams(NamedTuple):
     # Distance of the species labels from the species leaves
     species_label_spacing: float = 10
 
+    # Maximum width (in number of chars) before the species labels will be
+    # wrapped (leave as None to disable wrapping)
+    species_label_width: Optional[int] = 21
+
     # Size of the filled circles that represent extant genes
     extant_gene_diameter: float = 3
 
     # Size of the crosses that represent lost genes
     loss_size: float = 3
+
+    # Maximum width (in number of chars) before the event node labels will be
+    # wrapped (leave as None to disable wrapping)
+    event_label_width: Optional[int] = 18
 
     # Minimum size of the hollow circles that represent speciation events
     speciation_size: float = 8

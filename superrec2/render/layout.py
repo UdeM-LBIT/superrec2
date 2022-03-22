@@ -70,6 +70,7 @@ def _add_losses(
 def _compute_branches(  # pylint:disable=too-many-locals
     layout_state: Dict[TreeNode, Dict],
     rec: ReconciliationOutput,
+    params: DrawParams,
 ) -> None:
     """Create the branching nodes for each species."""
     gene_tree = rec.input.object_tree
@@ -108,9 +109,10 @@ def _compute_branches(  # pylint:disable=too-many-locals
                 continue
 
             synteny = (
-                format_synteny(map(tex.escape, syntenies[root_gene])).replace(
-                    "\n", "\\\\",
-                )
+                format_synteny(
+                    map(tex.escape, syntenies[root_gene]),
+                    params.event_label_width,
+                ).replace("\n", "\\\\")
                 if root_gene in syntenies
                 else ""
             )
@@ -624,7 +626,7 @@ def compute(
     """
     layout_state: Dict[TreeNode, Dict] = {}
     species_tree = rec.input.species_lca.tree
-    _compute_branches(layout_state, rec)
+    _compute_branches(layout_state, rec, params)
     _layout_branches(layout_state, species_tree, params)
     _layout_subtrees(layout_state, species_tree, params)
     return _finalize_layout(layout_state, species_tree)

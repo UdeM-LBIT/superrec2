@@ -4,6 +4,7 @@ import textwrap
 from ete3 import TreeNode
 from .model import DrawParams, Orientation, SubtreeLayout, Layout
 from ..utils import tex
+from ..utils.text import balanced_wrap
 from ..model.reconciliation import (
     Event,
     NodeEvent,
@@ -31,14 +32,15 @@ def get_tikz_definitions(params: DrawParams):
             font=\bfseries,
             midway,
             anchor=north,
-            yshift=-{params.species_label_spacing}
+            align=center,
+            yshift=-{params.species_label_spacing},
             """
         )
     else:
         leaf_label_style = textwrap.dedent(
             r"""
             [font={\color{#1}},
-                align=center,
+                align=justify,
                 inner xsep=4pt, inner ysep=0pt,
                 outer xsep=0pt, outer ysep=0pt]
             right:#2
@@ -49,7 +51,8 @@ def get_tikz_definitions(params: DrawParams):
             font=\bfseries,
             midway,
             anchor=west,
-            xshift={params.species_label_spacing}
+            align=left,
+            xshift={params.species_label_spacing},
             """
         )
 
@@ -314,13 +317,21 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
                 path[2]
             }) -- ({path[3]});"""
         )
+
+        species_name = tex.escape(species_node.name)
+
+        if params.species_label_width is not None:
+            species_name = balanced_wrap(
+                species_name, params.species_label_width
+            ).replace("\n", "\\\\")
+
         layers["species"].append(
             rf"""\path[species border] ({
                 path[0]
             }) -- ({
                 path[1]
             }) -- node[species label] {{{
-                tex.escape(species_node.name)
+                species_name
             }}} ({
                 path[2]
             }) -- ({
