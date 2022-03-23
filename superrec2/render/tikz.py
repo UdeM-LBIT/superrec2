@@ -62,16 +62,10 @@ def get_tikz_definitions(params: DrawParams):
         \tikzset{{
             x={{{params.x_unit}}},
             y={{-{params.y_unit}}},
-            species border/.style={{
-                line width={{{params.species_border_thickness}}},
-                shorten <={{-{params.species_border_thickness} / 2 + 0.05pt}},
-                shorten >={{-{params.species_border_thickness} / 2 + 0.05pt}},
-            }},
             species background/.style={{
                 fill=species background color,
                 draw=species background color,
                 line width={{{params.species_border_thickness}}},
-                rounded corners,
             }},
             species label/.style={{
                 {textwrap.indent(species_label_style, " " * 16).strip()}
@@ -181,7 +175,6 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
         assert right_layout is not None
 
         if params.orientation == Orientation.VERTICAL:
-            protrude = Position(0, 10)
             left_fork = (
                 left_layout.trunk.top_left(),
                 left_layout.trunk.top_left().meet_vh(
@@ -208,7 +201,6 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
                 right_layout.trunk.top_left(),
             )
         else:
-            protrude = Position(10, 0)
             left_fork = (
                 left_layout.trunk.top_left(),
                 left_layout.trunk.top_left().meet_hv(layout.trunk.top_right()),
@@ -236,7 +228,7 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
         layers["background"].append(
             rf"""\path[species background] ({
                 left_fork[0]
-            }) -- ({
+            }) [rounded corners={{{params.species_border_rounding}}}] -- ({
                 left_fork[1]
             }) -- ({
                 left_fork[2]
@@ -244,54 +236,21 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
                 left_fork[3]
             }) -- ({
                 right_fork[3]
-            }) [rounded corners] -- ({
+            }) [rounded corners={{{params.species_border_rounding}}}] -- ({
                 right_fork[2]
             }) -- ({
                 right_fork[1]
             }) [sharp corners] -- ({
                 right_fork[0]
-            }) [rounded corners] -- ({
-                inner_fork[3] + protrude
-            }) -- ({
-                inner_fork[2]
-            }) -- ({
-                inner_fork[1]
-            }) [sharp corners] -- ({
-                inner_fork[0] + protrude
-            }) -- cycle;"""
-        )
-        layers["species"].append(
-            rf"""\path[species border] ({
-                left_fork[0]
-            }) -- ({
-                left_fork[1]
-            }) -- ({
-                left_fork[2]
-            }) -- ({
-                left_fork[3]
-            });"""
-        )
-        layers["species"].append(
-            rf"""\path[species border] ({
-                right_fork[0]
-            }) -- ({
-                right_fork[1]
-            }) -- ({
-                right_fork[2]
-            }) -- ({
-                right_fork[3]
-            });"""
-        )
-        layers["species"].append(
-            rf"""\path[species border] ({
-                inner_fork[0]
-            }) -- ({
-                inner_fork[1]
-            }) -- ({
-                inner_fork[2]
             }) -- ({
                 inner_fork[3]
-            });"""
+            }) [rounded corners={{{params.species_border_rounding}}}] -- ({
+                inner_fork[2]
+            }) -- ({
+                inner_fork[1]
+            }) [sharp corners] -- ({
+                inner_fork[0]
+            }) -- cycle;"""
         )
     else:
         # Draw leaf
@@ -312,12 +271,6 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
                 layout.trunk.bottom_left(),
             )
 
-        layers["background"].append(
-            rf"""\path[species background] ({path[0]}) -- ({path[1]}) -- ({
-                path[2]
-            }) -- ({path[3]});"""
-        )
-
         species_name = tex.escape(species_node.name)
 
         if params.species_label_width is not None:
@@ -325,8 +278,11 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
                 species_name, params.species_label_width
             ).replace("\n", "\\\\")
 
-        layers["species"].append(
-            rf"""\path[species border] ({
+        layers["background"].append(
+            rf"""\path[
+                species background,
+                rounded corners={{{params.species_border_rounding}}},
+            ] ({
                 path[0]
             }) -- ({
                 path[1]

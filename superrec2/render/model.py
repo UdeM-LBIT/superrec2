@@ -137,10 +137,13 @@ class DrawParams(NamedTuple):
 
     # Vertical space between the fork of the parent node
     # and its children subtrees
-    level_spacing: float = 0
+    level_spacing: float = 4
 
     # Thickness of the lines around the outer species tree
     species_border_thickness: str = "1pt"
+
+    # Rounding radius of corners of the species outline
+    species_border_rounding: str = "4pt"
 
     # Thickness of the lines that make up the inner gene tree
     branch_thickness: str = "0.5pt"
