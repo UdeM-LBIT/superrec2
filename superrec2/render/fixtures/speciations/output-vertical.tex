@@ -2,16 +2,10 @@
 \tikzset{
     x={1pt},
     y={-1pt},
-    species border/.style={
-        line width={1pt},
-        shorten <={-1pt / 2 + 0.05pt},
-        shorten >={-1pt / 2 + 0.05pt},
-    },
     species background/.style={
         fill=species background color,
         draw=species background color,
         line width={1pt},
-        rounded corners,
     },
     species label/.style={
         font=\bfseries,
@@ -81,34 +75,34 @@
 \definecolor{reccolor0}{HTML}{000000}
 \begin{tikzpicture}
 % background
-\path[species background] (22.012999999999998,26.5) -- (22.012999999999998,10) -- (64.776,10) [sharp corners] -- (64.776,0) -- (81.276,0) [rounded corners] -- (81.276,10) -- (102.449,10) [sharp corners] -- (102.449,53.0) [rounded corners] -- (85.526,63.0) -- (85.526,26.5) -- (38.513,26.5) [sharp corners] -- (38.513,36.5) -- cycle;
-\path[species background] (0,53.0) -- (0,36.5) -- (22.012999999999998,36.5) [sharp corners] -- (22.012999999999998,26.5) -- (38.513,26.5) [rounded corners] -- (38.513,36.5) -- (60.525999999999996,36.5) [sharp corners] -- (60.525999999999996,53.0) [rounded corners] -- (42.763,63.0) -- (42.763,53.0) -- (17.762999999999998,53.0) [sharp corners] -- (17.762999999999998,63.0) -- cycle;
-\path[species background] (0,53.0) -- (0,83.0) -- (17.762999999999998,83.0) -- (17.762999999999998,53.0);
-\path[species background] (42.763,53.0) -- (42.763,83.0) -- (60.525999999999996,83.0) -- (60.525999999999996,53.0);
-\path[species background] (85.526,53.0) -- (85.526,83.0) -- (102.449,83.0) -- (102.449,53.0);
+\path[species background] (17.762999999999998,30.5) [rounded corners={4pt}] -- (17.762999999999998,10) -- (49.775999999999996,10) [sharp corners] -- (49.775999999999996,0) -- (66.276,0) [rounded corners={4pt}] -- (66.276,10) -- (80.949,10) [sharp corners] -- (80.949,61.0) -- (64.026,61.0) [rounded corners={4pt}] -- (64.026,26.5) -- (34.263,26.5) [sharp corners] -- (34.263,30.5) -- cycle;
+\path[species background] (0,61.0) [rounded corners={4pt}] -- (0,40.5) -- (17.762999999999998,40.5) [sharp corners] -- (17.762999999999998,30.5) -- (34.263,30.5) [rounded corners={4pt}] -- (34.263,40.5) -- (52.025999999999996,40.5) [sharp corners] -- (52.025999999999996,61.0) -- (34.263,61.0) [rounded corners={4pt}] -- (34.263,57.0) -- (17.762999999999998,57.0) [sharp corners] -- (17.762999999999998,61.0) -- cycle;
+\path[
+                species background,
+                rounded corners={4pt},
+            ] (0,61.0) -- (0,91.0) -- node[species label] {X} (17.762999999999998,91.0) -- (17.762999999999998,61.0);
+\path[
+                species background,
+                rounded corners={4pt},
+            ] (34.263,61.0) -- (34.263,91.0) -- node[species label] {Y} (52.025999999999996,91.0) -- (52.025999999999996,61.0);
+\path[
+                species background,
+                rounded corners={4pt},
+            ] (64.026,61.0) -- (64.026,91.0) -- node[species label] {Z} (80.949,91.0) -- (80.949,61.0);
 % species
-\path[species border] (22.012999999999998,26.5) -- (22.012999999999998,10) -- (64.776,10) -- (64.776,0);
-\path[species border] (102.449,53.0) -- (102.449,10) -- (81.276,10) -- (81.276,0);
-\path[species border] (38.513,26.5) -- (38.513,26.5) -- (85.526,26.5) -- (85.526,53.0);
-\path[species border] (0,53.0) -- (0,36.5) -- (22.012999999999998,36.5) -- (22.012999999999998,26.5);
-\path[species border] (60.525999999999996,53.0) -- (60.525999999999996,36.5) -- (38.513,36.5) -- (38.513,26.5);
-\path[species border] (17.762999999999998,53.0) -- (17.762999999999998,53.0) -- (42.763,53.0) -- (42.763,53.0);
-\path[species border] (0,53.0) -- (0,83.0) -- node[species label] {X} (17.762999999999998,83.0) -- (17.762999999999998,53.0);
-\path[species border] (42.763,53.0) -- (42.763,83.0) -- node[species label] {Y} (60.525999999999996,83.0) -- (60.525999999999996,53.0);
-\path[species border] (85.526,53.0) -- (85.526,83.0) -- node[species label] {Z} (102.449,83.0) -- (102.449,53.0);
 % gene branches
-\path[branch={reccolor0}] (73.026,14) -- (73.026,0);
-\draw[branch={reccolor0}] (30.262999999999998,26.5) |- (68.776,18.25) (77.276,18.25) -| (93.9875,53.0);
-\path[branch={reccolor0}] (30.262999999999998,40.5) -- (30.262999999999998,26.5);
-\draw[branch={reccolor0}] (8.881499999999999,53.0) |- (26.012999999999998,44.75) (34.513,44.75) -| (51.644499999999994,53.0);
-\path[branch={reccolor0}] (8.881499999999999,63.0) -- (8.881499999999999,53.0);
-\path[branch={reccolor0}] (51.6445,63.0) -- (51.644499999999994,53.0);
-\path[branch={reccolor0}] (93.9875,63.0) -- (93.9875,53.0);
+\path[branch={reccolor0}] (58.025999999999996,14) -- (58.025999999999996,0);
+\draw[branch={reccolor0}] (26.012999999999998,30.5) |- (53.775999999999996,18.25) (62.275999999999996,18.25) -| (72.4875,61.0);
+\path[branch={reccolor0}] (26.012999999999998,44.5) -- (26.012999999999998,30.5);
+\draw[branch={reccolor0}] (8.881499999999999,61.0) |- (21.762999999999998,48.75) (30.262999999999998,48.75) -| (43.144499999999994,61.0);
+\path[branch={reccolor0}] (8.881499999999999,71.0) -- (8.881499999999999,61.0);
+\path[branch={reccolor0}] (43.1445,71.0) -- (43.144499999999994,61.0);
+\path[branch={reccolor0}] (72.4875,71.0) -- (72.4875,61.0);
 % gene transfers
 % events
-\node[speciation={reccolor0}] at (73.026,18.25) {};
-\node[speciation={reccolor0}] at (30.262999999999998,44.75) {};
-\node[extant gene={reccolor0}{x\textsubscript{1}}] at (8.881499999999999,64.5) {};
-\node[extant gene={reccolor0}{y\textsubscript{1}}] at (51.6445,64.5) {};
-\node[extant gene={reccolor0}{z\textsubscript{1}}] at (93.9875,64.5) {};
+\node[speciation={reccolor0}] at (58.025999999999996,18.25) {};
+\node[speciation={reccolor0}] at (26.012999999999998,48.75) {};
+\node[extant gene={reccolor0}{x\textsubscript{1}}] at (8.881499999999999,72.5) {};
+\node[extant gene={reccolor0}{y\textsubscript{1}}] at (43.1445,72.5) {};
+\node[extant gene={reccolor0}{z\textsubscript{1}}] at (72.4875,72.5) {};
 \end{tikzpicture}

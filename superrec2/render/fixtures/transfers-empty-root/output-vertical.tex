@@ -2,16 +2,10 @@
 \tikzset{
     x={1pt},
     y={-1pt},
-    species border/.style={
-        line width={1pt},
-        shorten <={-1pt / 2 + 0.05pt},
-        shorten >={-1pt / 2 + 0.05pt},
-    },
     species background/.style={
         fill=species background color,
         draw=species background color,
         line width={1pt},
-        rounded corners,
     },
     species label/.style={
         font=\bfseries,
@@ -81,34 +75,34 @@
 \definecolor{reccolor0}{HTML}{000000}
 \begin{tikzpicture}
 % background
-\path[species background] (0,45.0) -- (0,10) -- (30.262999999999998,10) [sharp corners] -- (30.262999999999998,0) -- (30.262999999999998,0) [rounded corners] -- (30.262999999999998,10) -- (82.276045,10) [sharp corners] -- (82.276045,10.0) [rounded corners] -- (63.775954999999996,20.0) -- (63.775954999999996,10) -- (17.762999999999998,10) [sharp corners] -- (17.762999999999998,55.0) -- cycle;
-\path[species background] (0,45.0) -- (0,75.0) -- (17.762999999999998,75.0) -- (17.762999999999998,45.0);
-\path[species background] (42.763,45.0) -- (42.763,28.5) -- (63.775954999999996,28.5) [sharp corners] -- (63.775954999999996,10.0) -- (82.276045,10.0) [rounded corners] -- (82.276045,28.5) -- (102.449,28.5) [sharp corners] -- (102.449,45.0) [rounded corners] -- (85.526,55.0) -- (85.526,45.0) -- (60.525999999999996,45.0) [sharp corners] -- (60.525999999999996,55.0) -- cycle;
-\path[species background] (42.763,45.0) -- (42.763,75.0) -- (60.525999999999996,75.0) -- (60.525999999999996,45.0);
-\path[species background] (85.526,45.0) -- (85.526,75.0) -- (102.449,75.0) -- (102.449,45.0);
+\path[species background] (0,53.0) [rounded corners={4pt}] -- (0,10) -- (23.762999999999998,10) [sharp corners] -- (23.762999999999998,0) -- (23.762999999999998,0) [rounded corners={4pt}] -- (23.762999999999998,10) -- (66.02609,10) [sharp corners] -- (66.02609,14.0) -- (47.525999999999996,14.0) [rounded corners={4pt}] -- (47.525999999999996,10) -- (17.762999999999998,10) [sharp corners] -- (17.762999999999998,53.0) -- cycle;
+\path[
+                species background,
+                rounded corners={4pt},
+            ] (0,53.0) -- (0,83.0) -- node[species label] {X} (17.762999999999998,83.0) -- (17.762999999999998,53.0);
+\path[species background] (29.762999999999998,53.0) [rounded corners={4pt}] -- (29.762999999999998,32.5) -- (47.525999999999996,32.5) [sharp corners] -- (47.525999999999996,14.0) -- (66.02609,14.0) [rounded corners={4pt}] -- (66.02609,32.5) -- (82.94909,32.5) [sharp corners] -- (82.94909,53.0) -- (66.02609,53.0) [rounded corners={4pt}] -- (66.02609,49.0) -- (47.525999999999996,49.0) [sharp corners] -- (47.525999999999996,53.0) -- cycle;
+\path[
+                species background,
+                rounded corners={4pt},
+            ] (29.762999999999998,53.0) -- (29.762999999999998,83.0) -- node[species label] {Y} (47.525999999999996,83.0) -- (47.525999999999996,53.0);
+\path[
+                species background,
+                rounded corners={4pt},
+            ] (66.02609,53.0) -- (66.02609,83.0) -- node[species label] {Z} (82.94909,83.0) -- (82.94909,53.0);
 % species
-\path[species border] (0,45.0) -- (0,10) -- (30.262999999999998,10) -- (30.262999999999998,0);
-\path[species border] (82.276045,10.0) -- (82.276045,10) -- (30.262999999999998,10) -- (30.262999999999998,0);
-\path[species border] (17.762999999999998,45.0) -- (17.762999999999998,10) -- (63.775954999999996,10) -- (63.775954999999996,10.0);
-\path[species border] (0,45.0) -- (0,75.0) -- node[species label] {X} (17.762999999999998,75.0) -- (17.762999999999998,45.0);
-\path[species border] (42.763,45.0) -- (42.763,28.5) -- (63.775954999999996,28.5) -- (63.775954999999996,10.0);
-\path[species border] (102.449,45.0) -- (102.449,28.5) -- (82.276045,28.5) -- (82.276045,10.0);
-\path[species border] (60.525999999999996,45.0) -- (60.525999999999996,45.0) -- (85.526,45.0) -- (85.526,45.0);
-\path[species border] (42.763,45.0) -- (42.763,75.0) -- node[species label] {Y} (60.525999999999996,75.0) -- (60.525999999999996,45.0);
-\path[species border] (85.526,45.0) -- (85.526,75.0) -- node[species label] {Z} (102.449,75.0) -- (102.449,45.0);
 % gene branches
-\path[branch={reccolor0}] (8.881499999999999,55.0) -- (8.881499999999999,45.0);
-\draw[branch={reccolor0}] (51.644499999999994,45.0) |- (68.776,36.75) (77.276,36.75) -| (93.9875,45.0);
-\path[branch={reccolor0}] (73.026,20.0) -- (73.026,10.0);
-\draw[branch={reccolor0}] (73.026,32.5) |- (73.026,28.5);
-\path[branch={reccolor0}] (51.6445,55.0) -- (51.644499999999994,45.0);
-\path[branch={reccolor0}] (93.9875,55.0) -- (93.9875,45.0);
+\path[branch={reccolor0}] (8.881499999999999,63.0) -- (8.881499999999999,53.0);
+\draw[branch={reccolor0}] (38.644499999999994,53.0) |- (52.526044999999996,40.75) (61.026044999999996,40.75) -| (74.48759,53.0);
+\path[branch={reccolor0}] (56.776044999999996,24.0) -- (56.776044999999996,14.0);
+\draw[branch={reccolor0}] (56.776044999999996,36.5) |- (56.776044999999996,32.5);
+\path[branch={reccolor0}] (38.6445,63.0) -- (38.644499999999994,53.0);
+\path[branch={reccolor0}] (74.48759,63.0) -- (74.48759,53.0);
 % gene transfers
-\draw[transfer branch={reccolor0}] (67.775955,24.25) to[out=180, in=0] (8.881499999999999,45.0);
+\draw[transfer branch={reccolor0}] (51.525999999999996,28.25) to[out=180, in=0] (8.881499999999999,53.0);
 % events
-\node[extant gene={reccolor0}{x\textsubscript{1}}] at (8.881499999999999,56.5) {};
-\node[speciation={reccolor0}] at (73.026,36.75) {};
-\node[horizontal gene transfer={reccolor0}] at (73.026,24.25) {\phantom{-}};
-\node[extant gene={reccolor0}{y\textsubscript{1}}] at (51.6445,56.5) {};
-\node[extant gene={reccolor0}{z\textsubscript{1}}] at (93.9875,56.5) {};
+\node[extant gene={reccolor0}{x\textsubscript{1}}] at (8.881499999999999,64.5) {};
+\node[speciation={reccolor0}] at (56.776044999999996,40.75) {};
+\node[horizontal gene transfer={reccolor0}] at (56.776044999999996,28.25) {\phantom{-}};
+\node[extant gene={reccolor0}{y\textsubscript{1}}] at (38.6445,64.5) {};
+\node[extant gene={reccolor0}{z\textsubscript{1}}] at (74.48759,64.5) {};
 \end{tikzpicture}

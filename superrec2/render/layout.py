@@ -489,7 +489,15 @@ def _layout_subtrees(
             subtree_span += params.level_spacing + fork_thickness
 
             if params.orientation == Orientation.VERTICAL:
-                subtree_spacing = max(params.min_subtree_spacing, trunk_width)
+                left_trunk_dist = (
+                    left_info["size"].w - left_info["trunk"].right().x
+                )
+                right_trunk_dist = right_info["trunk"].left().x
+                subtree_spacing = max(
+                    trunk_width - (left_trunk_dist + right_trunk_dist),
+                    params.min_subtree_spacing,
+                )
+
                 state["size"] = Size(
                     left_info["size"].w
                     + subtree_spacing
@@ -509,7 +517,15 @@ def _layout_subtrees(
                     0,
                 )
             else:
-                subtree_spacing = max(params.min_subtree_spacing, trunk_height)
+                left_trunk_dist = (
+                    left_info["size"].h - left_info["trunk"].bottom().y
+                )
+                right_trunk_dist = right_info["trunk"].top().y
+                subtree_spacing = max(
+                    trunk_height - (left_trunk_dist + right_trunk_dist),
+                    params.min_subtree_spacing,
+                )
+
                 state["size"] = Size(
                     subtree_span,
                     left_info["size"].h

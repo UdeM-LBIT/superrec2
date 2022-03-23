@@ -133,7 +133,7 @@ class DrawParams(NamedTuple):
     trunk_overhead: float = 10
 
     # Minimum space between the two subtrees of an internal species
-    min_subtree_spacing: float = 25
+    min_subtree_spacing: float = 12
 
     # Vertical space between the fork of the parent node
     # and its children subtrees
