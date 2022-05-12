@@ -14,7 +14,7 @@ from superrec2.render import (
 from superrec2.model.synteny import parse_synteny_mapping
 from superrec2.model.tree_mapping import get_species_mapping, parse_tree_mapping
 from superrec2.model.reconciliation import (
-    SuperReconciliationInput,
+    ReconciliationOutput,
     SuperReconciliationOutput,
 )
 from superrec2.utils.trees import LowestCommonAncestor
@@ -61,7 +61,12 @@ def generate_tikz(args):
     params = DrawParams(
         orientation=Orientation[args.orientation.upper()],
     )
-    rec_output = SuperReconciliationOutput.from_dict(data)
+
+    if "syntenies" in data:
+        rec_output = SuperReconciliationOutput.from_dict(data)
+    else:
+        rec_output = ReconciliationOutput.from_dict(data)
+
     layout_info = compute_layout(rec_output, params)
     return render_to_tikz(rec_output, layout_info, params)
 
