@@ -161,4 +161,7 @@ The input above will add a blue coloring to the subtree that undergoes a duplica
 
 ## References
 
-<!-- TODO -->
+* M. Goodman, J. Czelusniak, G. W. Moore, A. E. Romero-Herrera, and G. Matsuda, “Fitting the gene lineage into its species lineage, a parsimony strategy illustrated by cladograms constructed from globin sequences,” Systematic Biology, vol. 28, Art. no. 2, 1979-06, doi: [10.1093/sysbio/28.2.132](https://doi.org/10.1093/sysbio/28.2.132).
+* A. Tofigh, M. Hallett, and J. Lagergren, “Simultaneous identification of duplications and lateral gene transfers,” IEEE/ACM Transactions on Computational Biology and Bioinformatics, vol. 8, Art. no. 2, 2011-03, doi: [10.1109/tcbb.2010.14](https://doi.org/10.1109/tcbb.2010.14).
+* M. S. Bansal, E. J. Alm, and M. Kellis, “Efficient algorithms for the reconciliation problem with gene duplication, horizontal transfer and loss,” Bioinformatics, vol. 28, Art. no. 12, 2012-06, doi: [10.1093/bioinformatics/bts225](https://doi.org/10.1093/bioinformatics/bts225).
+* M. Delabre et al., “Evolution through segmental duplications and losses: a super-reconciliation approach,” Algorithms for Molecular Biology, vol. 15, Art. no. 12, 2020-05, doi: [10.1186/s13015-020-00171-4](https://doi.org/10.1186/s13015-020-00171-4).
