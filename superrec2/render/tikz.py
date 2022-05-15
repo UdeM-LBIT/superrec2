@@ -481,7 +481,6 @@ def render(
     """
     layers: Dict[str, List[str]] = {
         "background": [],
-        "species": [],
         "gene branches": [],
         "gene transfers": [],
         "events": [],
