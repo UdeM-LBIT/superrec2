@@ -15,6 +15,10 @@ from ..model.tree_mapping import TreeMapping
 from ..utils.geometry import Position
 
 
+# Round all coordinates to this number of places in generated TikZ code
+MAX_DIGITS = 4
+
+
 def get_tikz_definitions(params: DrawParams):
     """Get TikZ definitions matching a set of drawing parameters."""
     if params.orientation == Orientation.VERTICAL:
@@ -227,29 +231,29 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
 
         layers["background"].append(
             rf"""\path[species background] ({
-                left_fork[0]
+                left_fork[0] : {MAX_DIGITS}
             }) [rounded corners={{{params.species_border_rounding}}}] -- ({
-                left_fork[1]
+                left_fork[1] : {MAX_DIGITS}
             }) -- ({
-                left_fork[2]
+                left_fork[2] : {MAX_DIGITS}
             }) [sharp corners] -- ({
-                left_fork[3]
+                left_fork[3] : {MAX_DIGITS}
             }) -- ({
-                right_fork[3]
+                right_fork[3] : {MAX_DIGITS}
             }) [rounded corners={{{params.species_border_rounding}}}] -- ({
-                right_fork[2]
+                right_fork[2] : {MAX_DIGITS}
             }) -- ({
-                right_fork[1]
+                right_fork[1] : {MAX_DIGITS}
             }) [sharp corners] -- ({
-                right_fork[0]
+                right_fork[0] : {MAX_DIGITS}
             }) -- ({
-                inner_fork[3]
+                inner_fork[3] : {MAX_DIGITS}
             }) [rounded corners={{{params.species_border_rounding}}}] -- ({
-                inner_fork[2]
+                inner_fork[2] : {MAX_DIGITS}
             }) -- ({
-                inner_fork[1]
+                inner_fork[1] : {MAX_DIGITS}
             }) [sharp corners] -- ({
-                inner_fork[0]
+                inner_fork[0] : {MAX_DIGITS}
             }) -- cycle;"""
         )
     else:
@@ -281,15 +285,15 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
         layers["background"].append(
             r"\path[species background, "
             rf"""rounded corners={{{params.species_border_rounding}}}] ({
-                path[0]
+                path[0] : {MAX_DIGITS}
             }) -- ({
-                path[1]
+                path[1] : {MAX_DIGITS}
             }) -- node[species label] {{{
                 species_name
             }}} ({
-                path[2]
+                path[2] : {MAX_DIGITS}
             }) -- ({
-                path[3]
+                path[3] : {MAX_DIGITS}
             });"""
         )
 
@@ -318,9 +322,9 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
         if root_gene in layout.anchors:
             layers["gene branches"].append(
                 rf"""\path[branch={{{get_color(branch.color)}}}] ({
-                    branch.anchor_parent
+                    branch.anchor_parent : {MAX_DIGITS}
                 }) -- ({
-                    layout.anchors[root_gene]
+                    layout.anchors[root_gene] : {MAX_DIGITS}
                 });"""
             )
 
@@ -337,7 +341,7 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
             layers["events"].append(
                 rf"""\node[extant gene={{{
                     get_color(branch.color)
-                }}}{{{branch.name}}}] at ({leaf_pos}) {{}};"""
+                }}}{{{branch.name}}}] at ({leaf_pos : {MAX_DIGITS}}) {{}};"""
             )
         elif branch.kind == EdgeEvent.FULL_LOSS:
             if right_gene is None:
@@ -377,31 +381,35 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
             assert right_layout is not None
             layers["gene branches"].append(
                 rf"""\draw[branch={{{get_color(branch.color)}}}] ({
-                    left_layout.anchors[left_gene]
-                }) {fork_links[0]} ({branch.anchor_left}) ({
-                    branch.anchor_right
+                    left_layout.anchors[left_gene] : {MAX_DIGITS}
+                }) {fork_links[0]} ({
+                    branch.anchor_left : {MAX_DIGITS}
+                }) ({
+                    branch.anchor_right : {MAX_DIGITS}
                 }) {fork_links[1]} ({
-                    right_layout.anchors[right_gene]
+                    right_layout.anchors[right_gene] : {MAX_DIGITS}
                 });"""
             )
             layers["events"].append(
                 rf"""\node[speciation={{{get_color(branch.color)}}}] at ({
-                    branch_pos
+                    branch_pos : {MAX_DIGITS}
                 }) {{{branch.name}}};"""
             )
         elif branch.kind == NodeEvent.DUPLICATION:
             layers["gene branches"].append(
                 rf"""\draw[branch={{{get_color(branch.color)}}}] ({
-                    layout.branches[left_gene].anchor_parent
-                }) {fork_links[0]} ({branch.anchor_left}) ({
-                    branch.anchor_right
+                    layout.branches[left_gene].anchor_parent : {MAX_DIGITS}
+                }) {fork_links[0]} ({
+                    branch.anchor_left : {MAX_DIGITS}
+                }) ({
+                    branch.anchor_right : {MAX_DIGITS}
                 }) {fork_links[1]} ({
-                    layout.branches[right_gene].anchor_parent
+                    layout.branches[right_gene].anchor_parent : {MAX_DIGITS}
                 });"""
             )
             layers["events"].append(
                 rf"""\node[duplication={{{get_color(branch.color)}}}] at ({
-                    branch_pos
+                    branch_pos : {MAX_DIGITS}
                 }) {{{branch.name}}};"""
             )
         elif branch.kind == NodeEvent.HORIZONTAL_TRANSFER:
@@ -425,13 +433,17 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
 
             layers["gene branches"].append(
                 rf"""\draw[branch={{{get_color(branch.color)}}}] ({
-                    layout.branches[left_gene].anchor_parent
-                }) |- ({branch.anchor_child});"""
+                    layout.branches[left_gene].anchor_parent : {MAX_DIGITS}
+                }) |- ({
+                    branch.anchor_child : {MAX_DIGITS}
+                });"""
             )
             layers["gene transfers"].append(
                 rf"""\draw[transfer branch={{{get_color(branch.color)}}}] ({
-                    anchor_out
-                }) to[{bend_out}] ({foreign_pos});"""
+                    anchor_out : {MAX_DIGITS}
+                }) to[{bend_out}] ({
+                    foreign_pos : {MAX_DIGITS}
+                });"""
             )
             # Force content for empty nodes to workaround
             # rendering bug with TikZ chamfered rectangles
@@ -439,7 +451,7 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
             layers["events"].append(
                 rf"""\node[horizontal gene transfer={{{
                     get_color(branch.color)
-                }}}] at ({branch_pos}) {{{name}}};"""
+                }}}] at ({branch_pos : {MAX_DIGITS}}) {{{name}}};"""
             )
         else:
             raise ValueError("Invalid node type")

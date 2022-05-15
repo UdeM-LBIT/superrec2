@@ -75,104 +75,88 @@
 \definecolor{reccolor0}{HTML}{000000}
 \begin{tikzpicture}
 % background
-\path[species background] (47.5,109.25985) [rounded corners={4pt}] -- (18.5,109.25985) -- (18.5,163.57974000000002) [sharp corners] -- (0,163.57974000000002) -- (0,188.57974000000002) [rounded corners={4pt}] -- (18.5,188.57974000000002) -- (18.5,234.14963) [sharp corners] -- (131.89001000000002,234.14963) -- (131.89001000000002,217.64963) [rounded corners={4pt}] -- (43.5,217.64963) -- (43.5,147.75985) [sharp corners] -- (47.5,147.75985) -- cycle;
-\path[species background] (110.50009,35.56989) [rounded corners={4pt}] -- (68.00009,35.56989) -- (68.00009,109.25985) [sharp corners] -- (47.5,109.25985) -- (47.5,147.75985) [rounded corners={4pt}] -- (68.00009,147.75985) -- (68.00009,170.07974000000002) [sharp corners] -- (188.84009,170.07974000000002) -- (188.84009,134.50985) [rounded corners={4pt}] -- (106.50009,134.50985) -- (106.50009,74.06989) [sharp corners] -- (110.50009,74.06989) -- cycle;
-\path[species background] (188.00009,0) [rounded corners={4pt}] -- (120.50009,0) -- (120.50009,35.56989) [sharp corners] -- (110.50009,35.56989) -- (110.50009,74.06989) [rounded corners={4pt}] -- (120.50009,74.06989) -- (120.50009,122.50985) [sharp corners] -- (163.00009,122.50985) -- (163.00009,74.06989) [rounded corners={4pt}] -- (159.00009,74.06989) -- (159.00009,35.56989) [sharp corners] -- (188.00009,35.56989) -- cycle;
-\path[
-                species background,
-                rounded corners={4pt},
-            ] (188.00009,0) -- (219.76309,0) -- node[species label] {X} (219.76309,35.56989) -- (188.00009,35.56989);
-\path[
-                species background,
-                rounded corners={4pt},
-            ] (163.00009,74.06989) -- (219.76309,74.06989) -- node[species label] {Y} (219.76309,122.50985) -- (163.00009,122.50985);
-\path[
-                species background,
-                rounded corners={4pt},
-            ] (188.84009,134.50985) -- (219.76309,134.50985) -- node[species label] {Z} (219.76309,170.07974000000002) -- (188.84009,170.07974000000002);
-\path[species background] (173.56009,182.07974000000002) [rounded corners={4pt}] -- (141.89001000000002,182.07974000000002) -- (141.89001000000002,217.64963) [sharp corners] -- (131.89001000000002,217.64963) -- (131.89001000000002,234.14963) [rounded corners={4pt}] -- (141.89001000000002,234.14963) -- (141.89001000000002,262.44955) [sharp corners] -- (162.39001000000002,262.44955) -- (162.39001000000002,234.14963) [rounded corners={4pt}] -- (158.39001000000002,234.14963) -- (158.39001000000002,217.64963) [sharp corners] -- (173.56009,217.64963) -- cycle;
-\path[
-                species background,
-                rounded corners={4pt},
-            ] (173.56009,182.07974000000002) -- (219.76309,182.07974000000002) -- node[species label] {W} (219.76309,217.64963) -- (173.56009,217.64963);
-\path[
-                species background,
-                rounded corners={4pt},
-            ] (162.39001000000002,234.14963) -- (219.76309000000003,234.14963) -- node[species label] {T} (219.76309000000003,262.44955) -- (162.39001000000002,262.44955);
-% species
+\path[species background] (47.5,109.2599) [rounded corners={4pt}] -- (18.5,109.2599) -- (18.5,163.5797) [sharp corners] -- (0,163.5797) -- (0,188.5797) [rounded corners={4pt}] -- (18.5,188.5797) -- (18.5,234.1496) [sharp corners] -- (131.89,234.1496) -- (131.89,217.6496) [rounded corners={4pt}] -- (43.5,217.6496) -- (43.5,147.7599) [sharp corners] -- (47.5,147.7599) -- cycle;
+\path[species background] (110.5001,35.5699) [rounded corners={4pt}] -- (68.0001,35.5699) -- (68.0001,109.2599) [sharp corners] -- (47.5,109.2599) -- (47.5,147.7599) [rounded corners={4pt}] -- (68.0001,147.7599) -- (68.0001,170.0797) [sharp corners] -- (188.8401,170.0797) -- (188.8401,134.5099) [rounded corners={4pt}] -- (106.5001,134.5099) -- (106.5001,74.0699) [sharp corners] -- (110.5001,74.0699) -- cycle;
+\path[species background] (188.0001,0) [rounded corners={4pt}] -- (120.5001,0) -- (120.5001,35.5699) [sharp corners] -- (110.5001,35.5699) -- (110.5001,74.0699) [rounded corners={4pt}] -- (120.5001,74.0699) -- (120.5001,122.5099) [sharp corners] -- (163.0001,122.5099) -- (163.0001,74.0699) [rounded corners={4pt}] -- (159.0001,74.0699) -- (159.0001,35.5699) [sharp corners] -- (188.0001,35.5699) -- cycle;
+\path[species background, rounded corners={4pt}] (188.0001,0) -- (219.7631,0) -- node[species label] {X} (219.7631,35.5699) -- (188.0001,35.5699);
+\path[species background, rounded corners={4pt}] (163.0001,74.0699) -- (219.7631,74.0699) -- node[species label] {Y} (219.7631,122.5099) -- (163.0001,122.5099);
+\path[species background, rounded corners={4pt}] (188.8401,134.5099) -- (219.7631,134.5099) -- node[species label] {Z} (219.7631,170.0797) -- (188.8401,170.0797);
+\path[species background] (173.5601,182.0797) [rounded corners={4pt}] -- (141.89,182.0797) -- (141.89,217.6496) [sharp corners] -- (131.89,217.6496) -- (131.89,234.1496) [rounded corners={4pt}] -- (141.89,234.1496) -- (141.89,262.4495) [sharp corners] -- (162.39,262.4495) -- (162.39,234.1496) [rounded corners={4pt}] -- (158.39,234.1496) -- (158.39,217.6496) [sharp corners] -- (173.5601,217.6496) -- cycle;
+\path[species background, rounded corners={4pt}] (173.5601,182.0797) -- (219.7631,182.0797) -- node[species label] {W} (219.7631,217.6496) -- (173.5601,217.6496);
+\path[species background, rounded corners={4pt}] (162.39,234.1496) -- (219.7631,234.1496) -- node[species label] {T} (219.7631,262.4495) -- (162.39,262.4495);
 % gene branches
-\draw[branch={reccolor0}] (47.5,120.50985) -| (26.75,176.07974000000002) (26.75,184.57974000000002) |- (131.89001000000002,225.89963);
+\draw[branch={reccolor0}] (47.5,120.5099) -| (26.75,176.0797) (26.75,184.5797) |- (131.89,225.8996);
 \draw[branch={reccolor0}] (37.75,169.32974000000002) -- (37.75,188.57974000000002);
 \draw[branch={reccolor0}] (37.75,169.32974000000002) |- (47.5,139.50985);
-\path[branch={reccolor0}] (10.0,174.82974000000002) -- (0,174.82974000000002);
-\draw[branch={reccolor0}] (37.75,169.32974000000002) -| (14.25,170.57974000000002) (14.25,179.07974000000002) |- (22.5,180.32974000000002);
-\draw[branch={reccolor0}] (110.50009,41.31989) -| (76.25009,135.25985) (76.25009,143.75985) |- (188.84009,163.174755);
-\path[branch={reccolor0}] (57.5,139.50985) -- (47.5,139.50985);
-\draw[branch={reccolor0}] (72.00009,139.50985) |- (68.00009,139.50985);
-\draw[branch={reccolor0}] (110.50009,52.31989) -| (89.75009,121.75985) (89.75009,130.25985) |- (188.84009,152.364785);
+\path[branch={reccolor0}] (10.0,174.8297) -- (0,174.8297);
+\draw[branch={reccolor0}] (37.75,169.3297) -| (14.25,170.5797) (14.25,179.0797) |- (22.5,180.3297);
+\draw[branch={reccolor0}] (110.5001,41.3199) -| (76.2501,135.2599) (76.2501,143.7599) |- (188.8401,163.1748);
+\path[branch={reccolor0}] (57.5,139.5099) -- (47.5,139.5099);
+\draw[branch={reccolor0}] (72.0001,139.5099) |- (68.0001,139.5099);
+\draw[branch={reccolor0}] (110.5001,52.3199) -| (89.7501,121.7599) (89.7501,130.2599) |- (188.8401,152.3648);
 \draw[branch={reccolor0}] (100.75009,115.00985) -- (100.75009,147.75985);
 \draw[branch={reccolor0}] (100.75009,115.00985) |- (110.50009,65.81989);
-\path[branch={reccolor0}] (59.50009,120.50985) -- (47.5,120.50985);
-\draw[branch={reccolor0}] (100.75009,115.00985) -| (63.75009,116.25985) (63.75009,124.75985) |- (85.50009,126.00985);
-\path[branch={reccolor0}] (124.50009,65.81989) -- (110.50009,65.81989);
-\draw[branch={reccolor0}] (188.00009,17.854935) -| (128.75009,61.56989) (128.75009,70.06989) |- (163.00009,115.329855);
-\path[branch={reccolor0}] (138.00009,52.31989) -- (110.50009,52.31989);
-\draw[branch={reccolor0}] (188.00009,6.974975000000001) -| (142.25009,48.06989) (142.25009,56.56989) |- (163.00009,95.4498725);
-\path[branch={reccolor0}] (153.25009,41.31989) -- (110.50009,41.31989);
+\path[branch={reccolor0}] (59.5001,120.5099) -- (47.5,120.5099);
+\draw[branch={reccolor0}] (100.7501,115.0099) -| (63.7501,116.2599) (63.7501,124.7599) |- (85.5001,126.0099);
+\path[branch={reccolor0}] (124.5001,65.8199) -- (110.5001,65.8199);
+\draw[branch={reccolor0}] (188.0001,17.8549) -| (128.7501,61.5699) (128.7501,70.0699) |- (163.0001,115.3299);
+\path[branch={reccolor0}] (138.0001,52.3199) -- (110.5001,52.3199);
+\draw[branch={reccolor0}] (188.0001,6.975) -| (142.2501,48.0699) (142.2501,56.5699) |- (163.0001,95.4499);
+\path[branch={reccolor0}] (153.2501,41.3199) -- (110.5001,41.3199);
 \draw[branch={reccolor0}] (153.25009,41.31989) -- (153.25009,74.06989);
 \draw[branch={reccolor0}] (153.25009,41.31989) |- (188.00009,28.664905);
-\path[branch={reccolor0}] (198.00009,28.664905) -- (188.00009,28.664905);
-\path[branch={reccolor0}] (198.00009,17.854935) -- (188.00009,17.854935);
-\path[branch={reccolor0}] (198.00009,6.974975000000001) -- (188.00009,6.974975000000001);
-\path[branch={reccolor0}] (198.00009,115.32985500000001) -- (163.00009,115.329855);
-\draw[branch={reccolor0}] (198.00009,92.609875) -| (189.75009,82.67988) (189.75009,91.17988) |- (198.00009,81.249885);
-\path[branch={reccolor0}] (173.00009,95.4498725) -- (163.00009,95.4498725);
-\draw[branch={reccolor0}] (198.00009,103.96986500000001) -| (177.25009,91.1998725) (177.25009,99.6998725) |- (185.50009,86.92988);
-\path[branch={reccolor0}] (198.84009,163.17475500000003) -- (188.84009,163.174755);
-\path[branch={reccolor0}] (198.84009,152.36478500000004) -- (188.84009,152.364785);
-\path[branch={reccolor0}] (198.84009,141.48482500000003) -- (188.84009,141.484825);
-\path[branch={reccolor0}] (145.89001000000002,225.89963) -- (131.89001000000002,225.89963);
-\draw[branch={reccolor0}] (173.56009,189.054715) -| (150.14001000000002,221.64963) (150.14001000000002,230.14963) |- (162.39001000000002,248.29959);
-\path[branch={reccolor0}] (183.56009,205.33966) -- (173.56009,205.33966);
-\draw[branch={reccolor0}] (196.06009,210.74464500000002) -| (187.81009,201.08966) (187.81009,209.58966) |- (196.06009,199.93467500000003);
-\path[branch={reccolor0}] (196.06009,189.05471500000002) -- (173.56009,189.054715);
-\draw[branch={reccolor0}] (199.39010000000002,254.62457) -| (191.14010000000002,244.04959) (191.14010000000002,252.54959) |- (199.39010000000002,241.97461);
-\path[branch={reccolor0}] (172.39001000000002,248.29959) -- (162.39001000000002,248.29959);
-\draw[branch={reccolor0}] (186.89010000000002,248.29959) |- (182.89010000000002,248.29959);
+\path[branch={reccolor0}] (198.0001,28.6649) -- (188.0001,28.6649);
+\path[branch={reccolor0}] (198.0001,17.8549) -- (188.0001,17.8549);
+\path[branch={reccolor0}] (198.0001,6.975) -- (188.0001,6.975);
+\path[branch={reccolor0}] (198.0001,115.3299) -- (163.0001,115.3299);
+\draw[branch={reccolor0}] (198.0001,92.6099) -| (189.7501,82.6799) (189.7501,91.1799) |- (198.0001,81.2499);
+\path[branch={reccolor0}] (173.0001,95.4499) -- (163.0001,95.4499);
+\draw[branch={reccolor0}] (198.0001,103.9699) -| (177.2501,91.1999) (177.2501,99.6999) |- (185.5001,86.9299);
+\path[branch={reccolor0}] (198.8401,163.1748) -- (188.8401,163.1748);
+\path[branch={reccolor0}] (198.8401,152.3648) -- (188.8401,152.3648);
+\path[branch={reccolor0}] (198.8401,141.4848) -- (188.8401,141.4848);
+\path[branch={reccolor0}] (145.89,225.8996) -- (131.89,225.8996);
+\draw[branch={reccolor0}] (173.5601,189.0547) -| (150.14,221.6496) (150.14,230.1496) |- (162.39,248.2996);
+\path[branch={reccolor0}] (183.5601,205.3397) -- (173.5601,205.3397);
+\draw[branch={reccolor0}] (196.0601,210.7446) -| (187.8101,201.0897) (187.8101,209.5897) |- (196.0601,199.9347);
+\path[branch={reccolor0}] (196.0601,189.0547) -- (173.5601,189.0547);
+\draw[branch={reccolor0}] (199.3901,254.6246) -| (191.1401,244.0496) (191.1401,252.5496) |- (199.3901,241.9746);
+\path[branch={reccolor0}] (172.39,248.2996) -- (162.39,248.2996);
+\draw[branch={reccolor0}] (186.8901,248.2996) |- (182.8901,248.2996);
 % gene transfers
-\draw[transfer branch={reccolor0}] (62.750045,143.75985) to[out=-90, in=90] (173.56009,205.33966);
-\draw[transfer branch={reccolor0}] (177.64005500000002,244.04959) to[out=90, in=-90] (188.84009,141.484825);
+\draw[transfer branch={reccolor0}] (62.75,143.7599) to[out=-90, in=90] (173.5601,205.3397);
+\draw[transfer branch={reccolor0}] (177.6401,244.0496) to[out=90, in=-90] (188.8401,141.4848);
 % events
-\node[speciation={reccolor0}] at (26.75,180.32974000000002) {};
+\node[speciation={reccolor0}] at (26.75,180.3297) {};
 \node[loss={reccolor0}] at (37.75,188.57974000000002) {};
-\node[duplication={reccolor0}] at (14.25,174.82974000000002) {};
-\node[speciation={reccolor0}] at (76.25009,139.50985) {};
-\node[horizontal gene transfer={reccolor0}] at (62.750045,139.50985) {\phantom{-}};
-\node[speciation={reccolor0}] at (89.75009,126.00985) {};
+\node[duplication={reccolor0}] at (14.25,174.8297) {};
+\node[speciation={reccolor0}] at (76.2501,139.5099) {};
+\node[horizontal gene transfer={reccolor0}] at (62.75,139.5099) {\phantom{-}};
+\node[speciation={reccolor0}] at (89.7501,126.0099) {};
 \node[loss={reccolor0}] at (100.75009,147.75985) {};
-\node[duplication={reccolor0}] at (63.75009,120.50985) {};
-\node[speciation={reccolor0}] at (128.75009,65.81989) {};
-\node[speciation={reccolor0}] at (142.25009,52.31989) {};
+\node[duplication={reccolor0}] at (63.7501,120.5099) {};
+\node[speciation={reccolor0}] at (128.7501,65.8199) {};
+\node[speciation={reccolor0}] at (142.2501,52.3199) {};
 \node[loss={reccolor0}] at (153.25009,74.06989) {};
-\node[extant gene={reccolor0}{x\textsubscript{1}}] at (199.50009,28.664905) {};
-\node[extant gene={reccolor0}{x\textsubscript{2}}] at (199.50009,17.854935) {};
-\node[extant gene={reccolor0}{x\textsubscript{3}}] at (199.50009,6.974975000000001) {};
-\node[extant gene={reccolor0}{y\textsubscript{4}}] at (199.50009,115.32985500000001) {};
-\node[extant gene={reccolor0}{y\textsubscript{1}}] at (199.50009,103.96986500000001) {};
-\node[extant gene={reccolor0}{y\textsubscript{2}}] at (199.50009,92.609875) {};
-\node[extant gene={reccolor0}{y\textsubscript{3}}] at (199.50009,81.249885) {};
-\node[duplication={reccolor0}] at (189.75009,86.92988) {};
-\node[duplication={reccolor0}] at (177.25009,95.4498725) {};
-\node[extant gene={reccolor0}{z\textsubscript{1}}] at (200.34009,163.17475500000003) {};
-\node[extant gene={reccolor0}{z\textsubscript{2}}] at (200.34009,152.36478500000004) {};
-\node[extant gene={reccolor0}{z\textsubscript{3}}] at (200.34009,141.48482500000003) {};
-\node[speciation={reccolor0}] at (150.14001000000002,225.89963) {};
-\node[extant gene={reccolor0}{w\textsubscript{1}}] at (197.56009,210.74464500000002) {};
-\node[extant gene={reccolor0}{w\textsubscript{2}}] at (197.56009,199.93467500000003) {};
-\node[duplication={reccolor0}] at (187.81009,205.33966) {};
-\node[extant gene={reccolor0}{w\textsubscript{3}}] at (197.56009,189.05471500000002) {};
-\node[extant gene={reccolor0}{t\textsubscript{1}}] at (200.89010000000002,254.62457) {};
-\node[extant gene={reccolor0}{t\textsubscript{2}}] at (200.89010000000002,241.97461) {};
-\node[duplication={reccolor0}] at (191.14010000000002,248.29959) {};
-\node[horizontal gene transfer={reccolor0}] at (177.64005500000002,248.29959) {\phantom{-}};
+\node[extant gene={reccolor0}{x\textsubscript{1}}] at (199.5001,28.6649) {};
+\node[extant gene={reccolor0}{x\textsubscript{2}}] at (199.5001,17.8549) {};
+\node[extant gene={reccolor0}{x\textsubscript{3}}] at (199.5001,6.975) {};
+\node[extant gene={reccolor0}{y\textsubscript{4}}] at (199.5001,115.3299) {};
+\node[extant gene={reccolor0}{y\textsubscript{1}}] at (199.5001,103.9699) {};
+\node[extant gene={reccolor0}{y\textsubscript{2}}] at (199.5001,92.6099) {};
+\node[extant gene={reccolor0}{y\textsubscript{3}}] at (199.5001,81.2499) {};
+\node[duplication={reccolor0}] at (189.7501,86.9299) {};
+\node[duplication={reccolor0}] at (177.2501,95.4499) {};
+\node[extant gene={reccolor0}{z\textsubscript{1}}] at (200.3401,163.1748) {};
+\node[extant gene={reccolor0}{z\textsubscript{2}}] at (200.3401,152.3648) {};
+\node[extant gene={reccolor0}{z\textsubscript{3}}] at (200.3401,141.4848) {};
+\node[speciation={reccolor0}] at (150.14,225.8996) {};
+\node[extant gene={reccolor0}{w\textsubscript{1}}] at (197.5601,210.7446) {};
+\node[extant gene={reccolor0}{w\textsubscript{2}}] at (197.5601,199.9347) {};
+\node[duplication={reccolor0}] at (187.8101,205.3397) {};
+\node[extant gene={reccolor0}{w\textsubscript{3}}] at (197.5601,189.0547) {};
+\node[extant gene={reccolor0}{t\textsubscript{1}}] at (200.8901,254.6246) {};
+\node[extant gene={reccolor0}{t\textsubscript{2}}] at (200.8901,241.9746) {};
+\node[duplication={reccolor0}] at (191.1401,248.2996) {};
+\node[horizontal gene transfer={reccolor0}] at (177.6401,248.2996) {\phantom{-}};
 \end{tikzpicture}

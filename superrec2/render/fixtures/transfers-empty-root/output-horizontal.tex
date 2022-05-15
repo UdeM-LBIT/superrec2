@@ -75,34 +75,24 @@
 \definecolor{reccolor0}{HTML}{000000}
 \begin{tikzpicture}
 % background
-\path[species background] (55.00009,0) [rounded corners={4pt}] -- (10,0) -- (10,19.80997) [sharp corners] -- (0,19.80997) -- (0,19.80997) [rounded corners={4pt}] -- (10,19.80997) -- (10,56.66996) [sharp corners] -- (14.0,56.66996) -- (14.0,40.16996) [rounded corners={4pt}] -- (10,40.16996) -- (10,13.80997) [sharp corners] -- (55.00009,13.80997) -- cycle;
-\path[
-                species background,
-                rounded corners={4pt},
-            ] (55.00009,0) -- (86.76309,0) -- node[species label] {X} (86.76309,13.80997) -- (55.00009,13.80997);
-\path[species background] (55.00009,25.80997) [rounded corners={4pt}] -- (34.50009,25.80997) -- (34.50009,40.16996) [sharp corners] -- (14.0,40.16996) -- (14.0,56.66996) [rounded corners={4pt}] -- (34.50009,56.66996) -- (34.50009,70.47993) [sharp corners] -- (55.840090000000004,70.47993) -- (55.840090000000004,56.66996) [rounded corners={4pt}] -- (51.00009,56.66996) -- (51.00009,40.16996) [sharp corners] -- (55.00009,40.16996) -- cycle;
-\path[
-                species background,
-                rounded corners={4pt},
-            ] (55.00009,25.80997) -- (86.76309,25.80997) -- node[species label] {Y} (86.76309,40.16996) -- (55.00009,40.16996);
-\path[
-                species background,
-                rounded corners={4pt},
-            ] (55.840090000000004,56.66996) -- (86.76309,56.66996) -- node[species label] {Z} (86.76309,70.47993) -- (55.840090000000004,70.47993);
-% species
+\path[species background] (55.0001,0) [rounded corners={4pt}] -- (10,0) -- (10,19.81) [sharp corners] -- (0,19.81) -- (0,19.81) [rounded corners={4pt}] -- (10,19.81) -- (10,56.67) [sharp corners] -- (14.0,56.67) -- (14.0,40.17) [rounded corners={4pt}] -- (10,40.17) -- (10,13.81) [sharp corners] -- (55.0001,13.81) -- cycle;
+\path[species background, rounded corners={4pt}] (55.0001,0) -- (86.7631,0) -- node[species label] {X} (86.7631,13.81) -- (55.0001,13.81);
+\path[species background] (55.0001,25.81) [rounded corners={4pt}] -- (34.5001,25.81) -- (34.5001,40.17) [sharp corners] -- (14.0,40.17) -- (14.0,56.67) [rounded corners={4pt}] -- (34.5001,56.67) -- (34.5001,70.4799) [sharp corners] -- (55.8401,70.4799) -- (55.8401,56.67) [rounded corners={4pt}] -- (51.0001,56.67) -- (51.0001,40.17) [sharp corners] -- (55.0001,40.17) -- cycle;
+\path[species background, rounded corners={4pt}] (55.0001,25.81) -- (86.7631,25.81) -- node[species label] {Y} (86.7631,40.17) -- (55.0001,40.17);
+\path[species background, rounded corners={4pt}] (55.8401,56.67) -- (86.7631,56.67) -- node[species label] {Z} (86.7631,70.4799) -- (55.8401,70.4799);
 % gene branches
-\path[branch={reccolor0}] (65.00009,6.904985) -- (55.00009,6.904985);
-\draw[branch={reccolor0}] (55.00009,32.989965000000005) -| (42.75009,44.16996) (42.75009,52.66996) |- (55.840090000000004,63.574945);
-\path[branch={reccolor0}] (24.0,48.41996) -- (14.0,48.41996);
-\draw[branch={reccolor0}] (38.50009,48.41996) |- (34.50009,48.41996);
-\path[branch={reccolor0}] (65.00009,32.989965000000005) -- (55.00009,32.989965000000005);
-\path[branch={reccolor0}] (65.84009,63.574945) -- (55.840090000000004,63.574945);
+\path[branch={reccolor0}] (65.0001,6.905) -- (55.0001,6.905);
+\draw[branch={reccolor0}] (55.0001,32.99) -| (42.7501,44.17) (42.7501,52.67) |- (55.8401,63.5749);
+\path[branch={reccolor0}] (24.0,48.42) -- (14.0,48.42);
+\draw[branch={reccolor0}] (38.5001,48.42) |- (34.5001,48.42);
+\path[branch={reccolor0}] (65.0001,32.99) -- (55.0001,32.99);
+\path[branch={reccolor0}] (65.8401,63.5749) -- (55.8401,63.5749);
 % gene transfers
-\draw[transfer branch={reccolor0}] (29.250045,44.16996) to[out=90, in=-90] (55.00009,6.904985);
+\draw[transfer branch={reccolor0}] (29.25,44.17) to[out=90, in=-90] (55.0001,6.905);
 % events
-\node[extant gene={reccolor0}{x\textsubscript{1}}] at (66.50009,6.904985) {};
-\node[speciation={reccolor0}] at (42.75009,48.41996) {};
-\node[horizontal gene transfer={reccolor0}] at (29.250045,48.41996) {\phantom{-}};
-\node[extant gene={reccolor0}{y\textsubscript{1}}] at (66.50009,32.989965000000005) {};
-\node[extant gene={reccolor0}{z\textsubscript{1}}] at (67.34009,63.574945) {};
+\node[extant gene={reccolor0}{x\textsubscript{1}}] at (66.5001,6.905) {};
+\node[speciation={reccolor0}] at (42.7501,48.42) {};
+\node[horizontal gene transfer={reccolor0}] at (29.25,48.42) {\phantom{-}};
+\node[extant gene={reccolor0}{y\textsubscript{1}}] at (66.5001,32.99) {};
+\node[extant gene={reccolor0}{z\textsubscript{1}}] at (67.3401,63.5749) {};
 \end{tikzpicture}

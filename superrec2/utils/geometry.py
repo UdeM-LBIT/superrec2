@@ -20,6 +20,14 @@ class Position(NamedTuple):
         """Print vector coordinates."""
         return f"{self.x},{self.y}"
 
+    def __format__(self, spec):
+        """Format the vector as a coordinate tuple, possibly rounding it."""
+        if spec:
+            digits = int(spec)
+            return f"{round(self.x, digits)},{round(self.y, digits)}"
+        else:
+            return str(self)
+
     def meet_hv(self, pos: tuple) -> "Position":
         """
         Intersect a horizontal line from this position with a vertical line
