@@ -279,10 +279,8 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
             ).replace("\n", "\\\\")
 
         layers["background"].append(
-            rf"""\path[
-                species background,
-                rounded corners={{{params.species_border_rounding}}},
-            ] ({
+            r"\path[species background, "
+            rf"""rounded corners={{{params.species_border_rounding}}}] ({
                 path[0]
             }) -- ({
                 path[1]
