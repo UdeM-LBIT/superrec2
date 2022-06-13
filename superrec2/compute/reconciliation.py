@@ -98,17 +98,18 @@ def _compute_thl_try_speciation(
             Candidate(table[right_node][right_child].value(), right_child)
         )
 
-    spe_combinator = lambda left, right: Candidate(
-        left.value
-        + right.value
-        + loss_cost
-        * (
-            species_lca.distance(root_species, left.info)
-            + species_lca.distance(root_species, right.info)
-            - 2
-        ),
-        MappingInfo(left.info, right.info),
-    )
+    def spe_combinator(left, right):
+        return Candidate(
+            left.value
+            + right.value
+            + loss_cost
+            * (
+                species_lca.distance(root_species, left.info)
+                + species_lca.distance(root_species, right.info)
+                - 2
+            ),
+            MappingInfo(left.info, right.info),
+        )
 
     table[root_node][root_species].update(
         *min_ltl.combine(min_rtr, spe_combinator),
@@ -161,39 +162,42 @@ def _compute_thl_try_duplication_transfer(
             )
 
     # Try mapping as a duplication
-    dup_combin = lambda left, right: Candidate(
-        dup_cost
-        + left.value
-        + right.value
-        + loss_cost
-        * (
-            species_lca.distance(root_species, left.info)
-            + species_lca.distance(root_species, right.info)
-        ),
-        MappingInfo(left.info, right.info),
-    )
+    def dup_combinator(left, right):
+        return Candidate(
+            dup_cost
+            + left.value
+            + right.value
+            + loss_cost
+            * (
+                species_lca.distance(root_species, left.info)
+                + species_lca.distance(root_species, right.info)
+            ),
+            MappingInfo(left.info, right.info),
+        )
 
     # Try mapping as a horizontal transfer
-    hgt_l_combin = lambda left, right: Candidate(
-        hgt_cost
-        + left.value
-        + right.value
-        + loss_cost * species_lca.distance(root_species, left.info),
-        MappingInfo(left.info, right.info),
-    )
+    def hgt_l_combinator(left, right):
+        return Candidate(
+            hgt_cost
+            + left.value
+            + right.value
+            + loss_cost * species_lca.distance(root_species, left.info),
+            MappingInfo(left.info, right.info),
+        )
 
-    hgt_r_combin = lambda left, right: Candidate(
-        hgt_cost
-        + left.value
-        + right.value
-        + loss_cost * species_lca.distance(root_species, right.info),
-        MappingInfo(left.info, right.info),
-    )
+    def hgt_r_combinator(left, right):
+        return Candidate(
+            hgt_cost
+            + left.value
+            + right.value
+            + loss_cost * species_lca.distance(root_species, right.info),
+            MappingInfo(left.info, right.info),
+        )
 
     table[root_node][root_species].update(
-        *min_ltc.combine(min_rtc, dup_combin),
-        *min_lts.combine(min_rtc, hgt_r_combin),
-        *min_ltc.combine(min_rts, hgt_l_combin),
+        *min_ltc.combine(min_rtc, dup_combinator),
+        *min_lts.combine(min_rtc, hgt_r_combinator),
+        *min_ltc.combine(min_rts, hgt_l_combinator),
     )
 
 

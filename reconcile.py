@@ -5,12 +5,6 @@ import inspect
 import json
 import textwrap
 import sys
-from infinity import inf
-from ete3 import Tree
-from superrec2.utils.trees import LowestCommonAncestor
-from superrec2.utils.dynamic_programming import RetentionPolicy
-from superrec2.model.synteny import parse_synteny_mapping
-from superrec2.model.tree_mapping import get_species_mapping, parse_tree_mapping
 from superrec2.model.reconciliation import (
     NodeEvent,
     EdgeEvent,
@@ -32,6 +26,9 @@ from superrec2.compute.unordered_super_reconciliation import (
     usreconcile_base_uspfs,
     usreconcile_extended_uspfs,
 )
+from superrec2.utils.args import add_arg_input, add_arg_output
+from superrec2.utils.file import open_std
+from superrec2.utils.dynamic_programming import RetentionPolicy
 
 
 algorithms = {
@@ -54,21 +51,23 @@ cost_events = {
 }
 
 
-# Append each algorithm’s description to this module help string
-__doc__ += "\n\navailable algorithms:\n\n"
-indent = 22
+def generate_doc(indent=22):
+    """Generate combined docstring for all available algorithms."""
+    result = ""
 
-for key, impl in algorithms.items():
-    paragraphs = textwrap.dedent(impl.__doc__).split("\n\n")
-    unwrapped = " ".join(paragraphs[0].split("\n")).strip()
-    rewrapped = textwrap.indent(textwrap.fill(unwrapped, 70), " " * indent)
-    __doc__ += "  " + key + " " * (indent - 2 - len(key))
-    __doc__ += rewrapped.strip() + "\n\n"
+    for key, impl in algorithms.items():
+        paragraphs = textwrap.dedent(impl.__doc__).split("\n\n")
+        unwrapped = " ".join(paragraphs[0].split("\n")).strip()
+        rewrapped = textwrap.indent(textwrap.fill(unwrapped, 70), " " * indent)
+        result += "  " + key + " " * (indent - 2 - len(key))
+        result += rewrapped.strip() + "\n\n"
+
+    return result
 
 
 def eval_cost(cost):
     """Evaluate a cost expression in the context of this module."""
-    return eval(cost)
+    return eval(cost)  # pylint: disable=eval-used
 
 
 def parse_arguments():
@@ -77,6 +76,8 @@ def parse_arguments():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    add_arg_input(parser, "a file defining the reconciliation problem input")
+    add_arg_output(parser, "where the reconciliation results will be stored")
     parser.add_argument(
         "algorithm",
         metavar="ALGO",
@@ -91,20 +92,7 @@ def parse_arguments():
 solution (choices: all, any; default: any)",
         choices=("any", "all"),
     )
-    parser.add_argument(
-        "--input",
-        metavar="PATH",
-        default="-",
-        help="path to a file defining the reconciliation input \
-(default: read from stdin)",
-    )
-    parser.add_argument(
-        "--output",
-        metavar="PATH",
-        default="-",
-        help="path where the resulting reconciliations will be stored \
-(default: output to stdout)",
-    )
+
     for kind, (argname, fullname) in cost_events.items():
         parser.add_argument(
             f"--cost-{argname}",
@@ -113,13 +101,15 @@ solution (choices: all, any; default: any)",
             type=eval_cost,
             help=f"cost of {fullname} event (default: %(default)s)",
         )
+
     return parser.parse_args()
 
 
-def call_algorithm(args):
-    infile = open(args.input, "r") if args.input != "-" else sys.stdin
-    outfile = open(args.output, "w") if args.output != "-" else sys.stdout
-    data = json.load(infile)
+def read_input(args):
+    """Read and parse the input data file."""
+    with open_std(args.input, "r", encoding="utf8") as infile:
+        data = json.load(infile)
+
     data["costs"] = dict(
         (kind, getattr(args, f"cost_{argname}"))
         for kind, (argname, _) in cost_events.items()
@@ -130,6 +120,11 @@ def call_algorithm(args):
     else:
         rec_input = ReconciliationInput.from_dict(data)
 
+    return rec_input
+
+
+def call_algorithm(args, rec_input):
+    """Execute the specified algorithm on the input data."""
     algo = algorithms[args.algorithm]
     algo_signature = inspect.signature(algo)
     params = list(algo_signature.parameters.values())
@@ -147,7 +142,7 @@ algorithm: declared leaf syntenies will be ignored",
 algorithm: you need to provide leaf syntenies",
                 file=sys.stderr,
             )
-            return 1
+            return None
 
     if len(params) == 1:
         output = algo(rec_input)
@@ -157,7 +152,7 @@ algorithm: you need to provide leaf syntenies",
             getattr(RetentionPolicy, args.solutions.upper()),
         )
     else:
-        return 1
+        return None
 
     if output is None:
         results = []
@@ -167,21 +162,33 @@ algorithm: you need to provide leaf syntenies",
         results = list(output)
 
     if not results:
-        return 1
+        return None
 
     print("Minimum cost:", results[0].cost(), file=sys.stderr)
-
-    for result in results:
-        json.dump(result.to_dict(), outfile)
-        print(file=outfile)
-
-    return 0
+    return results
 
 
-def main():
+def dump_results(args, results):
+    """Write reconciliation results to output file."""
+    with open_std(args.output, "w", encoding="utf8") as outfile:
+        for result in results:
+            json.dump(result.to_dict(), outfile)
+            print(file=outfile)
+
+
+def main():  # pylint:disable=missing-function-docstring
     args = parse_arguments()
-    return call_algorithm(args)
+    rec_input = read_input(args)
+    results = call_algorithm(args, rec_input)
 
+    if results is None:
+        return 1
+
+    return dump_results(args, results)
+
+
+__doc__ += "\n\navailable algorithms:\n\n"
+__doc__ += generate_doc()
 
 if __name__ == "__main__":
     sys.exit(main())

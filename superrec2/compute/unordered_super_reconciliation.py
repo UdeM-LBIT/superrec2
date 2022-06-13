@@ -7,21 +7,17 @@ from typing import (
     Dict,
     Generator,
     Iterable,
-    Mapping,
     NamedTuple,
     Optional,
-    Sequence,
     Set,
-    Tuple,
 )
-from tqdm import tqdm
-from math import inf
 from ete3 import Tree, TreeNode
+from infinity import inf
+from tqdm import tqdm
 from .reconciliation import reconcile_lca
 from ..utils.trees import LowestCommonAncestor
 from ..model.synteny import GeneFamily, UnorderedSynteny, sort_synteny
 from ..model.reconciliation import (
-    ReconciliationOutput,
     SuperReconciliationInput,
     SuperReconciliationOutput,
     NodeEvent,
@@ -342,7 +338,6 @@ def _compute_uspfs_table(
         retention_policy,
     )
     lca = SyntenyAssignment.LCA
-    inh = SyntenyAssignment.INHERIT
 
     for root_object in tqdm(
         srec_input.object_tree.traverse("postorder"),
@@ -415,7 +410,8 @@ def _decode_uspfs_table(
         root_object.is_leaf()
         and not table[root_object][root_species][root_kind].is_infinite()
     ):
-        yield SuperReconciliationOutput(
+        # pylint has trouble seeing the attributes from the descendant dataclass
+        yield SuperReconciliationOutput( # pylint: disable=unexpected-keyword-arg
             input=srec_input,
             object_species={root_object: root_species},
             syntenies={root_object: root_synteny},
@@ -449,7 +445,8 @@ def _decode_uspfs_table(
         )
 
         for map_left, map_right in mappings:
-            yield SuperReconciliationOutput(
+            # pylint has trouble seeing the attributes from the descendant dataclass
+            yield SuperReconciliationOutput( # pylint: disable=unexpected-keyword-arg
                 input=srec_input,
                 object_species={
                     root_object: root_species,
@@ -483,9 +480,7 @@ def _uspfs(
         srec_input_bin.label_internal()
         gain_sets = _compute_gain_sets(srec_input_bin)
         lca_sets = _compute_lca_sets(srec_input_bin, gain_sets)
-
         synteny_tree = srec_input_bin.object_tree
-        leaf_syntenies = srec_input_bin.leaf_syntenies
 
         table = _compute_uspfs_table(
             srec_input_bin,

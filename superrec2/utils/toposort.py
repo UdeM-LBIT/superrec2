@@ -136,9 +136,9 @@ def find_cycle(graph: Mapping[Node, Set[Node]]) -> Optional[List[Node]]:
                 parents[neighbor] = current
                 cycle_start = neighbor
                 break
-            else:
-                parents[neighbor] = current
-                stack.append(neighbor)
+
+            parents[neighbor] = current
+            stack.append(neighbor)
 
     if cycle_start is None:
         return None
@@ -146,7 +146,7 @@ def find_cycle(graph: Mapping[Node, Set[Node]]) -> Optional[List[Node]]:
     cycle: List[Node] = [cycle_start]
     current = parents[cycle_start]
 
-    while current != cycle_start and current != parents[current]:
+    while current not in (cycle_start, parents[current]):
         cycle.append(current)
         current = parents[current]
 

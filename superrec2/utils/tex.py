@@ -30,7 +30,7 @@ def xelatex_compile(source: str, dest: IO = None) -> str:
         source_path = os.path.join(tmpdir, "input.tex")
         pdf_path = os.path.join(tmpdir, "input.pdf")
 
-        with open(source_path, "w") as source_file:
+        with open(source_path, "w", encoding="utf8") as source_file:
             source_file.write(source)
 
         result = subprocess.run(

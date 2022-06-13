@@ -1,5 +1,5 @@
 """Common operations on trees."""
-from itertools import product, chain
+from itertools import product
 from typing import Dict, Generator, Iterable, List, Optional, Set, Tuple
 from ete3 import Tree, TreeNode
 from .range_min_query import RangeMinQuery

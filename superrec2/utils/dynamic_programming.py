@@ -10,10 +10,8 @@ from typing import (
     Optional,
     overload,
     Protocol,
-    List,
     Iterable,
     Set,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -22,7 +20,7 @@ from infinity import Infinity, inf, is_infinite
 
 @dataclass
 class Dimension:
-    pass
+    """Generic class for a dimension (axis) of a dynamic programming table."""
 
 
 @dataclass
@@ -46,8 +44,6 @@ class DictDimension(Dimension):
     It is initially empty and accepts any hashable object as a key.
     """
 
-    pass
-
 
 def _generate_table(dimensions: Iterable[Dimension]):
     if not dimensions:
@@ -58,25 +54,26 @@ def _generate_table(dimensions: Iterable[Dimension]):
 
     if isinstance(dim, ListDimension):
         return [_generate_table(rem) for i in range(dim.length)]
-    elif isinstance(dim, DictDimension):
+
+    if isinstance(dim, DictDimension):
         return defaultdict(lambda: _generate_table(rem))
-    else:
-        raise RuntimeError(f"Unknown dimension type: {dim}")
+
+    raise RuntimeError(f"Unknown dimension type: {dim}")
 
 
-InfoType = TypeVar("InfoType")
-ValueType = TypeVar("ValueType")
+InfoTypeT = TypeVar("InfoTypeT")
+ValueTypeT = TypeVar("ValueTypeT")
 
 
 @dataclass(frozen=True)
-class Candidate(Generic[ValueType, InfoType]):
+class Candidate(Generic[ValueTypeT, InfoTypeT]):
     """Candidate value for an entry of a dynamic programming table."""
 
     # Value of the candidate
-    value: Union[ValueType, Infinity]
+    value: Union[ValueTypeT, Infinity]
 
     # Arbitrary info tag attached to this value
-    info: Optional[InfoType] = None
+    info: Optional[InfoTypeT] = None
 
 
 class MergePolicy(Enum):
@@ -104,32 +101,32 @@ class RetentionPolicy(Enum):
     ALL = auto()
 
 
-class EntryProtocol(Generic[ValueType, InfoType], Protocol):
+class EntryProtocol(Generic[ValueTypeT, InfoTypeT], Protocol):
     """Protocol for entries of a dynamic programming table."""
 
     def is_infinite(self) -> bool:
         """Check whether the value stored in this entry is infinite."""
 
-    def value(self) -> Union[ValueType, Infinity]:
+    def value(self) -> Union[ValueTypeT, Infinity]:
         """Get the value currently stored in this entry."""
 
-    def infos(self) -> Set[InfoType]:
+    def infos(self) -> Set[InfoTypeT]:
         """Get the list of custom info tags associated to the current value."""
 
-    def info(self) -> Optional[InfoType]:
+    def info(self) -> Optional[InfoTypeT]:
         """Get any info tag associated to the current value."""
 
-    def update(self, *candidates: Candidate[ValueType, InfoType]) -> None:
+    def update(self, *candidates: Candidate[ValueTypeT, InfoTypeT]) -> None:
         """Receive a set of candidates and keep the optimal ones."""
 
     def combine(
         self,
-        other: "EntryProtocol[ValueType, InfoType]",
+        other: "EntryProtocol[ValueTypeT, InfoTypeT]",
         combinator: Callable[
-            [Candidate[ValueType, InfoType], Candidate[ValueType, InfoType]],
-            ValueType,
+            [Candidate[ValueTypeT, InfoTypeT], Candidate[ValueTypeT, InfoTypeT]],
+            ValueTypeT,
         ],
-    ) -> "EntryProtocol[ValueType, Tuple[InfoType, InfoType]]":
+    ) -> "EntryProtocol[ValueTypeT, Tuple[InfoTypeT, InfoTypeT]]":
         """
         Combine the candidates from two entries.
 
@@ -149,7 +146,7 @@ class EntryProtocol(Generic[ValueType, InfoType], Protocol):
         """Get the number of info tags in this entry."""
 
 
-class Entry(Generic[ValueType, InfoType]):
+class Entry(Generic[ValueTypeT, InfoTypeT]):
     """Type for entries stored in dynamic programming tables."""
 
     @overload
@@ -159,12 +156,11 @@ class Entry(Generic[ValueType, InfoType]):
         retention_policy: RetentionPolicy,
     ):
         """Create a default-initialized entry matching given policies."""
-        ...
 
     def __init__(
         self,
-        value: Union[ValueType, Infinity],
-        infos: Iterable[InfoType],
+        value: Union[ValueTypeT, Infinity],
+        infos: Iterable[InfoTypeT],
         merge_policy: MergePolicy = None,
         retention_policy: RetentionPolicy = None,
     ):
@@ -172,8 +168,8 @@ class Entry(Generic[ValueType, InfoType]):
         if (
             merge_policy is None
             and retention_policy is None
-            and type(value) is MergePolicy
-            and type(infos) is RetentionPolicy
+            and isinstance(value, MergePolicy)
+            and isinstance(infos, RetentionPolicy)
         ):
             self._value = inf if value == MergePolicy.MIN else -inf
             self._infos = set()
@@ -191,22 +187,30 @@ class Entry(Generic[ValueType, InfoType]):
                 else RetentionPolicy.NONE
             )
 
-    def is_infinite(self) -> bool:
+    def is_infinite(self) -> bool:  # pylint: disable=missing-function-docstring
         return is_infinite(self._value)
 
-    def value(self) -> Union[ValueType, Infinity]:
+    is_infinite.__doc__ = EntryProtocol.is_infinite.__doc__
+
+    def value(self) -> Union[ValueTypeT, Infinity]:  # pylint: disable=missing-function-docstring
         return self._value
 
-    def infos(self) -> Set[InfoType]:
+    value.__doc__ = EntryProtocol.value.__doc__
+
+    def infos(self) -> Set[InfoTypeT]:  # pylint: disable=missing-function-docstring
         return self._infos
 
-    def info(self) -> Optional[InfoType]:
+    infos.__doc__ = EntryProtocol.infos.__doc__
+
+    def info(self) -> Optional[InfoTypeT]:  # pylint: disable=missing-function-docstring
         if self._infos:
             return min(self._infos)
-        else:
-            return None
 
-    def update(self, *candidates: Candidate[ValueType, InfoType]) -> None:
+        return None
+
+    info.__doc__ = EntryProtocol.info.__doc__
+
+    def update(self, *candidates: Candidate[ValueTypeT, InfoTypeT]) -> None:  # pylint: disable=missing-function-docstring
         is_min = self._merge_policy == MergePolicy.MIN
         is_max = self._merge_policy == MergePolicy.MAX
 
@@ -231,14 +235,16 @@ class Entry(Generic[ValueType, InfoType]):
 
                 self._value = value
 
-    def combine(
+    update.__doc__ = EntryProtocol.update.__doc__
+
+    def combine(  # pylint: disable=missing-function-docstring
         self,
-        other: "EntryProtocol[ValueType, InfoType]",
+        other: "EntryProtocol[ValueTypeT, InfoTypeT]",
         combinator: Callable[
-            [Candidate[ValueType, InfoType], Candidate[ValueType, InfoType]],
-            ValueType,
+            [Candidate[ValueTypeT, InfoTypeT], Candidate[ValueTypeT, InfoTypeT]],
+            ValueTypeT,
         ],
-    ) -> "EntryProtocol[ValueType, Tuple[InfoType, InfoType]]":
+    ) -> "EntryProtocol[ValueTypeT, Tuple[InfoTypeT, InfoTypeT]]":
         result = Entry(self._merge_policy, self._retention_policy)
 
         for ours, theirs in product(self._infos, other.infos()):
@@ -250,6 +256,8 @@ class Entry(Generic[ValueType, InfoType]):
             )
 
         return result
+
+    combine.__doc__ = EntryProtocol.combine.__doc__
 
     def __eq__(self, other: Any):
         if not callable(getattr(other, "value", None)):
@@ -268,7 +276,7 @@ class Entry(Generic[ValueType, InfoType]):
         return len(self._infos)
 
 
-class Table(Generic[ValueType, InfoType]):
+class Table(Generic[ValueTypeT, InfoTypeT]):
     """
     Generic dynamic programming table.
 
@@ -303,9 +311,9 @@ class Table(Generic[ValueType, InfoType]):
 
     def entry(
         self,
-        value: Union[None, ValueType, Infinity] = None,
-        infos: Union[None, Iterable[InfoType]] = None,
-    ) -> Entry[ValueType, InfoType]:
+        value: Union[None, ValueTypeT, Infinity] = None,
+        infos: Union[None, Iterable[InfoTypeT]] = None,
+    ) -> Entry[ValueTypeT, InfoTypeT]:
         """
         Create an empty entry with policies matching those of this table.
 
@@ -314,13 +322,13 @@ class Table(Generic[ValueType, InfoType]):
         """
         if value is None and infos is None:
             return Entry(self.merge_policy, self.retention_policy)
-        else:
-            return Entry(
-                value,
-                infos,
-                self.merge_policy,
-                self.retention_policy,
-            )
+
+        return Entry(
+            value,
+            infos,
+            self.merge_policy,
+            self.retention_policy,
+        )
 
     def keys(self) -> Iterable[Any]:
         """Get the set of keys defined in the first dimension."""
@@ -332,8 +340,8 @@ class Table(Generic[ValueType, InfoType]):
     def __getitem__(
         self, key: Any
     ) -> Union[
-        "EntryProtocol[ValueType, InfoType]",
-        "TableProxy[ValueType, InfoType]",
+        "EntryProtocol[ValueTypeT, InfoTypeT]",
+        "TableProxy[ValueTypeT, InfoTypeT]",
     ]:
         """
         Retrieve a subset or an entry of the table.
@@ -349,7 +357,7 @@ class Table(Generic[ValueType, InfoType]):
         return TableProxy(self, ())[key]
 
     def __setitem__(
-        self, key: Any, candidate: Candidate[ValueType, InfoType]
+        self, key: Any, candidate: Candidate[ValueTypeT, InfoTypeT]
     ) -> None:
         """
         Assign a candidate to an entry of the table.
@@ -360,7 +368,7 @@ class Table(Generic[ValueType, InfoType]):
         TableProxy(self, ())[key] = candidate
 
 
-class EntryProxy(Generic[ValueType, InfoType]):
+class EntryProxy(Generic[ValueTypeT, InfoTypeT]):
     """
     Virtual entry returned for entries that may not yet exist.
 
@@ -373,76 +381,91 @@ class EntryProxy(Generic[ValueType, InfoType]):
     proxy to the real entry.
     """
 
-    def __init__(self, parent: Table[ValueType, InfoType], key: Any):
+    def __init__(self, parent: Table[ValueTypeT, InfoTypeT], key: Any):
         self._parent = parent
         self._key = key
 
-    def _get_real(self) -> Optional[Entry[ValueType, InfoType]]:
-        entry = self._parent._table
+    def _get_real(self) -> Optional[Entry[ValueTypeT, InfoTypeT]]:
+        entry = self._parent._table  # pylint: disable=protected-access
 
-        for x in self._key:
-            entry = entry[x]
+        for item in self._key:
+            entry = entry[item]
 
         return entry
 
-    def is_infinite(self) -> Optional[InfoType]:
+    def is_infinite(self) -> Optional[InfoTypeT]:  # pylint: disable=missing-function-docstring
         real = self._get_real()
 
         if real is None:
             return True
-        else:
-            return real.is_infinite()
 
-    def value(self) -> Union[ValueType, Infinity]:
+        return real.is_infinite()
+
+    is_infinite.__doc__ = EntryProtocol.is_infinite.__doc__
+
+    def value(self) -> Union[ValueTypeT, Infinity]:  # pylint: disable=missing-function-docstring
         real = self._get_real()
 
         if real is None:
             return inf if self._parent.merge_policy == MergePolicy.MIN else -inf
-        else:
-            return real.value()
 
-    def infos(self) -> Set[InfoType]:
+        return real.value()
+
+    value.__doc__ = EntryProtocol.value.__doc__
+
+    def infos(self) -> Set[InfoTypeT]:  # pylint: disable=missing-function-docstring
         real = self._get_real()
 
         if real is None:
             return set()
-        else:
-            return real.infos()
 
-    def info(self) -> Optional[InfoType]:
+        return real.infos()
+
+    infos.__doc__ = EntryProtocol.infos.__doc__
+
+    def info(self) -> Optional[InfoTypeT]:  # pylint: disable=missing-function-docstring
         real = self._get_real()
 
         if real is None:
             return None
-        else:
-            return real.info()
 
-    def update(self, *candidates: Candidate[ValueType, InfoType]) -> None:
+        return real.info()
+
+    info.__doc__ = EntryProtocol.info.__doc__
+
+    def update(  # pylint: disable=missing-function-docstring
+        self,
+        *candidates: Candidate[ValueTypeT, InfoTypeT]
+    ) -> None:
         if any(not (is_infinite(candidate.value)) for candidate in candidates):
-            entry = self._parent._table
+            entry = self._parent._table  # pylint: disable=protected-access
 
-            for x in self._key[:-1]:
-                entry = entry[x]
+            for item in self._key[:-1]:
+                entry = entry[item]
 
             if entry[self._key[-1]] is None:
                 entry[self._key[-1]] = self._parent.entry()
 
             entry[self._key[-1]].update(*candidates)
 
-    def combine(
+    update.__doc__ = EntryProtocol.update.__doc__
+
+    def combine(  # pylint: disable=missing-function-docstring
         self,
-        other: "EntryProtocol[ValueType, InfoType]",
+        other: "EntryProtocol[ValueTypeT, InfoTypeT]",
         combinator: Callable[
-            [Candidate[ValueType, InfoType], Candidate[ValueType, InfoType]],
-            ValueType,
+            [Candidate[ValueTypeT, InfoTypeT], Candidate[ValueTypeT, InfoTypeT]],
+            ValueTypeT,
         ],
-    ) -> "EntryProtocol[ValueType, Tuple[InfoType, InfoType]]":
+    ) -> "EntryProtocol[ValueTypeT, Tuple[InfoTypeT, InfoTypeT]]":
         real = self._get_real()
 
         if real is None:
             return self
-        else:
-            return real.combine(other, combinator)
+
+        return real.combine(other, combinator)
+
+    combine.__doc__ = EntryProtocol.combine.__doc__
 
     def __eq__(self, other: Any):
         if not callable(getattr(other, "value", None)):
@@ -464,11 +487,11 @@ class EntryProxy(Generic[ValueType, InfoType]):
 
         if real is None:
             return 0
-        else:
-            return real.__len__()
+
+        return real.__len__()
 
 
-class TableProxy(Generic[ValueType, InfoType]):
+class TableProxy(Generic[ValueTypeT, InfoTypeT]):
     """
     Proxy object for dynamic programming tables.
 
@@ -478,18 +501,18 @@ class TableProxy(Generic[ValueType, InfoType]):
     indexing the table.
     """
 
-    def __init__(self, parent: Table[ValueType, InfoType], prefix: Any):
+    def __init__(self, parent: Table[ValueTypeT, InfoTypeT], prefix: Any):
         self.parent = parent
         self.prefix = prefix
 
     def keys(self) -> Iterable[Any]:
         """Get the set of keys defined in the next dimension."""
-        entry = self.parent._table
+        entry = self.parent._table  # pylint: disable=protected-access
 
-        for x in self.prefix:
-            entry = entry[x]
+        for item in self.prefix:
+            entry = entry[item]
 
-        if type(entry) == list:
+        if isinstance(entry, list):
             yield from range(len(entry))
         else:
             yield from entry.keys()
@@ -501,8 +524,8 @@ class TableProxy(Generic[ValueType, InfoType]):
         self, key: Any
     ) -> Union[
         None,
-        EntryProtocol[ValueType, InfoType],
-        "TableProxy[ValueType, InfoType]",
+        EntryProtocol[ValueTypeT, InfoTypeT],
+        "TableProxy[ValueTypeT, InfoTypeT]",
     ]:
         """
         Set the value of the next dimension, or retrieve an entry.
@@ -513,17 +536,17 @@ class TableProxy(Generic[ValueType, InfoType]):
         proxy’s keys plus the given key.
         """
         if len(self.prefix) + 1 == len(self.parent.dimensions):
-            entry = self.parent._table
+            entry = self.parent._table  # pylint: disable=protected-access
 
-            for x in self.prefix:
-                entry = entry[x]
+            for item in self.prefix:
+                entry = entry[item]
 
             return EntryProxy(self.parent, self.prefix + (key,))
-        else:
-            return TableProxy(self.parent, self.prefix + (key,))
+
+        return TableProxy(self.parent, self.prefix + (key,))
 
     def __setitem__(
-        self, key: Any, candidate: Candidate[ValueType, InfoType]
+        self, key: Any, candidate: Candidate[ValueTypeT, InfoTypeT]
     ) -> None:
         """
         Update the entry at the given key.

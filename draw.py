@@ -4,26 +4,25 @@ import argparse
 import json
 import textwrap
 import sys
-from ete3 import Tree
-from superrec2.render import (
-    compute_layout,
-    render_to_tikz,
+from superrec2.render import layout, tikz
+from superrec2.render.layout import (
     DrawParams,
     Orientation,
 )
-from superrec2.model.synteny import parse_synteny_mapping
-from superrec2.model.tree_mapping import get_species_mapping, parse_tree_mapping
 from superrec2.model.reconciliation import (
     ReconciliationOutput,
     SuperReconciliationOutput,
 )
-from superrec2.utils.trees import LowestCommonAncestor
+from superrec2.utils.args import add_arg_input, add_arg_output
+from superrec2.utils.file import open_std
 from superrec2.utils.tex import xelatex_compile, TeXError
 
 
 def parse_arguments():
     """Retrieve arguments or show help."""
     parser = argparse.ArgumentParser(description=__doc__)
+    add_arg_input(parser, "a file defining the reconciliation result to draw")
+    add_arg_output(parser, "where the resulting drawing will be stored")
     parser.add_argument(
         "output_type",
         metavar="TYPE",
@@ -31,19 +30,6 @@ def parse_arguments():
         choices=("tikz", "pdf"),
         help="kind of output to generate (default: guess based on output file \
 extension, or 'tikz' for output to stdout)",
-    )
-    parser.add_argument(
-        "--input",
-        metavar="PATH",
-        default="-",
-        help="path to a file defining the reconciliation input \
-(default: read from stdin)",
-    )
-    parser.add_argument(
-        "--output",
-        metavar="PATH",
-        default="-",
-        help="path where the result will be stored (default: output to stdout)",
     )
     parser.add_argument(
         "--orientation",
@@ -56,8 +42,9 @@ extension, or 'tikz' for output to stdout)",
 
 def generate_tikz(args):
     """Generate TikZ code corresponding to the given reconciliation."""
-    infile = open(args.input, "r") if args.input != "-" else sys.stdin
-    data = json.load(infile)
+    with open_std(args.input, "r", encoding="utf8") as infile_handle:
+        data = json.load(infile_handle)
+
     params = DrawParams(
         orientation=Orientation[args.orientation.upper()],
     )
@@ -67,15 +54,12 @@ def generate_tikz(args):
     else:
         rec_output = ReconciliationOutput.from_dict(data)
 
-    layout_info = compute_layout(rec_output, params)
-    return render_to_tikz(rec_output, layout_info, params)
+    layout_info = layout.compute(rec_output, params)
+    return tikz.render(rec_output, layout_info, params)
 
 
-def output(args, tikz):
+def output(args, tikz_code):
     """Generate output."""
-    outfile = (
-        open(args.output, "wb") if args.output != "-" else sys.stdout.buffer
-    )
     output_type = args.output_type
 
     if output_type is None:
@@ -92,29 +76,31 @@ type explicitly",
             return 1
 
     if output_type == "tikz":
-        outfile.write(tikz.encode())
+        with open_std(args.output, "w", encoding="utf8") as outfile:
+            outfile.write(tikz_code)
     elif output_type == "pdf":
         try:
-            xelatex_compile(
-                source=textwrap.dedent(
-                    r"""
-                    \documentclass[crop, tikz, border=20pt]{standalone}
-                    \usepackage{tikz}
-                    \usetikzlibrary{arrows.meta}
-                    \usetikzlibrary{shapes}
-                    \begin{document}
-                    \scrollmode
-                    """
-                ).lstrip()
-                + tikz
-                + textwrap.dedent(
-                    r"""
-                    \batchmode
-                    \end{document}
-                    """
-                ).lstrip(),
-                dest=outfile,
-            )
+            with open_std(args.output, "wb") as outfile:
+                xelatex_compile(
+                    source=textwrap.dedent(
+                        r"""
+                        \documentclass[crop, tikz, border=20pt]{standalone}
+                        \usepackage{tikz}
+                        \usetikzlibrary{arrows.meta}
+                        \usetikzlibrary{shapes}
+                        \begin{document}
+                        \scrollmode
+                        """
+                    ).lstrip()
+                    + tikz_code
+                    + textwrap.dedent(
+                        r"""
+                        \batchmode
+                        \end{document}
+                        """
+                    ).lstrip(),
+                    dest=outfile,
+                )
         except TeXError as err:
             print(f"XeLaTeX returned an error (code: {err.code})")
             print("Output from the compiler:")
@@ -129,8 +115,8 @@ type explicitly",
 
 def main():  # pylint:disable=missing-function-docstring
     args = parse_arguments()
-    tikz = generate_tikz(args)
-    return output(args, tikz)
+    tikz_code = generate_tikz(args)
+    return output(args, tikz_code)
 
 
 if __name__ == "__main__":

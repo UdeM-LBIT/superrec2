@@ -1,7 +1,8 @@
+"""Representation, parsing, and handling of syntenies."""
 import re
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Set
-from ..utils.text import balanced_wrap
+from typing import Dict, Iterable, Mapping, Optional, Sequence, Set
 from ete3 import Tree, TreeNode
+from ..utils.text import balanced_wrap
 
 
 GeneFamily = str

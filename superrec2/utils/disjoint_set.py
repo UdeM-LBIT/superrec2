@@ -6,24 +6,24 @@ from copy import deepcopy
 class DisjointSet:
     """Fast disjoint-set structure implementing the union-find strategy."""
 
-    def __init__(self, n):
+    def __init__(self, count):
         """
         Create a disjoint-set structure.
 
-        Elements in the set range from 0 to :param:`n` − 1. Initially, they
+        Elements in the set range from 0 to :param:`count` − 1. Initially, they
         all belong to a different singleton set.
 
-        :param n: number of elements in the structure
+        :param count: number of elements in the structure
         """
-        self.parent = list(range(n))
-        self.rank = [0] * n
-        self.groups = n
+        self.parent = list(range(count))
+        self.rank = [0] * count
+        self.groups = count
 
     def find(self, element: int) -> int:
         """
         Identify the set to which an element belongs.
 
-        Complexity: O(α(n))
+        Complexity: O(α(count))
 
         :param element: element to test
         :returns: canonical element representing the set to which
@@ -39,7 +39,7 @@ class DisjointSet:
         """
         Unite the two sets to which two elements belong.
 
-        Complexity: O(α(n))
+        Complexity: O(α(count))
 
         :param first: first element to unite
         :param second: second element to unite

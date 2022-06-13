@@ -1,9 +1,10 @@
-from typing import Generator, Mapping, Type, TypeVar, Union
+"""Represent and parse reconciliation problems and results."""
 from dataclasses import dataclass, field
-from itertools import chain, product
 from enum import Enum, auto
-from ete3 import Tree, TreeNode
+from itertools import chain, product
 from textwrap import indent
+from typing import Generator, Mapping, Type, TypeVar, Union
+from ete3 import Tree, TreeNode
 from infinity import inf, Infinity
 from .tree_mapping import (
     TreeMapping,
@@ -92,6 +93,7 @@ class ReconciliationInput:
     costs: CostValues = field(default_factory=get_default_cost)
 
     def to_dict(self):
+        """Convert the problem to a plain dictionary."""
         return {
             "object_tree": self.object_tree.write(
                 format=8,
@@ -157,6 +159,7 @@ class ReconciliationInput:
 
     @classmethod
     def from_dict(cls: Type[Self], data) -> Self:
+        """Reconstruct a problem from its plain dictionary representation."""
         return cls(**cls._from_dict(data))
 
     def binarize(self: Self) -> Generator[Self, None, None]:
@@ -244,6 +247,7 @@ class ReconciliationOutput:
     object_species: TreeMapping
 
     def to_dict(self):
+        """Convert the output to a plain dictionary."""
         return {
             "input": self.input.to_dict(),
             "object_species": serialize_tree_mapping(self.object_species),
@@ -259,18 +263,19 @@ class ReconciliationOutput:
 
     @classmethod
     def _from_dict(cls, data):
-        input = ReconciliationInput.from_dict(data["input"])
+        input_problem = ReconciliationInput.from_dict(data["input"])
         return {
-            "input": input,
+            "input": input_problem,
             "object_species": parse_tree_mapping(
-                input.object_tree,
-                input.species_lca.tree,
+                input_problem.object_tree,
+                input_problem.species_lca.tree,
                 data["object_species"],
             ),
         }
 
     @classmethod
     def from_dict(cls, data):
+        """Reconstruct an output from its plain dictionary representation."""
         return cls(**cls._from_dict(data))
 
     def node_event(self, node: TreeNode) -> NodeEvent:
@@ -559,8 +564,8 @@ class SuperReconciliationOutput(ReconciliationOutput):
         """Compute the segmental loss cost of the labeling."""
         if self.ordered:
             return self._ordered_labeling_cost()
-        else:
-            return self._unordered_labeling_cost()
+
+        return self._unordered_labeling_cost()
 
     def cost(self):
         """Compute the cost of this super-reconciliation."""

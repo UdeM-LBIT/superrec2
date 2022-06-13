@@ -1,3 +1,4 @@
+"""Representation and parsing of mappings between tree nodes."""
 from typing import Dict, Mapping
 from ete3 import Tree, TreeNode
 

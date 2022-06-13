@@ -25,8 +25,8 @@ class Position(NamedTuple):
         if spec:
             digits = int(spec)
             return f"{round(self.x, digits)},{round(self.y, digits)}"
-        else:
-            return str(self)
+
+        return str(self)
 
     def meet_hv(self, pos: tuple) -> "Position":
         """

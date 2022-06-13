@@ -1,5 +1,5 @@
 """Compute layouts for reconciliations."""
-from typing import Dict
+from typing import Any, Dict
 from ete3 import Tree, TreeNode
 from .tikz import measure_nodes
 from .model import (
@@ -17,7 +17,7 @@ from ..model.reconciliation import (
     ReconciliationOutput,
     SuperReconciliationOutput,
 )
-from ..model.synteny import Synteny, format_synteny
+from ..model.synteny import format_synteny
 from ..utils import tex
 from ..utils.geometry import Position, Rect, Size
 

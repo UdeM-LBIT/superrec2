@@ -1,12 +1,11 @@
 """Compute synteny-labeled reconciliations."""
-from itertools import product, islice
+from itertools import product
 from typing import (
     Any,
     Callable,
     Dict,
     Generator,
     Iterable,
-    Optional,
     NamedTuple,
     Sequence,
     Set,
@@ -25,7 +24,6 @@ from ..utils.subsequences import (
 )
 from ..model.synteny import Synteny, SyntenyMapping
 from ..model.reconciliation import (
-    ReconciliationOutput,
     SuperReconciliationInput,
     SuperReconciliationOutput,
     NodeEvent,
@@ -315,7 +313,8 @@ def _decode_spfs_table(
         root_object.is_leaf()
         and not table[root_object][root_species][root_synteny].is_infinite()
     ):
-        yield SuperReconciliationOutput(
+        # pylint has trouble seeing the attributes from the descendant dataclass
+        yield SuperReconciliationOutput( # pylint: disable=unexpected-keyword-arg
             input=srec_input,
             object_species={root_object: root_species},
             syntenies={root_object: resolv_synteny},
@@ -345,7 +344,8 @@ def _decode_spfs_table(
         )
 
         for map_left, map_right in mappings:
-            yield SuperReconciliationOutput(
+            # pylint has trouble seeing the attributes from the descendant dataclass
+            yield SuperReconciliationOutput( # pylint: disable=unexpected-keyword-arg
                 input=srec_input,
                 object_species={
                     root_object: root_species,

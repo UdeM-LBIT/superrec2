@@ -1,5 +1,6 @@
-from itertools import product, chain
-from typing import Generator, Optional, Set
+"""Compute reconciliations by iterating the complete search space."""
+from itertools import product
+from typing import Generator
 from ete3 import TreeNode
 from ..model.reconciliation import ReconciliationInput, ReconciliationOutput
 from ..utils.dynamic_programming import (

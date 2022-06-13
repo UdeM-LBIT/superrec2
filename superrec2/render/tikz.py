@@ -135,6 +135,13 @@ def measure_nodes(
     nodes: Sequence[Tuple[Event, str]],
     params: DrawParams,
 ) -> Sequence[tex.MeasureBox]:
+    """
+    Measure the overall space occupied by each node in a set of nodes.
+
+    :param nodes: event nodes to measure
+    :param params: drawing settings
+    :returns: list of measurements, in the same order as the node sequence
+    """
     boxes = []
 
     for kind, name in nodes:
@@ -503,9 +510,9 @@ def render(
     def get_color(html: str) -> str:
         if html in colors:
             return f"{color_prefix}{colors.index(html)}"
-        else:
-            colors.append(html)
-            return f"{color_prefix}{len(colors) - 1}"
+
+        colors.append(html)
+        return f"{color_prefix}{len(colors) - 1}"
 
     for species_node in rec.input.species_lca.tree.traverse("preorder"):
         node_layout = layout[species_node]
