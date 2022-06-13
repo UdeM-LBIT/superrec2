@@ -20,7 +20,7 @@ test:
 	python -m unittest discover --buffer --verbose
 
 .ONESHELL:
-SHELL=/usr/bin/bash
+SHELL=bash
 fixtures:
 	for input in superrec2/render/fixtures/*/input.json; do
 	    for orient in horizontal vertical; do
