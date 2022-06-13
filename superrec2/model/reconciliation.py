@@ -133,19 +133,18 @@ class ReconciliationInput:
             )
 
         if "costs" in data:
-            costs = dict(
-                (
-                    (
-                        event
-                        if isinstance(event, Event)
-                        else getattr(NodeEvent, event)
-                        if hasattr(NodeEvent, event)
-                        else getattr(EdgeEvent, event),
-                        value,
-                    )
-                    for event, value in data["costs"].items()
-                )
-            )
+            costs = {}
+
+            for event, value in data["costs"].items():
+                if isinstance(event, (NodeEvent, EdgeEvent)):
+                    event_enum = event
+                else:
+                    if hasattr(NodeEvent, event):
+                        event_enum = getattr(NodeEvent, event)
+                    else:
+                        event_enum = getattr(EdgeEvent, event)
+
+                costs[event_enum] = value
         else:
             costs = get_default_cost()
 
