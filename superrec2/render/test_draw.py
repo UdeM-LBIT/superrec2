@@ -6,7 +6,7 @@ from .model import Orientation
 
 class TestDraw(unittest.TestCase):
     def test_fixtures(self):
-        with importlib.resources.path(__package__, "fixtures") as fixtures_path:
+        with importlib.resources.files(__package__) / "fixtures" as fixtures_path:
             for fixture in fixtures_path.iterdir():
                 self.do_test_fixture(fixture)
 
@@ -25,7 +25,7 @@ class TestDraw(unittest.TestCase):
                         "--orientation",
                         orientation_name,
                         "--input",
-                        input_path,
+                        input_path.as_posix(),
                     ],
                     capture_output=True,
                     check=True,
