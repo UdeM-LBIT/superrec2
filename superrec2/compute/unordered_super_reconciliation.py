@@ -35,13 +35,12 @@ from ..utils.dynamic_programming import (
 
 
 class SyntenyAssignment(Enum):
-    """Kinds of assignments of a synteny set to an object."""
+    """Synteny sets that can be assigned to an object."""
 
-    # Assigned to the set of all families in the object’s subtree
-    LCA = auto()
+    # Minimal set of families that must be present in the object’s synteny
+    MINIMAL = auto()
 
-    # Assigned to the set of all families in the object’s subtree,
-    # and inherits extra families from the parent objects
+    # Strictly larger set than the minimal set of families
     INHERIT = auto()
 
 
@@ -109,7 +108,7 @@ def _compute_gain_sets(
     return result
 
 
-def _compute_lca_sets(
+def _compute_minimal_sets(
     srec_input: SuperReconciliationInput,
     gain_sets: Dict[TreeNode, UnorderedSynteny],
 ) -> Dict[TreeNode, UnorderedSynteny]:
@@ -150,7 +149,7 @@ def _compute_uspfs_entry(
     species_lca: LowestCommonAncestor,
     root_species: TreeNode,
     root_object: TreeNode,
-    lca_sets: Dict[TreeNode, UnorderedSynteny],
+    minimal_sets: Dict[TreeNode, UnorderedSynteny],
     table: USPFSTable,
     costs: CostValues,
 ) -> None:
@@ -162,8 +161,8 @@ def _compute_uspfs_entry(
     """
     sloss_cost = costs[EdgeEvent.SEGMENTAL_LOSS]
     floss_cost = costs[EdgeEvent.FULL_LOSS]
-    lca = SyntenyAssignment.LCA
-    inh = SyntenyAssignment.INHERIT
+    minimal = SyntenyAssignment.MINIMAL
+    inherit = SyntenyAssignment.INHERIT
 
     subprobs = tuple(
         dict(
@@ -181,21 +180,21 @@ def _compute_uspfs_entry(
     for child_index in range(2):
         child_object = root_object.children[child_index]
 
-        if lca_sets[root_object] <= lca_sets[child_object]:
-            lca_lca_dist = 0
-            lca_inh_dist = inf
+        if minimal_sets[root_object] <= minimal_sets[child_object]:
+            min_min_dist = 0
+            min_inh_dist = inf
         else:
-            lca_lca_dist = sloss_cost
-            lca_inh_dist = 0
+            min_min_dist = sloss_cost
+            min_inh_dist = 0
 
         for desc_species in species_lca.tree.traverse():
             child_entry = table[child_object][desc_species]
 
-            lca_cost = child_entry[lca].value()
-            lca_assign = ObjectAssignment(desc_species, lca)
+            minimal_cost = child_entry[minimal].value()
+            minimal_assign = ObjectAssignment(desc_species, minimal)
 
-            inh_cost = child_entry[inh].value()
-            inh_assign = ObjectAssignment(desc_species, inh)
+            inherit_cost = child_entry[inherit].value()
+            inherit_assign = ObjectAssignment(desc_species, inherit)
 
             if species_lca.is_ancestor_of(root_species, desc_species):
                 above_species_dist = (
@@ -203,88 +202,88 @@ def _compute_uspfs_entry(
                     * floss_cost
                 )
 
-                subprobs[child_index][inh].conserved.update(
+                subprobs[child_index][inherit].conserved.update(
                     Candidate(
-                        value=above_species_dist + lca_cost + sloss_cost,
-                        info=lca_assign,
+                        value=above_species_dist + minimal_cost + sloss_cost,
+                        info=minimal_assign,
                     ),
                     Candidate(
-                        value=above_species_dist + inh_cost,
-                        info=inh_assign,
+                        value=above_species_dist + inherit_cost,
+                        info=inherit_assign,
                     ),
                 )
-                subprobs[child_index][lca].conserved.update(
+                subprobs[child_index][minimal].conserved.update(
                     Candidate(
-                        value=above_species_dist + lca_cost + lca_lca_dist,
-                        info=lca_assign,
+                        value=above_species_dist + minimal_cost + min_min_dist,
+                        info=minimal_assign,
                     ),
                     Candidate(
-                        value=above_species_dist + inh_cost + lca_inh_dist,
-                        info=inh_assign,
+                        value=above_species_dist + inherit_cost + min_inh_dist,
+                        info=inherit_assign,
                     ),
                 )
 
-                subprobs[child_index][inh].segment.update(
+                subprobs[child_index][inherit].segment.update(
                     Candidate(
-                        value=above_species_dist + lca_cost,
-                        info=lca_assign,
+                        value=above_species_dist + minimal_cost,
+                        info=minimal_assign,
                     ),
                     Candidate(
-                        value=above_species_dist + inh_cost,
-                        info=inh_assign,
+                        value=above_species_dist + inherit_cost,
+                        info=inherit_assign,
                     ),
                 )
-                subprobs[child_index][lca].segment.update(
+                subprobs[child_index][minimal].segment.update(
                     Candidate(
-                        value=above_species_dist + lca_cost,
-                        info=lca_assign,
+                        value=above_species_dist + minimal_cost,
+                        info=minimal_assign,
                     ),
                     Candidate(
-                        value=above_species_dist + inh_cost + lca_inh_dist,
-                        info=inh_assign,
+                        value=above_species_dist + inherit_cost + min_inh_dist,
+                        info=inherit_assign,
                     ),
                 )
 
                 if not root_species.is_leaf():
                     left_species, right_species = root_species.children
                     species_dist = above_species_dist - floss_cost
-                    inh_candidates = (
+                    inherit_candidates = (
                         Candidate(
-                            value=species_dist + lca_cost + sloss_cost,
-                            info=lca_assign,
+                            value=species_dist + minimal_cost + sloss_cost,
+                            info=minimal_assign,
                         ),
                         Candidate(
-                            value=species_dist + inh_cost,
-                            info=inh_assign,
+                            value=species_dist + inherit_cost,
+                            info=inherit_assign,
                         ),
                     )
-                    lca_candidates = (
+                    minimal_candidates = (
                         Candidate(
-                            value=species_dist + lca_cost + lca_lca_dist,
-                            info=lca_assign,
+                            value=species_dist + minimal_cost + min_min_dist,
+                            info=minimal_assign,
                         ),
                         Candidate(
-                            value=species_dist + inh_cost + lca_inh_dist,
-                            info=inh_assign,
+                            value=species_dist + inherit_cost + min_inh_dist,
+                            info=inherit_assign,
                         ),
                     )
 
                     if species_lca.is_ancestor_of(left_species, desc_species):
-                        subprobs[child_index][inh].left.update(*inh_candidates)
-                        subprobs[child_index][lca].left.update(*lca_candidates)
+                        subprobs[child_index][inherit].left.update(*inherit_candidates)
+                        subprobs[child_index][minimal].left.update(*minimal_candidates)
                     elif species_lca.is_ancestor_of(
                         right_species, desc_species
                     ):
-                        subprobs[child_index][inh].right.update(*inh_candidates)
-                        subprobs[child_index][lca].right.update(*lca_candidates)
+                        subprobs[child_index][inherit].right.update(*inherit_candidates)
+                        subprobs[child_index][minimal].right.update(*minimal_candidates)
             elif not species_lca.is_ancestor_of(desc_species, root_species):
-                subprobs[child_index][inh].separate.update(
-                    Candidate(value=lca_cost, info=lca_assign),
-                    Candidate(value=inh_cost, info=inh_assign),
+                subprobs[child_index][inherit].separate.update(
+                    Candidate(value=minimal_cost, info=minimal_assign),
+                    Candidate(value=inherit_cost, info=inherit_assign),
                 )
-                subprobs[child_index][lca].separate.update(
-                    Candidate(value=lca_cost, info=lca_assign),
-                    Candidate(value=inh_cost + lca_inh_dist, info=inh_assign),
+                subprobs[child_index][minimal].separate.update(
+                    Candidate(value=minimal_cost, info=minimal_assign),
+                    Candidate(value=inherit_cost + min_inh_dist, info=inherit_assign),
                 )
 
     spe_comb = _make_event_combinator(costs[NodeEvent.SPECIATION])
@@ -312,7 +311,7 @@ def _compute_uspfs_entry(
 
 def _compute_uspfs_table(
     srec_input: SuperReconciliationInput,
-    lca_sets: Dict[TreeNode, UnorderedSynteny],
+    minimal_sets: Dict[TreeNode, UnorderedSynteny],
     allowed_species: Callable[[Tree, TreeNode], Iterable[TreeNode]],
     retention_policy: RetentionPolicy,
 ) -> USPFSTable:
@@ -322,10 +321,11 @@ def _compute_uspfs_table(
     of the resulting table contains the possible assignments of `object`’s
     children that lead to minimum-cost unordered super-reconciliations of the
     subtrees rooted at `object` such that the root is mapped to `species` and
-    to the LCA synteny or to a larger synteny depending on the value of `kind`.
+    to the minimal synteny or to a larger synteny depending on the value of
+    `kind`.
 
     :param srec_input: objects of the unordered super-reconciliation
-    :param lca_sets: set of genes in the LCA synteny of each object
+    :param minimal_sets: set of genes in the minimal synteny of each object
     :param allowed_species: callable that gives the set of allowed species for
         each object
     :param retention_policy: whether to keep any minimal assignment in each
@@ -337,7 +337,7 @@ def _compute_uspfs_table(
         MergePolicy.MIN,
         retention_policy,
     )
-    lca = SyntenyAssignment.LCA
+    minimal = SyntenyAssignment.MINIMAL
 
     for root_object in tqdm(
         srec_input.object_tree.traverse("postorder"),
@@ -348,7 +348,7 @@ def _compute_uspfs_table(
     ):
         if root_object.is_leaf():
             species = srec_input.leaf_object_species[root_object]
-            table[root_object][species][lca] = Candidate(0)
+            table[root_object][species][minimal] = Candidate(0)
         else:
             for root_species in tqdm(
                 allowed_species(srec_input.species_lca.tree, root_object),
@@ -366,7 +366,7 @@ def _compute_uspfs_table(
                     srec_input.species_lca,
                     root_species,
                     root_object,
-                    lca_sets,
+                    minimal_sets,
                     table,
                     srec_input.costs,
                 )
@@ -381,7 +381,7 @@ def _decode_uspfs_table(
     ancestor_synteny: Optional[UnorderedSynteny],
     srec_input: SuperReconciliationInput,
     gain_sets: Dict[TreeNode, UnorderedSynteny],
-    lca_sets: Dict[TreeNode, UnorderedSynteny],
+    minimal_sets: Dict[TreeNode, UnorderedSynteny],
     table: USPFSTable,
 ) -> Generator[SuperReconciliationOutput, None, None]:
     """
@@ -399,9 +399,9 @@ def _decode_uspfs_table(
         :func:`_compute_uspfs_table`
     :returns: yields minimum-cost unordered super-reconciliations
     """
-    if root_kind == SyntenyAssignment.LCA:
-        ancestor_synteny = lca_sets[root_object]
-        root_synteny = sort_synteny(lca_sets[root_object])
+    if root_kind == SyntenyAssignment.MINIMAL:
+        ancestor_synteny = minimal_sets[root_object]
+        root_synteny = sort_synteny(minimal_sets[root_object])
     else:
         ancestor_synteny |= gain_sets[root_object]
         root_synteny = sort_synteny(ancestor_synteny)
@@ -429,7 +429,7 @@ def _decode_uspfs_table(
                 ancestor_synteny,
                 srec_input,
                 gain_sets,
-                lca_sets,
+                minimal_sets,
                 table,
             ),
             _decode_uspfs_table(
@@ -439,7 +439,7 @@ def _decode_uspfs_table(
                 ancestor_synteny,
                 srec_input,
                 gain_sets,
-                lca_sets,
+                minimal_sets,
                 table,
             ),
         )
@@ -479,12 +479,12 @@ def _uspfs(
     ):
         srec_input_bin.label_internal()
         gain_sets = _compute_gain_sets(srec_input_bin)
-        lca_sets = _compute_lca_sets(srec_input_bin, gain_sets)
+        minimal_sets = _compute_minimal_sets(srec_input_bin, gain_sets)
         synteny_tree = srec_input_bin.object_tree
 
         table = _compute_uspfs_table(
             srec_input_bin,
-            lca_sets,
+            minimal_sets,
             allowed_species,
             policy,
         )
@@ -502,11 +502,11 @@ def _uspfs(
                     _decode_uspfs_table(
                         synteny_tree,
                         root_species,
-                        SyntenyAssignment.LCA,
-                        lca_sets[synteny_tree],
+                        SyntenyAssignment.MINIMAL,
+                        minimal_sets[synteny_tree],
                         srec_input_bin,
                         gain_sets,
-                        lca_sets,
+                        minimal_sets,
                         table,
                     ),
                 )

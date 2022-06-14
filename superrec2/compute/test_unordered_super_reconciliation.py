@@ -13,14 +13,14 @@ from ..model.tree_mapping import get_species_mapping
 from .reconciliation import reconcile_lca
 from .unordered_super_reconciliation import (
     _compute_gain_sets,
-    _compute_lca_sets,
+    _compute_minimal_sets,
     usreconcile_base_uspfs,
     usreconcile_extended_uspfs,
 )
 
 
 class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
-    def test_gain_lca_sets(self):
+    def test_gain_minimal_sets(self):
         gene_tree = Tree("((((a,b)1,c)2,d)3,(e,f)4)5;", format=1)
         leaf_syntenies = {
             gene_tree & "a": "ab",
@@ -56,9 +56,9 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
             },
         )
 
-        lca_sets = _compute_lca_sets(s_input, gain_sets)
+        minimal_sets = _compute_minimal_sets(s_input, gain_sets)
         self.assertEqual(
-            lca_sets,
+            minimal_sets,
             {
                 gene_tree & "a": set("ab"),
                 gene_tree & "b": set("ac"),
@@ -101,7 +101,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
         species_lca = LowestCommonAncestor(species_tree)
         leaf_gene_species = get_species_mapping(gene_tree, species_tree)
 
-        # Test 1: Only LCA syntenies
+        # Test 1: Only minimal syntenies
         input_1 = SuperReconciliationInput(
             gene_tree,
             species_lca,
@@ -211,7 +211,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
         species_lca = LowestCommonAncestor(species_tree)
         leaf_gene_species = get_species_mapping(gene_tree, species_tree)
 
-        # Test 1: LCA or INH syntenies
+        # Test 1: Minimal or larger syntenies
         input_1 = SuperReconciliationInput(
             gene_tree,
             species_lca,
