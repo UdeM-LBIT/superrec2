@@ -145,7 +145,7 @@ def measure_nodes(
     boxes = []
 
     for kind, name in nodes:
-        if kind == NodeEvent.LEAF:
+        if kind == NodeEvent.NONE:
             boxes.append(rf"\tikz\node[extant gene={{black}}{{{name}}}] {{}};")
         else:
             if kind == NodeEvent.SPECIATION:

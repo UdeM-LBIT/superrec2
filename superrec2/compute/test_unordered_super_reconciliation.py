@@ -2,6 +2,8 @@ import unittest
 from ete3 import Tree
 from infinity import inf
 from ..model.reconciliation import (
+    NodeEvent,
+    EdgeEvent,
     ReconciliationInput,
     SuperReconciliationInput,
     SuperReconciliationOutput,
@@ -101,12 +103,22 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
         species_lca = LowestCommonAncestor(species_tree)
         leaf_gene_species = get_species_mapping(gene_tree, species_tree)
 
+        cost = {
+            NodeEvent.SPECIATION: 0,
+            NodeEvent.DUPLICATION: 1,
+            NodeEvent.HORIZONTAL_TRANSFER: 1,
+            EdgeEvent.FULL_LOSS: 1,
+            EdgeEvent.SEGMENTAL_LOSS: 1,
+            EdgeEvent.TRANSFER_LOSS: inf,
+            EdgeEvent.UNSAMPLED_TRANSFER: inf,
+        }
+
         # Test 1: Only minimal syntenies
         input_1 = SuperReconciliationInput(
             gene_tree,
             species_lca,
             leaf_gene_species,
-            get_default_cost(),
+            cost,
             leaf_syntenies={
                 gene_tree & "x_1": list("a"),
                 gene_tree & "y_1": list("a"),
@@ -137,7 +149,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
             gene_tree,
             species_lca,
             leaf_gene_species,
-            get_default_cost(),
+            cost,
             leaf_syntenies={
                 gene_tree & "x_1": list("ab"),
                 gene_tree & "y_1": list("ac"),
@@ -173,7 +185,7 @@ class TestComputeUnorderedSuperReconciliation(unittest.TestCase):
             gene_tree,
             species_lca,
             leaf_gene_species,
-            get_default_cost(),
+            cost,
             leaf_syntenies={
                 gene_tree & "x_1": list("abx"),
                 gene_tree & "y_1": list("acx"),

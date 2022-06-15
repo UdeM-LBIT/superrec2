@@ -135,7 +135,7 @@ def _compute_branches(  # pylint:disable=too-many-locals
 
                 state["anchor_nodes"].add(root_gene)
                 state["branches"][root_gene] = {
-                    "kind": NodeEvent.LEAF,
+                    "kind": NodeEvent.NONE,
                     "name": name,
                 }
             else:
@@ -262,7 +262,7 @@ def _layout_branches(  # pylint:disable=too-many-locals
                 else Size(0, 0)
             )
 
-            if branch["kind"] == NodeEvent.LEAF:
+            if branch["kind"] == NodeEvent.NONE:
                 if params.orientation == Orientation.VERTICAL:
                     next_pos_across -= size.w
                     pos = Position(next_pos_across, -size.h)

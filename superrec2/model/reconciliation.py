@@ -3,7 +3,16 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from itertools import chain, product
 from textwrap import indent
-from typing import Generator, Mapping, Type, TypeVar, Union
+from typing import (
+    Generator,
+    List,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+)
 from ete3 import Tree, TreeNode
 from infinity import inf, Infinity
 from .tree_mapping import (
@@ -23,16 +32,18 @@ from ..utils.subsequences import (
     subseq_segment_dist,
 )
 from ..utils.trees import LowestCommonAncestor, is_binary, binarize
+from ..utils.dynamic_programming import (
+    Entry,
+    Candidate,
+    RetentionPolicy,
+    MergePolicy,
+)
 
 
 class NodeEvent(Enum):
     """Evolutionary events that can happen at a node of the object tree."""
 
-    # Sentinel for extant (current) object
-    LEAF = auto()
-
-    # Sentinel for scenarios that are invalid wrt the evolutionary model
-    INVALID = auto()
+    NONE = auto()
 
     # Transmission of the parent object to both children species
     SPECIATION = auto()
@@ -53,24 +64,86 @@ class EdgeEvent(Enum):
     # Loss of a segment of the synteny
     SEGMENTAL_LOSS = auto()
 
+    # Transfer to a different lineage and loss of the original copy
+    TRANSFER_LOSS = auto()
+
+    # Speciation to an unsampled lineage followed by a return transfer
+    UNSAMPLED_TRANSFER = auto()
+
 
 # Any kind of evolutionary event
 Event = Union[NodeEvent, EdgeEvent]
 
 
-# Cost values for evolutionary events
-CostValues = Mapping[Event, Union[int, Infinity]]
+class EventsAtNode(NamedTuple):
+    """Events at a node and on its outgoing edges."""
+
+    # Event at the node
+    node_event: NodeEvent
+
+    # When the node event is a duplication or a transfer, which child
+    # is the target of that event
+    target_child: Optional[TreeNode]
+
+    # Event counts on the outgoing edges
+    edge_events: List[Mapping[EdgeEvent, int]]
+
+    def __hash__(self):
+        return hash(
+            (
+                self.node_event,
+                self.target_child,
+                tuple(map(
+                    lambda events: tuple(sorted(events.items())),
+                    self.edge_events,
+                )),
+            )
+        )
 
 
-def get_default_cost() -> CostValues:
-    """Get the default event cost vector."""
-    return {
-        NodeEvent.SPECIATION: 0,
-        NodeEvent.DUPLICATION: 1,
-        NodeEvent.HORIZONTAL_TRANSFER: 1,
-        EdgeEvent.FULL_LOSS: 1,
-        EdgeEvent.SEGMENTAL_LOSS: 1,
-    }
+# Any number, or infinity
+ExtendedInt = Union[int, Infinity]
+
+
+class EventCosts:
+    """Costs for the different evolutionary events."""
+
+    def __init__(self, values: Mapping[Union[str, Event], ExtendedInt] = {}):
+        self.values = {
+            NodeEvent.SPECIATION: 0,
+            NodeEvent.DUPLICATION: 1,
+            NodeEvent.HORIZONTAL_TRANSFER: 1,
+            EdgeEvent.FULL_LOSS: 1,
+            EdgeEvent.SEGMENTAL_LOSS: 1,
+            EdgeEvent.TRANSFER_LOSS: 2,
+            EdgeEvent.UNSAMPLED_TRANSFER: 2,
+        }
+
+        for event, value in values.items():
+            if isinstance(event, (NodeEvent, EdgeEvent)):
+                event_enum = event
+            else:
+                if hasattr(NodeEvent, event):
+                    event_enum = getattr(NodeEvent, event)
+                else:
+                    event_enum = getattr(EdgeEvent, event)
+
+            self.values[event_enum] = value
+
+    def to_dict(self):
+        """Convert the set of costs to a dictionary."""
+        return self.values
+
+    def get(self, event: Event, count: ExtendedInt = 1) -> ExtendedInt:
+        """Get the cost for the given number of events of the given type."""
+        if count == 0:
+            # No events incur no cost, even if the cost is infinite
+            return 0
+
+        return self.values[event] * count
+
+    def __hash__(self):
+        return hash(tuple(self.values.items()))
 
 
 Self = TypeVar("Self", bound="ReconciliationInput")
@@ -90,7 +163,7 @@ class ReconciliationInput:
     leaf_object_species: TreeMapping
 
     # Costs of evolutionary events
-    costs: CostValues = field(default_factory=get_default_cost)
+    costs: EventCosts = EventCosts()
 
     def to_dict(self):
         """Convert the problem to a plain dictionary."""
@@ -108,9 +181,7 @@ class ReconciliationInput:
             "leaf_object_species": serialize_tree_mapping(
                 self.leaf_object_species
             ),
-            "costs": dict(
-                ((event.name, value) for event, value in self.costs.items())
-            ),
+            "costs": self.costs.to_dict(),
         }
 
     def __repr__(self):
@@ -134,27 +205,11 @@ class ReconciliationInput:
                 species_tree,
             )
 
-        if "costs" in data:
-            costs = {}
-
-            for event, value in data["costs"].items():
-                if isinstance(event, (NodeEvent, EdgeEvent)):
-                    event_enum = event
-                else:
-                    if hasattr(NodeEvent, event):
-                        event_enum = getattr(NodeEvent, event)
-                    else:
-                        event_enum = getattr(EdgeEvent, event)
-
-                costs[event_enum] = value
-        else:
-            costs = get_default_cost()
-
         return {
             "object_tree": object_tree,
             "species_lca": LowestCommonAncestor(species_tree),
             "leaf_object_species": leaf_object_species,
-            "costs": costs,
+            "costs": EventCosts(data.get("costs", {})),
         }
 
     @classmethod
@@ -225,13 +280,7 @@ class ReconciliationInput:
                         serialize_tree_mapping(self.leaf_object_species).items()
                     ),
                 ),
-                tuple(
-                    (event, self.costs.get(event))
-                    for event in chain(
-                        NodeEvent.__members__.keys(),
-                        EdgeEvent.__members__.keys(),
-                    )
-                ),
+                self.costs,
             )
         )
 
@@ -278,53 +327,124 @@ class ReconciliationOutput:
         """Reconstruct an output from its plain dictionary representation."""
         return cls(**cls._from_dict(data))
 
-    def node_event(self, node: TreeNode) -> NodeEvent:
+    def events_at_node(self, node: TreeNode) -> EventsAtNode:
         """
-        Find the event associated to a node.
+        Find the events associated to a node and its outgoing edges.
 
         :param node: node to query
-        :returns: event associated to the node
+        :raises RuntimeError: if the reconciliation mapping is invalid
+            around the given node
+        :returns: events associated to the node
         """
-        species_lca = self.input.species_lca
-        rec = self.object_species
+        lca = self.input.species_lca
+        species_node = self.object_species[node]
 
         if node.is_leaf():
-            return (
-                NodeEvent.LEAF
-                if rec[node] == self.input.leaf_object_species[node]
-                else NodeEvent.INVALID
-            )
-
-        left_node, right_node = node.children
-
-        if species_lca.is_strict_ancestor_of(
-            rec[left_node], rec[node]
-        ) or species_lca.is_strict_ancestor_of(rec[right_node], rec[node]):
-            return NodeEvent.INVALID
-
-        if species_lca.is_ancestor_of(
-            rec[node], rec[left_node]
-        ) and species_lca.is_ancestor_of(rec[node], rec[right_node]):
-            return (
-                NodeEvent.SPECIATION
-                if (
-                    rec[node] == species_lca(rec[left_node], rec[right_node])
-                    and not species_lca.is_comparable(
-                        rec[left_node],
-                        rec[right_node],
-                    )
+            if species_node != self.input.leaf_object_species[node]:
+                raise RuntimeError(
+                    f"Invalid reconciliation: Leaf {node.name} is not "
+                    "mapped to its host species"
                 )
-                else NodeEvent.DUPLICATION
+
+            return EventsAtNode(NodeEvent.NONE, None, {})
+
+        for name, child in zip(("left", "right"), node.children):
+            species_child = self.object_species[child]
+
+            if lca.is_strict_ancestor_of(species_child, species_node):
+                raise RuntimeError(
+                    f"Invalid reconciliation: the {name} child of "
+                    f"{node.name} is mapped to an ancestor of its species"
+                )
+
+        result: Entry[int, EventsAtNode] = Entry(
+            MergePolicy.MIN,
+            RetentionPolicy.ANY,
+        )
+        costs = self.input.costs
+
+        def make_candidate(events: Mapping[Event, int]) -> Candidate:
+            return Candidate(
+                sum(costs.get(event, count) for event, count in events.items()),
+                tuple(sorted(
+                    (event, count)
+                    for event, count in events.items()
+                    if count != 0
+                )),
             )
 
-        if species_lca.is_ancestor_of(
-            rec[node], rec[left_node]
-        ) or species_lca.is_ancestor_of(rec[node], rec[right_node]):
-            return NodeEvent.HORIZONTAL_TRANSFER
+        for node_event in (
+            NodeEvent.SPECIATION,
+            NodeEvent.DUPLICATION,
+            NodeEvent.HORIZONTAL_TRANSFER,
+        ):
+            targets = (
+                (None,)
+                if node_event == NodeEvent.SPECIATION
+                else node.children
+            )
 
-        return NodeEvent.INVALID
+            for target in targets:
+                edges_events = []
+                edges_cost = 0
 
-    def _cost_rec(self, node: TreeNode = None) -> Union[int, Infinity]:
+                for child in node.children:
+                    if (
+                        species_node == species_child
+                        and node_event == NodeEvent.SPECIATION
+                    ):
+                        continue
+
+                    edge_entry = Entry(MergePolicy.MIN, RetentionPolicy.ANY)
+
+                    species_child = self.object_species[child]
+                    dist = lca.distance(species_node, species_child)
+
+                    if lca.is_ancestor_of(species_node, species_child):
+                        # Descending child
+                        edge_entry.update(make_candidate({
+                            EdgeEvent.UNSAMPLED_TRANSFER: 1,
+                        }))
+
+                        if node_event == NodeEvent.SPECIATION:
+                            edge_entry.update(make_candidate({
+                                EdgeEvent.FULL_LOSS: dist - 1,
+                            }))
+                        elif (
+                            node_event == NodeEvent.DUPLICATION
+                            or child != target
+                        ):
+                            edge_entry.update(make_candidate({
+                                EdgeEvent.FULL_LOSS: dist,
+                            }))
+                    else:
+                        # Separated child
+                        if (
+                            node_event == NodeEvent.HORIZONTAL_TRANSFER
+                            and child == target
+                        ):
+                            edge_entry.update(make_candidate({}))
+                        else:
+                            edge_entry.update(make_candidate({
+                                EdgeEvent.TRANSFER_LOSS: 1,
+                            }))
+
+                    edges_events.append(dict(edge_entry.info()))
+                    edges_cost += edge_entry.value()
+
+                if len(edges_events) == len(node.children):
+                    result.update(Candidate(
+                        costs.get(node_event, 1) + edges_cost,
+                        EventsAtNode(
+                            node_event,
+                            target,
+                            edges_events
+                        )
+                    ))
+
+        return result.info()
+
+    def _cost_rec(self, node: TreeNode = None) -> ExtendedInt:
         event = self.node_event(node)
         species_lca = self.input.species_lca
         costs = self.input.costs
@@ -344,18 +464,18 @@ class ReconciliationOutput:
 
         if event == NodeEvent.SPECIATION:
             return (
-                costs[NodeEvent.SPECIATION]
+                costs.get(NodeEvent.SPECIATION)
                 + left_cost
                 + right_cost
-                + costs[EdgeEvent.FULL_LOSS] * (left_dist + right_dist - 2)
+                + costs.get(EdgeEvent.FULL_LOSS, left_dist + right_dist - 2)
             )
 
         if event == NodeEvent.DUPLICATION:
             return (
-                costs[NodeEvent.DUPLICATION]
+                costs.get(NodeEvent.DUPLICATION)
                 + left_cost
                 + right_cost
-                + costs[EdgeEvent.FULL_LOSS] * (left_dist + right_dist)
+                + costs.get(EdgeEvent.FULL_LOSS, left_dist + right_dist)
             )
 
         assert event == NodeEvent.HORIZONTAL_TRANSFER
@@ -366,13 +486,13 @@ class ReconciliationOutput:
             else right_dist
         )
         return (
-            costs[NodeEvent.HORIZONTAL_TRANSFER]
+            costs.get(NodeEvent.HORIZONTAL_TRANSFER)
             + left_cost
             + right_cost
-            + costs[EdgeEvent.FULL_LOSS] * dist_conserved
+            + costs.get(EdgeEvent.FULL_LOSS, dist_conserved)
         )
 
-    def cost(self) -> Union[int, Infinity]:
+    def cost(self) -> ExtendedInt:
         """Compute the total cost of this reconciliation."""
         return self._cost_rec(self.input.object_tree)
 
@@ -469,13 +589,12 @@ class SuperReconciliationOutput(ReconciliationOutput):
     def _ordered_labeling_cost(self):
         """Compute the ordered segmental loss cost of the labeling."""
         tree = self.input.object_tree
+        costs = self.input.costs
         rec = self.object_species
 
         total_cost = 0
         root_syn = self.syntenies[tree]
         masks = {tree: subseq_complete(root_syn)}
-
-        sloss_cost = self.input.costs[EdgeEvent.SEGMENTAL_LOSS]
 
         for node in tree.traverse("preorder"):
             if not node.is_leaf():
@@ -492,41 +611,43 @@ class SuperReconciliationOutput(ReconciliationOutput):
                 )
 
                 if event == NodeEvent.SPECIATION:
-                    total_cost += (
+                    total_cost += costs.get(
+                        EdgeEvent.SEGMENTAL_LOSS,
                         subseq_segment_dist(left_mask, sub_mask, True)
                         + subseq_segment_dist(right_mask, sub_mask, True)
-                    ) * sloss_cost
+                    )
                 elif event == NodeEvent.DUPLICATION:
-                    total_cost += (
+                    total_cost += costs.get(
+                        EdgeEvent.SEGMENTAL_LOSS,
                         min(
                             subseq_segment_dist(left_mask, sub_mask, True)
                             + subseq_segment_dist(right_mask, sub_mask, False),
                             subseq_segment_dist(left_mask, sub_mask, False)
                             + subseq_segment_dist(right_mask, sub_mask, True),
                         )
-                        * sloss_cost
                     )
                 else:
                     assert event == NodeEvent.HORIZONTAL_TRANSFER
                     keep_left = self.input.species_lca.is_comparable(
                         rec[node], rec[left_node]
                     )
-                    total_cost += (
+                    total_cost += costs.get(
+                        EdgeEvent.SEGMENTAL_LOSS,
                         subseq_segment_dist(left_mask, sub_mask, keep_left)
                         + subseq_segment_dist(
                             right_mask, sub_mask, not keep_left
                         )
-                    ) * sloss_cost
+                    )
 
         return total_cost
 
     def _unordered_labeling_cost(self):
         """Compute the unordered segmental loss cost of the labeling."""
         tree = self.input.object_tree
+        costs = self.input.costs
         rec = self.object_species
 
         total_cost = 0
-        sloss_cost = self.input.costs[EdgeEvent.SEGMENTAL_LOSS]
 
         for node in tree.traverse("preorder"):
             if not node.is_leaf():
@@ -534,29 +655,36 @@ class SuperReconciliationOutput(ReconciliationOutput):
                 left_node, right_node = node.children
 
                 node_set = set(self.syntenies[node])
-                left_cost = (
+                left_count = (
                     0
                     if node_set <= set(self.syntenies[left_node])
-                    else sloss_cost
+                    else 1
                 )
-                right_cost = (
+                right_count = (
                     0
                     if node_set <= set(self.syntenies[right_node])
-                    else sloss_cost
+                    else 1
                 )
 
                 if event == NodeEvent.SPECIATION:
-                    total_cost += left_cost + right_cost
+                    total_cost += costs.get(
+                        EdgeEvent.SEGMENTAL_LOSS,
+                        left_count + right_count
+                    )
                 elif event == NodeEvent.DUPLICATION:
-                    total_cost += min(left_cost, right_cost)
+                    total_cost += costs.get(
+                        EdgeEvent.SEGMENTAL_LOSS,
+                        min(left_count, right_count)
+                    )
                 else:
                     assert event == NodeEvent.HORIZONTAL_TRANSFER
-                    if self.input.species_lca.is_comparable(
+                    left_conserved = self.input.species_lca.is_comparable(
                         rec[node], rec[left_node]
-                    ):
-                        total_cost += left_cost
-                    else:
-                        total_cost += right_cost
+                    )
+                    total_cost += costs.get(
+                        EdgeEvent.SEGMENTAL_LOSS,
+                        left_count if left_conserved else right_count
+                    )
 
         return total_cost
 

@@ -242,10 +242,10 @@ class TestComputeExhaustive(unittest.TestCase):
 
         # Check that all the generated reconciliations are valid
         for rec in rec_outputs:
-            for gene in self.gene_tree:
+            for gene in self.gene_tree.traverse():
                 self.assertNotEqual(
                     rec.node_event(gene),
-                    NodeEvent.INVALID,
+                    NodeEvent.NONE,
                 )
 
     def test_exhaustive(self):

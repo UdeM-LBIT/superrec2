@@ -48,6 +48,8 @@ cost_events = {
     NodeEvent.HORIZONTAL_TRANSFER: ("hgt", "an horizontal transfer"),
     EdgeEvent.FULL_LOSS: ("floss", "a full loss"),
     EdgeEvent.SEGMENTAL_LOSS: ("sloss", "a segmental loss"),
+    EdgeEvent.TRANSFER_LOSS: ("tloss", "a transfer followed by a loss of the original copy"),
+    EdgeEvent.UNSAMPLED_TRANSFER: ("xgt", "an unsampled speciation followed by a return transfer"),
 }
 
 
