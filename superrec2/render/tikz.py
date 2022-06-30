@@ -369,25 +369,29 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
                     loss_pos = Position(branch_pos.x, layout.trunk.top().y)
 
             layers["gene branches"].append(
-                rf"""\draw[branch={{{
+                rf"""\path[branch={{{
                     get_color(branch.color)
-                }}}] ({branch_pos}) -- ({loss_pos});"""
+                }}}] ({branch_pos : {MAX_DIGITS}}) -- ({
+                    loss_pos : {MAX_DIGITS}
+                });"""
             )
             layers["events"].append(
                 rf"""\node[loss={{{
                     get_color(branch.color)
-                }}}] at ({loss_pos}) {{}};"""
+                }}}] at ({loss_pos : {MAX_DIGITS}}) {{}};"""
             )
             layers["gene branches"].append(
-                rf"""\draw[branch={{{
+                rf"""\path[branch={{{
                     get_color(branch.color)
-                }}}] ({branch_pos}) {fork_links[1]} ({keep_pos});"""
+                }}}] ({branch_pos : {MAX_DIGITS}}) {fork_links[1]} ({
+                    keep_pos : {MAX_DIGITS}
+                });"""
             )
         elif branch.kind == NodeEvent.SPECIATION:
             assert left_layout is not None
             assert right_layout is not None
             layers["gene branches"].append(
-                rf"""\draw[branch={{{get_color(branch.color)}}}] ({
+                rf"""\path[branch={{{get_color(branch.color)}}}] ({
                     left_layout.anchors[left_gene] : {MAX_DIGITS}
                 }) {fork_links[0]} ({
                     branch.anchor_left : {MAX_DIGITS}
@@ -404,7 +408,7 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
             )
         elif branch.kind == NodeEvent.DUPLICATION:
             layers["gene branches"].append(
-                rf"""\draw[branch={{{get_color(branch.color)}}}] ({
+                rf"""\path[branch={{{get_color(branch.color)}}}] ({
                     layout.branches[left_gene].anchor_parent : {MAX_DIGITS}
                 }) {fork_links[0]} ({
                     branch.anchor_left : {MAX_DIGITS}
@@ -439,14 +443,14 @@ def _tikz_draw_branches(  # pylint:disable=too-many-locals,disable=too-many-argu
                     bend_out = "out=-90, in=90"
 
             layers["gene branches"].append(
-                rf"""\draw[branch={{{get_color(branch.color)}}}] ({
+                rf"""\path[branch={{{get_color(branch.color)}}}] ({
                     layout.branches[left_gene].anchor_parent : {MAX_DIGITS}
                 }) |- ({
                     branch.anchor_child : {MAX_DIGITS}
                 });"""
             )
             layers["gene transfers"].append(
-                rf"""\draw[transfer branch={{{get_color(branch.color)}}}] ({
+                rf"""\path[transfer branch={{{get_color(branch.color)}}}] ({
                     anchor_out : {MAX_DIGITS}
                 }) to[{bend_out}] ({
                     foreign_pos : {MAX_DIGITS}

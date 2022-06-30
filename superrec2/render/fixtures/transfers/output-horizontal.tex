@@ -81,16 +81,16 @@
 \path[species background, rounded corners={4pt}] (102.0001,54.6199) -- (133.7631,54.6199) -- node[species label] {Y} (133.7631,80.3399) -- (102.0001,80.3399);
 \path[species background, rounded corners={4pt}] (102.8401,92.3399) -- (133.7631,92.3399) -- node[species label] {Z} (133.7631,116.9599) -- (102.8401,116.9599);
 % gene branches
-\draw[branch={reccolor0}] (47.5,32.8699) -| (26.75,86.3399) (26.75,94.8399) |- (102.8401,99.2449);
-\draw[branch={reccolor0}] (37.75,79.58992) -- (37.75,98.83992);
-\draw[branch={reccolor0}] (37.75,79.58992) |- (47.5,46.36994);
+\path[branch={reccolor0}] (47.5,32.8699) -| (26.75,86.3399) (26.75,94.8399) |- (102.8401,99.2449);
+\path[branch={reccolor0}] (37.75,79.5899) -- (37.75,98.8399);
+\path[branch={reccolor0}] (37.75,79.5899) |- (47.5,46.3699);
 \path[branch={reccolor0}] (10.0,85.0899) -- (0,85.0899);
-\draw[branch={reccolor0}] (37.75,79.5899) -| (14.25,80.8399) (14.25,89.3399) |- (22.5,90.5899);
+\path[branch={reccolor0}] (37.75,79.5899) -| (14.25,80.8399) (14.25,89.3399) |- (22.5,90.5899);
 \path[branch={reccolor0}] (72.0001,46.3699) -- (47.5,46.3699);
-\draw[branch={reccolor0}] (102.0001,17.715) -| (76.2501,42.1199) (76.2501,50.6199) |- (102.0001,73.1599);
-\draw[branch={reccolor0}] (102.0001,6.905) -| (89.7501,28.6199) (89.7501,37.1199) |- (102.0001,61.7999);
+\path[branch={reccolor0}] (102.0001,17.715) -| (76.2501,42.1199) (76.2501,50.6199) |- (102.0001,73.1599);
+\path[branch={reccolor0}] (102.0001,6.905) -| (89.7501,28.6199) (89.7501,37.1199) |- (102.0001,61.7999);
 \path[branch={reccolor0}] (57.5,32.8699) -- (47.5,32.8699);
-\draw[branch={reccolor0}] (85.5001,32.8699) |- (68.0001,32.8699);
+\path[branch={reccolor0}] (85.5001,32.8699) |- (68.0001,32.8699);
 \path[branch={reccolor0}] (112.0001,17.715) -- (102.0001,17.715);
 \path[branch={reccolor0}] (112.0001,6.905) -- (102.0001,6.905);
 \path[branch={reccolor0}] (112.0001,73.1599) -- (102.0001,73.1599);
@@ -98,10 +98,10 @@
 \path[branch={reccolor0}] (112.8401,110.0549) -- (102.8401,110.0549);
 \path[branch={reccolor0}] (112.8401,99.2449) -- (102.8401,99.2449);
 % gene transfers
-\draw[transfer branch={reccolor0}] (62.75,37.1199) to[out=-90, in=90] (102.8401,110.0549);
+\path[transfer branch={reccolor0}] (62.75,37.1199) to[out=-90, in=90] (102.8401,110.0549);
 % events
 \node[speciation={reccolor0}] at (26.75,90.5899) {};
-\node[loss={reccolor0}] at (37.75,98.83992) {};
+\node[loss={reccolor0}] at (37.75,98.8399) {};
 \node[duplication={reccolor0}] at (14.25,85.0899) {};
 \node[speciation={reccolor0}] at (76.2501,46.3699) {};
 \node[speciation={reccolor0}] at (89.7501,32.8699) {};
