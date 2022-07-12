@@ -129,6 +129,13 @@ class TestDynamicProgramming(unittest.TestCase):
         table[4][18] = Candidate(3, "tag5")
         self.assertEqual(table[4][18], table.entry(2, ["tagα"]))
 
+        table[4][19] = Candidate(3, "tag")
+        table[4][19] = Candidate(2)
+        self.assertEqual(table[4][19], table.entry(2, []))
+
+        table[4][19] = Candidate(2, ())
+        self.assertEqual(table[4][19], table.entry(2, [()]))
+
     def test_max_all(self):
         table = Table(
             [ListDimension(10), ListDimension(20)],
