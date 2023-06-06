@@ -12,3 +12,7 @@ class TestText(unittest.TestCase):
             balanced_wrap("elongated beautiful unbreakable wording", 8),
             "elongated\nbeautiful\nunbreakable\nwording",
         )
+        self.assertEqual(
+            balanced_wrap("", 8),
+            "",
+        )

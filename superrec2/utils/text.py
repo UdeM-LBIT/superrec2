@@ -25,6 +25,9 @@ def balanced_wrap(text: str, width: int) -> str:
     :param width: target wrap width
     :returns: best solution
     """
+    if not text:
+        return ""
+
     best_result = textwrap.wrap(text, width, break_long_words=False)
     best_badness = _wrap_badness(best_result)
     line_count = len(best_result)
