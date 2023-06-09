@@ -2,10 +2,10 @@ import unittest
 import os
 import sys
 import tempfile
-from superrec2.utils.file import open_std
+from superrec2.cli.util import open_std
 
 
-class TestFile(unittest.TestCase):
+class TestCliUtil(unittest.TestCase):
     def test_open_std(self):
         with open_std("-", "r") as handle:
             self.assertEqual(handle, sys.stdin)

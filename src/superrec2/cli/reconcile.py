@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
 """Compute a minimum-cost (super-)reconciliation of two trees."""
 import argparse
 import inspect
 import json
 import textwrap
 import sys
+from .util import add_arg_input, add_arg_output, open_std
 from superrec2.model.reconciliation import (
     NodeEvent,
     EdgeEvent,
@@ -26,8 +26,6 @@ from superrec2.compute.unordered_super_reconciliation import (
     usreconcile_base_uspfs,
     usreconcile_extended_uspfs,
 )
-from superrec2.utils.args import add_arg_input, add_arg_output
-from superrec2.utils.file import open_std
 from superrec2.utils.dynamic_programming import RetentionPolicy
 
 
@@ -51,58 +49,9 @@ cost_events = {
 }
 
 
-def generate_doc(indent=22):
-    """Generate combined docstring for all available algorithms."""
-    result = ""
-
-    for key, impl in algorithms.items():
-        paragraphs = textwrap.dedent(impl.__doc__).split("\n\n")
-        unwrapped = " ".join(paragraphs[0].split("\n")).strip()
-        rewrapped = textwrap.indent(textwrap.fill(unwrapped, 70), " " * indent)
-        result += "  " + key + " " * (indent - 2 - len(key))
-        result += rewrapped.strip() + "\n\n"
-
-    return result
-
-
 def eval_cost(cost):
     """Evaluate a cost expression in the context of this module."""
     return eval(cost)  # pylint: disable=eval-used
-
-
-def parse_arguments():
-    """Retrieve arguments or show help."""
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    add_arg_input(parser, "a file defining the reconciliation problem input")
-    add_arg_output(parser, "where the reconciliation results will be stored")
-    parser.add_argument(
-        "algorithm",
-        metavar="ALGO",
-        help="reconciliation algorithm to use (see list above)",
-        choices=set(algorithms.keys()),
-    )
-    parser.add_argument(
-        "--solutions",
-        metavar="POLICY",
-        default="any",
-        help="whether to print all minimum-cost solutions or any such \
-solution (choices: all, any; default: any)",
-        choices=("any", "all"),
-    )
-
-    for kind, (argname, fullname) in cost_events.items():
-        parser.add_argument(
-            f"--cost-{argname}",
-            metavar="COST",
-            default=get_default_cost()[kind],
-            type=eval_cost,
-            help=f"cost of {fullname} event (default: %(default)s)",
-        )
-
-    return parser.parse_args()
 
 
 def read_input(args):
@@ -176,8 +125,8 @@ def dump_results(args, results):
             print(file=outfile)
 
 
-def main():  # pylint:disable=missing-function-docstring
-    args = parse_arguments()
+def reconcile(args):
+    """Run the reconcile subcommand with the given arguments."""
     rec_input = read_input(args)
     results = call_algorithm(args, rec_input)
 
@@ -187,8 +136,48 @@ def main():  # pylint:disable=missing-function-docstring
     return dump_results(args, results)
 
 
-__doc__ += "\n\navailable algorithms:\n\n"
-__doc__ += generate_doc()
+def add_args(parser):
+    """Add the reconcile subcommand to a command-line argument parser."""
+    desc = __doc__
+    desc += "\n\navailable algorithms:\n\n"
+    indent = 22
 
-if __name__ == "__main__":
-    sys.exit(main())
+    for key, impl in algorithms.items():
+        paragraphs = textwrap.dedent(impl.__doc__).split("\n\n")
+        unwrapped = " ".join(paragraphs[0].split("\n")).strip()
+        rewrapped = textwrap.indent(textwrap.fill(unwrapped, 70), " " * indent)
+        desc += "  " + key + " " * (indent - 2 - len(key))
+        desc += rewrapped.strip() + "\n\n"
+
+    subparser = parser.add_parser(
+        "reconcile",
+        description=desc,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    add_arg_input(subparser, "a file defining the reconciliation problem input")
+    add_arg_output(subparser, "where the reconciliation results will be stored")
+    subparser.add_argument(
+        "algorithm",
+        metavar="ALGO",
+        help="reconciliation algorithm to use (see list above)",
+        choices=set(algorithms.keys()),
+    )
+    subparser.add_argument(
+        "--solutions",
+        metavar="POLICY",
+        default="any",
+        help="whether to print all minimum-cost solutions or any such \
+solution (choices: all, any; default: any)",
+        choices=("any", "all"),
+    )
+
+    for kind, (argname, fullname) in cost_events.items():
+        subparser.add_argument(
+            f"--cost-{argname}",
+            metavar="COST",
+            default=get_default_cost()[kind],
+            type=eval_cost,
+            help=f"cost of {fullname} event (default: %(default)s)",
+        )
+
+    subparser.set_defaults(func=reconcile)

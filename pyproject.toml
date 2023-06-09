@@ -24,6 +24,9 @@ dependencies = [
     "tqdm",
 ]
 
+[project.scripts]
+superrec2 = "superrec2.cli.__main__:run"
+
 [project.urls]
 "Homepage" = "https://github.com/UdeM-LBIT/superrec2"
 "Bug Tracker" = "https://github.com/UdeM-LBIT/superrec2/issues"

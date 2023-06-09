@@ -21,7 +21,10 @@ class TestDraw(unittest.TestCase):
                 output_expect = output_expect_file.read()
                 result = subprocess.run(
                     [
-                        "./draw.py",
+                        "python",
+                        "-m",
+                        "superrec2.cli",
+                        "draw",
                         "--orientation",
                         orientation_name,
                         "--input",

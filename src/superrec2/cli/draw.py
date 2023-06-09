@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
 """Draw a representation of the (super-)reconciliation of two trees."""
 import argparse
 import json
 import textwrap
 import sys
+from .util import add_arg_input, add_arg_output, open_std
 from superrec2.render import layout, tikz
 from superrec2.render.layout import (
     DrawParams,
@@ -13,31 +13,7 @@ from superrec2.model.reconciliation import (
     ReconciliationOutput,
     SuperReconciliationOutput,
 )
-from superrec2.utils.args import add_arg_input, add_arg_output
-from superrec2.utils.file import open_std
 from superrec2.utils.tex import xelatex_compile, TeXError
-
-
-def parse_arguments():
-    """Retrieve arguments or show help."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    add_arg_input(parser, "a file defining the reconciliation result to draw")
-    add_arg_output(parser, "where the resulting drawing will be stored")
-    parser.add_argument(
-        "output_type",
-        metavar="TYPE",
-        nargs="?",
-        choices=("tikz", "pdf"),
-        help="kind of output to generate (default: guess based on output file \
-extension, or 'tikz' for output to stdout)",
-    )
-    parser.add_argument(
-        "--orientation",
-        choices=("vertical", "horizontal"),
-        default="vertical",
-        help="growing direction of the tree (default: %(default)s)",
-    )
-    return parser.parse_args()
 
 
 def generate_tikz(args):
@@ -113,11 +89,29 @@ type explicitly",
     return 0
 
 
-def main():  # pylint:disable=missing-function-docstring
-    args = parse_arguments()
+def draw(args):
+    """Run the drawing subcommand with the given arguments."""
     tikz_code = generate_tikz(args)
     return output(args, tikz_code)
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+def add_args(parser):
+    """Add the drawing subcommand to a command-line argument parser."""
+    subparser = parser.add_parser("draw", description=__doc__)
+    add_arg_input(subparser, "a file defining the reconciliation result to draw")
+    add_arg_output(subparser, "where the resulting drawing will be stored")
+    subparser.add_argument(
+        "output_type",
+        metavar="TYPE",
+        nargs="?",
+        choices=("tikz", "pdf"),
+        help="kind of output to generate (default: guess based on output file \
+extension, or 'tikz' for output to stdout)",
+    )
+    subparser.add_argument(
+        "--orientation",
+        choices=("vertical", "horizontal"),
+        default="vertical",
+        help="growing direction of the tree (default: %(default)s)",
+    )
+    subparser.set_defaults(func=draw)
