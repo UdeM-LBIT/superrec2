@@ -1,7 +1,7 @@
 import random
 import time
 import unittest
-from .range_min_query import RangeMinQuery
+from superrec2.utils.range_min_query import RangeMinQuery
 
 
 def compute_all_naive(data):

@@ -1,17 +1,17 @@
 import unittest
 from ete3 import Tree
 from infinity import inf
-from ..model.reconciliation import (
+from superrec2.model.reconciliation import (
     ReconciliationInput,
     SuperReconciliationInput,
     SuperReconciliationOutput,
     get_default_cost,
 )
-from ..utils.trees import LowestCommonAncestor
-from ..utils.dynamic_programming import RetentionPolicy
-from ..model.tree_mapping import get_species_mapping
-from .reconciliation import reconcile_lca
-from .unordered_super_reconciliation import (
+from superrec2.utils.trees import LowestCommonAncestor
+from superrec2.utils.dynamic_programming import RetentionPolicy
+from superrec2.model.tree_mapping import get_species_mapping
+from superrec2.compute.reconciliation import reconcile_lca
+from superrec2.compute.unordered_super_reconciliation import (
     _compute_gain_sets,
     _compute_lca_sets,
     usreconcile_base_uspfs,

@@ -1,14 +1,14 @@
 import unittest
 from ete3 import Tree
-from ..utils.dynamic_programming import RetentionPolicy
-from ..utils.trees import LowestCommonAncestor
-from ..model.tree_mapping import get_species_mapping
-from ..model.reconciliation import (
+from superrec2.utils.dynamic_programming import RetentionPolicy
+from superrec2.utils.trees import LowestCommonAncestor
+from superrec2.model.tree_mapping import get_species_mapping
+from superrec2.model.reconciliation import (
     ReconciliationInput,
     ReconciliationOutput,
     NodeEvent,
 )
-from .exhaustive import generate_all, reconcile_exhaustive
+from superrec2.compute.exhaustive import generate_all, reconcile_exhaustive
 
 
 class TestComputeExhaustive(unittest.TestCase):

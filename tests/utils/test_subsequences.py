@@ -1,5 +1,5 @@
 import unittest
-from .subsequences import (
+from superrec2.utils.subsequences import (
     subseq_complete,
     mask_from_subseq,
     subseq_from_mask,

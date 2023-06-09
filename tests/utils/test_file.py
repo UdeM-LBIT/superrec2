@@ -2,7 +2,7 @@ import unittest
 import os
 import sys
 import tempfile
-from .file import open_std
+from superrec2.utils.file import open_std
 
 
 class TestFile(unittest.TestCase):

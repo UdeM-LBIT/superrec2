@@ -1,7 +1,7 @@
 import unittest
 from ete3 import Tree
-from ..utils.trees import LowestCommonAncestor
-from .reconciliation import (
+from superrec2.utils.trees import LowestCommonAncestor
+from superrec2.model.reconciliation import (
     ReconciliationInput,
     SuperReconciliationInput,
     ReconciliationOutput,

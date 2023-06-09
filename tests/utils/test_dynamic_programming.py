@@ -1,6 +1,6 @@
 import unittest
 from infinity import inf
-from .dynamic_programming import (
+from superrec2.utils.dynamic_programming import (
     Table,
     TableProxy,
     Candidate,

@@ -1,6 +1,6 @@
 import unittest
 from ete3 import Tree
-from .synteny import (
+from superrec2.model.synteny import (
     sort_synteny,
     format_synteny,
     parse_synteny_mapping,

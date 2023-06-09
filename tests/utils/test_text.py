@@ -1,5 +1,5 @@
 import unittest
-from .text import balanced_wrap
+from superrec2.utils.text import balanced_wrap
 
 
 class TestText(unittest.TestCase):

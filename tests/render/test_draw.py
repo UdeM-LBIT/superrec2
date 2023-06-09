@@ -1,7 +1,7 @@
 import unittest
 import importlib.resources
 import subprocess
-from .model import Orientation
+from superrec2.render.model import Orientation
 
 
 class TestDraw(unittest.TestCase):

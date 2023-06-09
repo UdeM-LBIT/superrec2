@@ -2,7 +2,7 @@ import unittest
 from itertools import chain, combinations
 from ete3 import Tree
 from infinity import inf
-from .trees import (
+from superrec2.utils.trees import (
     LowestCommonAncestor,
     tree_to_triples,
     tree_from_triples,

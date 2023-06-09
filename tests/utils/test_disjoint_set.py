@@ -1,6 +1,6 @@
 import unittest
 from itertools import product
-from .disjoint_set import DisjointSet
+from superrec2.utils.disjoint_set import DisjointSet
 
 
 class TestDisjointSet(unittest.TestCase):

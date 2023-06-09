@@ -1,17 +1,17 @@
 import unittest
 from infinity import inf
 from ete3 import Tree
-from ..utils.trees import LowestCommonAncestor
-from ..utils.dynamic_programming import RetentionPolicy
-from ..model.tree_mapping import get_species_mapping
-from ..model.reconciliation import (
+from superrec2.utils.trees import LowestCommonAncestor
+from superrec2.utils.dynamic_programming import RetentionPolicy
+from superrec2.model.tree_mapping import get_species_mapping
+from superrec2.model.reconciliation import (
     ReconciliationInput,
     ReconciliationOutput,
     NodeEvent,
     EdgeEvent,
 )
-from .exhaustive import generate_all
-from .reconciliation import reconcile_lca, reconcile_thl
+from superrec2.compute.exhaustive import generate_all
+from superrec2.compute.reconciliation import reconcile_lca, reconcile_thl
 
 
 class TestComputeReconciliation(unittest.TestCase):

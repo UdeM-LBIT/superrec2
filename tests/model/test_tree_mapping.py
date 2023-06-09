@@ -1,6 +1,6 @@
 import unittest
 from ete3 import Tree
-from .tree_mapping import (
+from superrec2.model.tree_mapping import (
     parse_tree_mapping,
     get_species_mapping,
     serialize_tree_mapping,

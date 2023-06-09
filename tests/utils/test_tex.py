@@ -1,5 +1,5 @@
 import unittest
-from .tex import measure, MeasureBox
+from superrec2.utils.tex import measure, MeasureBox
 
 
 class TestTex(unittest.TestCase):

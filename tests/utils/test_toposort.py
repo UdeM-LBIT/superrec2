@@ -1,7 +1,7 @@
 from itertools import permutations
 from typing import List, TypeVar
 import unittest
-from .toposort import toposort, toposort_all, find_cycle
+from superrec2.utils.toposort import toposort, toposort_all, find_cycle
 
 
 T = TypeVar("T")
