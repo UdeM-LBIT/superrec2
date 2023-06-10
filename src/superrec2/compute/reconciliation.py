@@ -91,12 +91,8 @@ def _compute_thl_try_speciation(
         )
 
     for right_child in right_species.traverse():
-        min_ltr.update(
-            Candidate(table[left_node][right_child].value(), right_child)
-        )
-        min_rtr.update(
-            Candidate(table[right_node][right_child].value(), right_child)
-        )
+        min_ltr.update(Candidate(table[left_node][right_child].value(), right_child))
+        min_rtr.update(Candidate(table[right_node][right_child].value(), right_child))
 
     def spe_combinator(left, right):
         return Candidate(
@@ -140,25 +136,17 @@ def _compute_thl_try_duplication_transfer(
     for other_species in species_lca.tree.traverse():
         if species_lca.is_ancestor_of(root_species, other_species):
             min_ltc.update(
-                Candidate(
-                    table[left_node][other_species].value(), other_species
-                )
+                Candidate(table[left_node][other_species].value(), other_species)
             )
             min_rtc.update(
-                Candidate(
-                    table[right_node][other_species].value(), other_species
-                )
+                Candidate(table[right_node][other_species].value(), other_species)
             )
         elif not species_lca.is_ancestor_of(other_species, root_species):
             min_lts.update(
-                Candidate(
-                    table[left_node][other_species].value(), other_species
-                )
+                Candidate(table[left_node][other_species].value(), other_species)
             )
             min_rts.update(
-                Candidate(
-                    table[right_node][other_species].value(), other_species
-                )
+                Candidate(table[right_node][other_species].value(), other_species)
             )
 
     # Try mapping as a duplication
@@ -216,9 +204,7 @@ def _compute_thl_table(
             root_species = rec_input.leaf_object_species[root_node]
             table[root_node][root_species] = Candidate(0)
         else:
-            for root_species in rec_input.species_lca.tree.traverse(
-                "postorder"
-            ):
+            for root_species in rec_input.species_lca.tree.traverse("postorder"):
                 if not root_species.is_leaf():
                     _compute_thl_try_speciation(
                         rec_input.species_lca,

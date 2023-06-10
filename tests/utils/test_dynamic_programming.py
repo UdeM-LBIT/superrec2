@@ -51,9 +51,7 @@ class TestDynamicProgramming(unittest.TestCase):
 
         self.assertEqual(i, 10)
 
-        table_lll = Table(
-            [ListDimension(10), ListDimension(20), ListDimension(30)]
-        )
+        table_lll = Table([ListDimension(10), ListDimension(20), ListDimension(30)])
         table_lll[3][2][1] = Candidate(0)
         self.assertEqual(list(table_lll.keys()), list(range(10)))
         self.assertEqual(list(table_lll[1].keys()), list(range(20)))
@@ -201,9 +199,7 @@ class TestDynamicProgramming(unittest.TestCase):
         table[4][18] = Candidate(5, "tag0")
         self.assertEqual(table[4][18].value(), 5)
         self.assertEqual(len(table[4][18].infos()), 1)
-        self.assertIn(
-            table[4][18].info(), ["tag1", "tag2", "tagA", "tagB", "tag0"]
-        )
+        self.assertIn(table[4][18].info(), ["tag1", "tag2", "tagA", "tagB", "tag0"])
 
         table[4][18] = Candidate(5, "tag4")
         table[4][18] = Candidate(6, "tagα")
@@ -318,8 +314,7 @@ class TestDynamicProgramming(unittest.TestCase):
         for i in range(1, len(w1) + 1):
             for j in range(1, len(w2) + 1):
                 table[i][j] = Candidate(
-                    table[i - 1][j - 1].value()
-                    + (1 if w1[i - 1] != w2[j - 1] else 0),
+                    table[i - 1][j - 1].value() + (1 if w1[i - 1] != w2[j - 1] else 0),
                     (i - 1, j - 1),
                 )
                 table[i][j] = Candidate(table[i][j - 1].value() + 1, (i, j - 1))
@@ -342,9 +337,7 @@ class TestDynamicProgramming(unittest.TestCase):
             return
 
         for prec in table[i][j].infos():
-            for align in TestDynamicProgramming.get_alignments(
-                w1, w2, table, *prec
-            ):
+            for align in TestDynamicProgramming.get_alignments(w1, w2, table, *prec):
                 if prec == (i - 1, j - 1):
                     yield (
                         align[0] + w1[i - 1],

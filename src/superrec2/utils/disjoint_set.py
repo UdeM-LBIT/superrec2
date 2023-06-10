@@ -79,9 +79,7 @@ class DisjointSet:
     def __repr__(self) -> str:
         return (
             "DisjointSet({"
-            + ", ".join(
-                f"{{{', '.join(map(str, group))}}}" for group in self.to_list()
-            )
+            + ", ".join(f"{{{', '.join(map(str, group))}}}" for group in self.to_list())
             + "})"
         )
 

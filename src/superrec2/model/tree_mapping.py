@@ -18,8 +18,7 @@ def parse_tree_mapping(
     :returns: parsed mapping
     """
     return {
-        from_tree & from_node: to_tree & to_node
-        for from_node, to_node in data.items()
+        from_tree & from_node: to_tree & to_node for from_node, to_node in data.items()
     }
 
 
@@ -65,6 +64,4 @@ def serialize_tree_mapping(mapping: TreeMapping) -> Dict[str, str]:
     :param mapping: mapping to serialize
     :returns: representation that can be used to serialize the mapping
     """
-    return {
-        from_node.name: to_node.name for from_node, to_node in mapping.items()
-    }
+    return {from_node.name: to_node.name for from_node, to_node in mapping.items()}

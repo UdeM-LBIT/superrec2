@@ -40,11 +40,11 @@ class _OpenStd:
             if self.mode == "wb":
                 return sys.stdout.buffer
 
-            raise RuntimeError(
-                f"Invalid mode '{self.mode}' for standard stream"
-            )
+            raise RuntimeError(f"Invalid mode '{self.mode}' for standard stream")
 
-        self.file = open(self.path, self.mode, **self.args)  # pylint: disable=unspecified-encoding
+        self.file = open(
+            self.path, self.mode, **self.args
+        )  # pylint: disable=unspecified-encoding
         return self.file
 
     def __exit__(self, kind, value, traceback):

@@ -192,7 +192,9 @@ class Entry(Generic[ValueTypeT, InfoTypeT]):
 
     is_infinite.__doc__ = EntryProtocol.is_infinite.__doc__
 
-    def value(self) -> Union[ValueTypeT, Infinity]:  # pylint: disable=missing-function-docstring
+    def value(
+        self,
+    ) -> Union[ValueTypeT, Infinity]:  # pylint: disable=missing-function-docstring
         return self._value
 
     value.__doc__ = EntryProtocol.value.__doc__
@@ -210,7 +212,9 @@ class Entry(Generic[ValueTypeT, InfoTypeT]):
 
     info.__doc__ = EntryProtocol.info.__doc__
 
-    def update(self, *candidates: Candidate[ValueTypeT, InfoTypeT]) -> None:  # pylint: disable=missing-function-docstring
+    def update(
+        self, *candidates: Candidate[ValueTypeT, InfoTypeT]
+    ) -> None:  # pylint: disable=missing-function-docstring
         is_min = self._merge_policy == MergePolicy.MIN
         is_max = self._merge_policy == MergePolicy.MAX
 
@@ -227,9 +231,7 @@ class Entry(Generic[ValueTypeT, InfoTypeT]):
 
                 self._value = value
 
-            if (is_min and self._value > value) or (
-                is_max and self._value < value
-            ):
+            if (is_min and self._value > value) or (is_max and self._value < value):
                 if info and (is_all or is_any):
                     self._infos = {info}
 
@@ -393,7 +395,9 @@ class EntryProxy(Generic[ValueTypeT, InfoTypeT]):
 
         return entry
 
-    def is_infinite(self) -> Optional[InfoTypeT]:  # pylint: disable=missing-function-docstring
+    def is_infinite(
+        self,
+    ) -> Optional[InfoTypeT]:  # pylint: disable=missing-function-docstring
         real = self._get_real()
 
         if real is None:
@@ -403,7 +407,9 @@ class EntryProxy(Generic[ValueTypeT, InfoTypeT]):
 
     is_infinite.__doc__ = EntryProtocol.is_infinite.__doc__
 
-    def value(self) -> Union[ValueTypeT, Infinity]:  # pylint: disable=missing-function-docstring
+    def value(
+        self,
+    ) -> Union[ValueTypeT, Infinity]:  # pylint: disable=missing-function-docstring
         real = self._get_real()
 
         if real is None:
@@ -434,8 +440,7 @@ class EntryProxy(Generic[ValueTypeT, InfoTypeT]):
     info.__doc__ = EntryProtocol.info.__doc__
 
     def update(  # pylint: disable=missing-function-docstring
-        self,
-        *candidates: Candidate[ValueTypeT, InfoTypeT]
+        self, *candidates: Candidate[ValueTypeT, InfoTypeT]
     ) -> None:
         if any(not (is_infinite(candidate.value)) for candidate in candidates):
             entry = self._parent._table  # pylint: disable=protected-access

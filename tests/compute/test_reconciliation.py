@@ -24,9 +24,7 @@ class TestComputeReconciliation(unittest.TestCase):
 
         cls.species_tree = Tree("(X,(Y,Z)YZ)XYZ;", format=1)
         cls.species_lca = LowestCommonAncestor(cls.species_tree)
-        cls.leaf_gene_species = get_species_mapping(
-            cls.gene_tree, cls.species_tree
-        )
+        cls.leaf_gene_species = get_species_mapping(cls.gene_tree, cls.species_tree)
 
         cls.rec_input = ReconciliationInput(
             cls.gene_tree,

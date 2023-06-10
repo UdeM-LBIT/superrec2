@@ -105,12 +105,8 @@ class ReconciliationInput:
                 format_root_node=True,
                 features=["color"],
             ),
-            "leaf_object_species": serialize_tree_mapping(
-                self.leaf_object_species
-            ),
-            "costs": dict(
-                ((event.name, value) for event, value in self.costs.items())
-            ),
+            "leaf_object_species": serialize_tree_mapping(self.leaf_object_species),
+            "costs": dict(((event.name, value) for event, value in self.costs.items())),
         }
 
     def __repr__(self):
@@ -221,9 +217,7 @@ class ReconciliationInput:
                 self.object_tree,
                 self.species_lca,
                 tuple(
-                    sorted(
-                        serialize_tree_mapping(self.leaf_object_species).items()
-                    ),
+                    sorted(serialize_tree_mapping(self.leaf_object_species).items()),
                 ),
                 tuple(
                     (event, self.costs.get(event))
@@ -256,9 +250,7 @@ class ReconciliationOutput:
     def __repr__(self):
         keyvals = self.to_dict()
         keyvals["input"] = self.input
-        params = ",\n".join(
-            f"{key}={repr(value)}" for key, value in keyvals.items()
-        )
+        params = ",\n".join(f"{key}={repr(value)}" for key, value in keyvals.items())
         return f'{self.__class__.__name__}(\n{indent(params, " " * 2)}\n)'
 
     @classmethod
@@ -380,9 +372,7 @@ class ReconciliationOutput:
         return hash(
             (
                 self.input,
-                tuple(
-                    sorted(serialize_tree_mapping(self.object_species).items())
-                ),
+                tuple(sorted(serialize_tree_mapping(self.object_species).items())),
             )
         )
 
@@ -513,9 +503,7 @@ class SuperReconciliationOutput(ReconciliationOutput):
                     )
                     total_cost += (
                         subseq_segment_dist(left_mask, sub_mask, keep_left)
-                        + subseq_segment_dist(
-                            right_mask, sub_mask, not keep_left
-                        )
+                        + subseq_segment_dist(right_mask, sub_mask, not keep_left)
                     ) * sloss_cost
 
         return total_cost
@@ -535,14 +523,10 @@ class SuperReconciliationOutput(ReconciliationOutput):
 
                 node_set = set(self.syntenies[node])
                 left_cost = (
-                    0
-                    if node_set <= set(self.syntenies[left_node])
-                    else sloss_cost
+                    0 if node_set <= set(self.syntenies[left_node]) else sloss_cost
                 )
                 right_cost = (
-                    0
-                    if node_set <= set(self.syntenies[right_node])
-                    else sloss_cost
+                    0 if node_set <= set(self.syntenies[right_node]) else sloss_cost
                 )
 
                 if event == NodeEvent.SPECIATION:
@@ -551,9 +535,7 @@ class SuperReconciliationOutput(ReconciliationOutput):
                     total_cost += min(left_cost, right_cost)
                 else:
                     assert event == NodeEvent.HORIZONTAL_TRANSFER
-                    if self.input.species_lca.is_comparable(
-                        rec[node], rec[left_node]
-                    ):
+                    if self.input.species_lca.is_comparable(rec[node], rec[left_node]):
                         total_cost += left_cost
                     else:
                         total_cost += right_cost

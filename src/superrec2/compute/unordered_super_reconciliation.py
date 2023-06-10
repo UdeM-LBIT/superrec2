@@ -130,9 +130,7 @@ def _compute_lca_sets(
             result[object_node] = (
                 set()
                 .union(*(result[child] for child in object_node.children))
-                .difference(
-                    *(gain_sets[child] for child in object_node.children)
-                )
+                .difference(*(gain_sets[child] for child in object_node.children))
             )
 
     return result
@@ -199,8 +197,7 @@ def _compute_uspfs_entry(
 
             if species_lca.is_ancestor_of(root_species, desc_species):
                 above_species_dist = (
-                    species_lca.distance(root_species, desc_species)
-                    * floss_cost
+                    species_lca.distance(root_species, desc_species) * floss_cost
                 )
 
                 subprobs[child_index][inh].conserved.update(
@@ -272,9 +269,7 @@ def _compute_uspfs_entry(
                     if species_lca.is_ancestor_of(left_species, desc_species):
                         subprobs[child_index][inh].left.update(*inh_candidates)
                         subprobs[child_index][lca].left.update(*lca_candidates)
-                    elif species_lca.is_ancestor_of(
-                        right_species, desc_species
-                    ):
+                    elif species_lca.is_ancestor_of(right_species, desc_species):
                         subprobs[child_index][inh].right.update(*inh_candidates)
                         subprobs[child_index][lca].right.update(*lca_candidates)
             elif not species_lca.is_ancestor_of(desc_species, root_species):
@@ -295,18 +290,10 @@ def _compute_uspfs_entry(
         table[root_object][root_species][kind].update(
             *subprobs[0][kind].left.combine(subprobs[1][kind].right, spe_comb),
             *subprobs[0][kind].right.combine(subprobs[1][kind].left, spe_comb),
-            *subprobs[0][kind].conserved.combine(
-                subprobs[1][kind].segment, dup_comb
-            ),
-            *subprobs[0][kind].segment.combine(
-                subprobs[1][kind].conserved, dup_comb
-            ),
-            *subprobs[0][kind].conserved.combine(
-                subprobs[1][kind].separate, hgt_comb
-            ),
-            *subprobs[0][kind].separate.combine(
-                subprobs[1][kind].conserved, hgt_comb
-            ),
+            *subprobs[0][kind].conserved.combine(subprobs[1][kind].segment, dup_comb),
+            *subprobs[0][kind].segment.combine(subprobs[1][kind].conserved, dup_comb),
+            *subprobs[0][kind].conserved.combine(subprobs[1][kind].separate, hgt_comb),
+            *subprobs[0][kind].separate.combine(subprobs[1][kind].conserved, hgt_comb),
         )
 
 
@@ -354,10 +341,7 @@ def _compute_uspfs_table(
                 allowed_species(srec_input.species_lca.tree, root_object),
                 desc="Object assignments",
                 total=sum(
-                    1
-                    for _ in allowed_species(
-                        srec_input.species_lca.tree, root_object
-                    )
+                    1 for _ in allowed_species(srec_input.species_lca.tree, root_object)
                 ),
                 ascii=True,
                 leave=False,
@@ -411,7 +395,7 @@ def _decode_uspfs_table(
         and not table[root_object][root_species][root_kind].is_infinite()
     ):
         # pylint has trouble seeing the attributes from the descendant dataclass
-        yield SuperReconciliationOutput( # pylint: disable=unexpected-keyword-arg
+        yield SuperReconciliationOutput(  # pylint: disable=unexpected-keyword-arg
             input=srec_input,
             object_species={root_object: root_species},
             syntenies={root_object: root_synteny},
@@ -446,7 +430,7 @@ def _decode_uspfs_table(
 
         for map_left, map_right in mappings:
             # pylint has trouble seeing the attributes from the descendant dataclass
-            yield SuperReconciliationOutput( # pylint: disable=unexpected-keyword-arg
+            yield SuperReconciliationOutput(  # pylint: disable=unexpected-keyword-arg
                 input=srec_input,
                 object_species={
                     root_object: root_species,
@@ -467,9 +451,7 @@ def _uspfs(
     policy: RetentionPolicy,
     allowed_species: Callable[[TreeNode], Iterable[TreeNode]],
 ) -> Set[SuperReconciliationOutput]:
-    results: Entry[int, SuperReconciliationOutput] = Entry(
-        MergePolicy.MIN, policy
-    )
+    results: Entry[int, SuperReconciliationOutput] = Entry(MergePolicy.MIN, policy)
 
     for srec_input_bin in tqdm(
         srec_input.binarize(),

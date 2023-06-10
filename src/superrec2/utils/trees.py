@@ -138,9 +138,7 @@ class LowestCommonAncestor:
         Complexity: O(1).
         """
         return (
-            self.level(first)
-            + self.level(second)
-            - 2 * self.level(self(first, second))
+            self.level(first) + self.level(second) - 2 * self.level(self(first, second))
         )
 
 
@@ -226,9 +224,7 @@ def trees_to_triples(trees: Iterable[Tree]) -> Tuple[List[str], List[Triple]]:
     return list(leaves), list(triples)
 
 
-def tree_from_triples(
-    leaves: List[str], triples: List[Triple]
-) -> Optional[Tree]:
+def tree_from_triples(leaves: List[str], triples: List[Triple]) -> Optional[Tree]:
     """
     Reconstruct a phylogenetic tree that respects the constraints given
     by a set of triples.
@@ -271,9 +267,7 @@ def tree_from_triples(
     for group in partition.to_list():
         group_leaves = [leaves[item] for item in group]
         group_triples = [
-            triple
-            for triple in triples
-            if all(leaf in group_leaves for leaf in triple)
+            triple for triple in triples if all(leaf in group_leaves for leaf in triple)
         ]
 
         subtree = tree_from_triples(group_leaves, group_triples)
@@ -286,9 +280,7 @@ def tree_from_triples(
     return root
 
 
-def all_trees_from_triples(
-    leaves: List[str], triples: List[Triple]
-) -> List[Tree]:
+def all_trees_from_triples(leaves: List[str], triples: List[Triple]) -> List[Tree]:
     """
     Find all the phylogenetic binary trees that respect the constraints given
     by a set of triples.
@@ -302,9 +294,7 @@ def all_trees_from_triples(
         empty if the set of triples is not consistent
     """
 
-    def _all_trees_from_triples(
-        leaves: List[str], triples: List[Triple]
-    ) -> List[Tree]:
+    def _all_trees_from_triples(leaves: List[str], triples: List[Triple]) -> List[Tree]:
         if not leaves:
             return []
 
@@ -327,9 +317,7 @@ def all_trees_from_triples(
 
         for bin_partition in partition.binary():
             groups = bin_partition.to_list()
-            groups_leaves = [
-                [leaves[item] for item in group] for group in groups
-            ]
+            groups_leaves = [[leaves[item] for item in group] for group in groups]
             groups_triples = [
                 [
                     triple
@@ -382,8 +370,7 @@ def all_supertrees(trees: Iterable[Tree]) -> List[Tree]:
 def is_binary(tree: Tree) -> bool:
     """Check if a tree is binary."""
     return tree.is_leaf() or (
-        len(tree.children) == 2
-        and all(is_binary(child) for child in tree.children)
+        len(tree.children) == 2 and all(is_binary(child) for child in tree.children)
     )
 
 
@@ -400,9 +387,7 @@ def graft(
     result.add_child(tree.copy())
     yield result
 
-    if not tree.is_leaf() and (
-        ignore is None or tree.get_topology_id() not in ignore
-    ):
+    if not tree.is_leaf() and (ignore is None or tree.get_topology_id() not in ignore):
         left, right = tree.children
 
         for graft_left in graft(left, leaf, ignore):
@@ -449,9 +434,7 @@ def binarize(tree: Tree) -> List[Tree]:
             # Generate binarizations for direct children
             subtrees[node] = [
                 subtree
-                for descs in product(
-                    *(subtrees[desc] for desc in node.children)
-                )
+                for descs in product(*(subtrees[desc] for desc in node.children))
                 for subtree in arrange_leaves(descs)
             ]
 

@@ -70,9 +70,7 @@ def _distance_naive(start, stop, visited=None):
 
 def _powerset(iterable):
     seq = list(iterable)
-    return chain.from_iterable(
-        combinations(seq, r) for r in range(len(seq) + 1)
-    )
+    return chain.from_iterable(combinations(seq, r) for r in range(len(seq) + 1))
 
 
 class TestLowestCommonAncestor(unittest.TestCase):
@@ -116,18 +114,12 @@ class TestLowestCommonAncestor(unittest.TestCase):
                 self.assertEqual(lca.is_ancestor_of(b, a), a in b or a == b)
                 self.assertEqual(lca.is_strict_ancestor_of(a, b), b in a)
                 self.assertEqual(lca.is_strict_ancestor_of(b, a), a in b)
-                self.assertEqual(
-                    lca.is_comparable(a, b), a in b or b in a or a == b
-                )
+                self.assertEqual(lca.is_comparable(a, b), a in b or b in a or a == b)
 
                 self.assertTrue(_is_ancestor_of_naive(ab_lca, a))
                 self.assertTrue(_is_ancestor_of_naive(ab_lca, b))
-                self.assertEqual(
-                    lca.is_ancestor_of(a, b), _is_ancestor_of_naive(a, b)
-                )
-                self.assertEqual(
-                    lca.is_ancestor_of(b, a), _is_ancestor_of_naive(b, a)
-                )
+                self.assertEqual(lca.is_ancestor_of(a, b), _is_ancestor_of_naive(a, b))
+                self.assertEqual(lca.is_ancestor_of(b, a), _is_ancestor_of_naive(b, a))
                 self.assertEqual(
                     lca.is_strict_ancestor_of(a, b),
                     _is_ancestor_of_naive(a, b) and a != b,

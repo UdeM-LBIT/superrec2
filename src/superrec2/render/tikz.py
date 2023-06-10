@@ -188,23 +188,17 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
         if params.orientation == Orientation.VERTICAL:
             left_fork = (
                 left_layout.trunk.top_left(),
-                left_layout.trunk.top_left().meet_vh(
-                    layout.trunk.bottom_left()
-                ),
+                left_layout.trunk.top_left().meet_vh(layout.trunk.bottom_left()),
                 layout.trunk.bottom_left(),
                 layout.trunk.top_left(),
             )
             right_fork = (
                 right_layout.trunk.top_right(),
-                right_layout.trunk.top_right().meet_vh(
-                    layout.trunk.bottom_right()
-                ),
+                right_layout.trunk.top_right().meet_vh(layout.trunk.bottom_right()),
                 layout.trunk.bottom_right(),
                 layout.trunk.top_right(),
             )
-            fork_join = layout.trunk.bottom_left() + Position(
-                0, layout.fork_thickness
-            )
+            fork_join = layout.trunk.bottom_left() + Position(0, layout.fork_thickness)
             inner_fork = (
                 left_layout.trunk.top_right(),
                 left_layout.trunk.top_right().meet_vh(fork_join),
@@ -220,15 +214,11 @@ def _tikz_draw_fork(  # pylint:disable=too-many-arguments
             )
             right_fork = (
                 right_layout.trunk.bottom_left(),
-                right_layout.trunk.bottom_left().meet_hv(
-                    layout.trunk.bottom_right()
-                ),
+                right_layout.trunk.bottom_left().meet_hv(layout.trunk.bottom_right()),
                 layout.trunk.bottom_right(),
                 layout.trunk.bottom_left(),
             )
-            fork_join = layout.trunk.bottom_right() + Position(
-                layout.fork_thickness, 0
-            )
+            fork_join = layout.trunk.bottom_right() + Position(layout.fork_thickness, 0)
             inner_fork = (
                 left_layout.trunk.bottom_left(),
                 left_layout.trunk.bottom_left().meet_hv(fork_join),

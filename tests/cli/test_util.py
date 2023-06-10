@@ -30,7 +30,9 @@ class TestCliUtil(unittest.TestCase):
         #
         # self.assertFalse(sys.stdout.closed)
 
-        with self.assertRaises(RuntimeError, msg="Invalid mode 'r+' for standard stream"):
+        with self.assertRaises(
+            RuntimeError, msg="Invalid mode 'r+' for standard stream"
+        ):
             with open_std("-", "r+") as handle:
                 pass
 

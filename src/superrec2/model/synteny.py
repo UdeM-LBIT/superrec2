@@ -42,9 +42,7 @@ def format_synteny(synteny: Synteny, width: Optional[int] = None) -> str:
         wrap the synteny
     :returns: string representation
     """
-    result = ", ".join(
-        sort_synteny(synteny) if isinstance(synteny, set) else synteny
-    )
+    result = ", ".join(sort_synteny(synteny) if isinstance(synteny, set) else synteny)
 
     if width is not None:
         result = balanced_wrap(result, width)
@@ -52,9 +50,7 @@ def format_synteny(synteny: Synteny, width: Optional[int] = None) -> str:
     return result
 
 
-def parse_synteny_mapping(
-    tree: Tree, data: Dict[str, Synteny]
-) -> SyntenyMapping:
+def parse_synteny_mapping(tree: Tree, data: Dict[str, Synteny]) -> SyntenyMapping:
     """
     Convert a plain mapping of syntenies to tree node names to a mapping
     to node objects.

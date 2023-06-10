@@ -16,9 +16,7 @@ class TestComputeExhaustive(unittest.TestCase):
     def setUpClass(cls):
         cls.gene_tree = Tree("((x_1,x_2)2,(y_1,z_1)3)1;", format=1)
         cls.species_tree = Tree("(X,(Y,Z)YZ)XYZ;", format=1)
-        cls.leaf_gene_species = get_species_mapping(
-            cls.gene_tree, cls.species_tree
-        )
+        cls.leaf_gene_species = get_species_mapping(cls.gene_tree, cls.species_tree)
 
         cls.species_lca = LowestCommonAncestor(cls.species_tree)
         cls.rec_input = ReconciliationInput(

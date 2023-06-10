@@ -103,9 +103,7 @@ def _compute_spfs_entry(
     floss_cost = costs[EdgeEvent.FULL_LOSS]
 
     subprobs = tuple(
-        MappingChoices._make(
-            table.entry() for _ in range(len(MappingChoices._fields))
-        )
+        MappingChoices._make(table.entry() for _ in range(len(MappingChoices._fields)))
         for _ in range(2)
     )
 
@@ -128,21 +126,16 @@ def _compute_spfs_entry(
                     continue
 
                 segment_dist = (
-                    subseq_segment_dist(
-                        child_synteny, root_synteny, edges=False
-                    )
+                    subseq_segment_dist(child_synteny, root_synteny, edges=False)
                     * sloss_cost
                 )
 
-                sub_cost = table[child_object][desc_species][
-                    child_synteny
-                ].value()
+                sub_cost = table[child_object][desc_species][child_synteny].value()
                 assignment = ObjectAssignment(desc_species, child_synteny)
 
                 if species_lca.is_ancestor_of(root_species, desc_species):
                     above_species_dist = (
-                        species_lca.distance(root_species, desc_species)
-                        * floss_cost
+                        species_lca.distance(root_species, desc_species) * floss_cost
                     )
 
                     subprobs[child_index].conserved.update(
@@ -171,18 +164,14 @@ def _compute_spfs_entry(
                         if is_left_desc:
                             subprobs[child_index].left.update(
                                 Candidate(
-                                    value=species_dist
-                                    + sub_cost
-                                    + conserv_dist,
+                                    value=species_dist + sub_cost + conserv_dist,
                                     info=assignment,
                                 )
                             )
                         elif is_right_desc:
                             subprobs[child_index].right.update(
                                 Candidate(
-                                    value=species_dist
-                                    + sub_cost
-                                    + conserv_dist,
+                                    value=species_dist + sub_cost + conserv_dist,
                                     info=assignment,
                                 )
                             )
@@ -314,7 +303,7 @@ def _decode_spfs_table(
         and not table[root_object][root_species][root_synteny].is_infinite()
     ):
         # pylint has trouble seeing the attributes from the descendant dataclass
-        yield SuperReconciliationOutput( # pylint: disable=unexpected-keyword-arg
+        yield SuperReconciliationOutput(  # pylint: disable=unexpected-keyword-arg
             input=srec_input,
             object_species={root_object: root_species},
             syntenies={root_object: resolv_synteny},
@@ -345,7 +334,7 @@ def _decode_spfs_table(
 
         for map_left, map_right in mappings:
             # pylint has trouble seeing the attributes from the descendant dataclass
-            yield SuperReconciliationOutput( # pylint: disable=unexpected-keyword-arg
+            yield SuperReconciliationOutput(  # pylint: disable=unexpected-keyword-arg
                 input=srec_input,
                 object_species={
                     root_object: root_species,
@@ -386,9 +375,7 @@ def _spfs(
     allowed_species: Callable[[TreeNode], Iterable[TreeNode]],
     allowed_syntenies: Callable[[TreeNode], Iterable[int]],
 ) -> Set[SuperReconciliationOutput]:
-    results: Entry[int, SuperReconciliationOutput] = Entry(
-        MergePolicy.MIN, policy
-    )
+    results: Entry[int, SuperReconciliationOutput] = Entry(MergePolicy.MIN, policy)
 
     for srec_input_bin in tqdm(
         srec_input.binarize(),

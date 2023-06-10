@@ -11,7 +11,10 @@ from superrec2.utils.trees import LowestCommonAncestor
 from superrec2.utils.dynamic_programming import RetentionPolicy
 from superrec2.model.tree_mapping import get_species_mapping
 from superrec2.compute.reconciliation import reconcile_lca
-from superrec2.compute.super_reconciliation import sreconcile_base_spfs, sreconcile_extended_spfs
+from superrec2.compute.super_reconciliation import (
+    sreconcile_base_spfs,
+    sreconcile_extended_spfs,
+)
 
 
 class TestComputeSuperReconciliation(unittest.TestCase):

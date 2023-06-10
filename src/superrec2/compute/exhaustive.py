@@ -52,7 +52,7 @@ def generate_all(
             )
             parent_species = parent_species.up
 
-        for (transfer_target, other_target) in (
+        for transfer_target, other_target in (
             (left_species, right_species),
             (right_species, left_species),
         ):

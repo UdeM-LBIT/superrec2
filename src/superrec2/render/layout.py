@@ -77,9 +77,7 @@ def _compute_branches(  # pylint:disable=too-many-locals
     species_lca = rec.input.species_lca
     species_tree = species_lca.tree
     mapping = rec.object_species
-    syntenies = (
-        rec.syntenies if isinstance(rec, SuperReconciliationOutput) else {}
-    )
+    syntenies = rec.syntenies if isinstance(rec, SuperReconciliationOutput) else {}
 
     # Propagate color feature downwards in the tree
     last_color = None
@@ -116,9 +114,7 @@ def _compute_branches(  # pylint:disable=too-many-locals
                 if root_gene in syntenies
                 else ""
             )
-            equal_to_parent = syntenies.get(root_gene) == syntenies.get(
-                root_gene.up
-            )
+            equal_to_parent = syntenies.get(root_gene) == syntenies.get(root_gene.up)
 
             if root_gene.is_leaf():
                 # Create branches even for leaf genes
@@ -149,9 +145,7 @@ def _compute_branches(  # pylint:disable=too-many-locals
                     # and linked to child species’s gene anchors
                     left_species = root_species.children[0]
 
-                    if species_lca.is_ancestor_of(
-                        left_species, mapping[right_gene]
-                    ):
+                    if species_lca.is_ancestor_of(left_species, mapping[right_gene]):
                         # Left gene and right gene are swapped relative
                         # to the left and right species
                         left_gene, right_gene = right_gene, left_gene
@@ -206,9 +200,7 @@ def _compute_branches(  # pylint:disable=too-many-locals
                     # but are linked to a node outside the current subtree
                     conserv_gene, foreign_gene = (
                         (left_gene, right_gene)
-                        if species_lca.is_ancestor_of(
-                            root_species, mapping[left_gene]
-                        )
+                        if species_lca.is_ancestor_of(root_species, mapping[left_gene])
                         else (right_gene, left_gene)
                     )
                     conserv_gene = _add_losses(
@@ -291,9 +283,7 @@ def _layout_branches(  # pylint:disable=too-many-locals
                 right_rect = layout["branches"][branch["right"]]["rect"]
 
                 if params.orientation == Orientation.VERTICAL:
-                    across = (
-                        (left_rect.center() + right_rect.center()).x - size.w
-                    ) / 2
+                    across = ((left_rect.center() + right_rect.center()).x - size.w) / 2
                     sequence = (
                         min(
                             params.species_branch_padding,
@@ -305,9 +295,7 @@ def _layout_branches(  # pylint:disable=too-many-locals
                     )
                     pos = Position(across, sequence)
                 else:
-                    across = (
-                        (left_rect.center() + right_rect.center()).y - size.h
-                    ) / 2
+                    across = ((left_rect.center() + right_rect.center()).y - size.h) / 2
                     sequence = (
                         min(
                             params.species_branch_padding,
@@ -478,8 +466,7 @@ def _layout_subtrees(
 
             if params.orientation == Orientation.VERTICAL:
                 subtree_span = (
-                    max(left_info["size"].h, right_info["size"].h)
-                    + trunk_height
+                    max(left_info["size"].h, right_info["size"].h) + trunk_height
                 )
             else:
                 subtree_span = (
@@ -489,9 +476,7 @@ def _layout_subtrees(
             subtree_span += params.level_spacing + fork_thickness
 
             if params.orientation == Orientation.VERTICAL:
-                left_trunk_dist = (
-                    left_info["size"].w - left_info["trunk"].right().x
-                )
+                left_trunk_dist = left_info["size"].w - left_info["trunk"].right().x
                 right_trunk_dist = right_info["trunk"].left().x
                 subtree_spacing = max(
                     trunk_width - (left_trunk_dist + right_trunk_dist),
@@ -499,9 +484,7 @@ def _layout_subtrees(
                 )
 
                 state["size"] = Size(
-                    left_info["size"].w
-                    + subtree_spacing
-                    + right_info["size"].w,
+                    left_info["size"].w + subtree_spacing + right_info["size"].w,
                     subtree_span,
                 )
                 state["left_pos"] = Position(
@@ -517,9 +500,7 @@ def _layout_subtrees(
                     0,
                 )
             else:
-                left_trunk_dist = (
-                    left_info["size"].h - left_info["trunk"].bottom().y
-                )
+                left_trunk_dist = left_info["size"].h - left_info["trunk"].bottom().y
                 right_trunk_dist = right_info["trunk"].top().y
                 subtree_spacing = max(
                     trunk_height - (left_trunk_dist + right_trunk_dist),
@@ -528,9 +509,7 @@ def _layout_subtrees(
 
                 state["size"] = Size(
                     subtree_span,
-                    left_info["size"].h
-                    + subtree_spacing
-                    + right_info["size"].h,
+                    left_info["size"].h + subtree_spacing + right_info["size"].h,
                 )
                 state["left_pos"] = Position(
                     subtree_span - left_info["size"].w,
