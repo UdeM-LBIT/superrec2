@@ -17,16 +17,16 @@ from superrec2.utils.trees import (
 
 
 def _is_ancestor_of_naive(a, b):
-    while b.up != None and a != b:
+    while b.up is not None and a != b:
         b = b.up
     return a == b
 
 
 def _get_common_ancestor_naive(a, b):
-    while a.up != None:
+    while a.up is not None:
         b_ancestor = b
 
-        while b_ancestor.up != None and a != b_ancestor:
+        while b_ancestor.up is not None and a != b_ancestor:
             b_ancestor = b_ancestor.up
 
         if a == b_ancestor:
@@ -40,7 +40,7 @@ def _get_common_ancestor_naive(a, b):
 def _level_naive(node):
     level = 0
 
-    while node.up != None:
+    while node.up is not None:
         level += 1
         node = node.up
 

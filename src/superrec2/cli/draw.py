@@ -1,5 +1,4 @@
 """Draw a representation of the (super-)reconciliation of two trees."""
-import argparse
 import json
 import textwrap
 import sys

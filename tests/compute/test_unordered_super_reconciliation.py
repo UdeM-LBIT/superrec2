@@ -1,8 +1,6 @@
 import unittest
 from ete3 import Tree
-from infinity import inf
 from superrec2.model.reconciliation import (
-    ReconciliationInput,
     SuperReconciliationInput,
     SuperReconciliationOutput,
     get_default_cost,

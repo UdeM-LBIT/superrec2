@@ -126,7 +126,7 @@ class EntryProtocol(Generic[ValueTypeT, InfoTypeT], Protocol):
             [Candidate[ValueTypeT, InfoTypeT], Candidate[ValueTypeT, InfoTypeT]],
             ValueTypeT,
         ],
-    ) -> "EntryProtocol[ValueTypeT, Tuple[InfoTypeT, InfoTypeT]]":
+    ) -> "EntryProtocol[ValueTypeT, tuple[InfoTypeT, InfoTypeT]]":
         """
         Combine the candidates from two entries.
 
@@ -246,7 +246,7 @@ class Entry(Generic[ValueTypeT, InfoTypeT]):
             [Candidate[ValueTypeT, InfoTypeT], Candidate[ValueTypeT, InfoTypeT]],
             ValueTypeT,
         ],
-    ) -> "EntryProtocol[ValueTypeT, Tuple[InfoTypeT, InfoTypeT]]":
+    ) -> "EntryProtocol[ValueTypeT, tuple[InfoTypeT, InfoTypeT]]":
         result = Entry(self._merge_policy, self._retention_policy)
 
         for ours, theirs in product(self._infos, other.infos()):
@@ -462,7 +462,7 @@ class EntryProxy(Generic[ValueTypeT, InfoTypeT]):
             [Candidate[ValueTypeT, InfoTypeT], Candidate[ValueTypeT, InfoTypeT]],
             ValueTypeT,
         ],
-    ) -> "EntryProtocol[ValueTypeT, Tuple[InfoTypeT, InfoTypeT]]":
+    ) -> "EntryProtocol[ValueTypeT, tuple[InfoTypeT, InfoTypeT]]":
         real = self._get_real()
 
         if real is None:
