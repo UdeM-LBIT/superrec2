@@ -1,18 +1,40 @@
 # superrec2
 
-superrec2 is a software package implementing several reconciliation and super-reconciliation algorithms.
+**superrec2** is a software package enabling researchers to run and compare algorithms for [phylogenetic reconciliation](https://en.wikipedia.org/wiki/Phylogenetic_reconciliation) and super-reconciliation.
 
 ## Installation
 
-To get started, clone this repository, initialize a Python virtual environment, and install the required dependencies:
+*superrec2* can be installed through `pip`.
+Python ⩾3.11 is required.
+
+```console
+$ pip install superrec2
+```
+
+<details>
+<summary>Installing from Git (for development)</summary>
+
+You first need to [install Hatch](https://hatch.pypa.io/latest/install/), which is used by superrec2 to manage virtual environments and to build and publish packages.
+
+Then clone the repository and use Hatch to install dependencies and start a development shell.
 
 ```console
 $ git clone https://github.com/UdeM-LBIT/superrec2
 $ cd superrec2
-$ virtualenv .venv
-$ source .venv/bin/activate
-$ pip install -r requirements.txt
+$ hatch shell
 ```
+
+The following commands are useful for development.
+You should make sure to pass unit tests and to reformat and lint the code before committing to the main branch.
+
+Command | Task
+------- | ----
+`hatch run dev:test` | Run all unit tests
+`hatch run dev:lint` | Check the code using [Ruff](https://beta.ruff.rs)
+`hatch run dev:format` | Reformat the code using [Black](https://black.readthedocs.io/en/stable)
+`hatch build` | Build distributable packages
+`hatch publish` | Publish distributable packages to [PyPI](https://pypi.org/)
+</details>
 
 ## Usage
 
