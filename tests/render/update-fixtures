@@ -3,7 +3,7 @@
 for input in tests/render/fixtures/*/input.json; do
     for orient in horizontal vertical; do
         echo "draw $input $orient"
-        python -m superrec2.cli draw \
+        python -m superrec2.cli draw tikz \
             --orientation "$orient" < "$input" \
             > "${input%input.json}output-$orient.tex"
     done

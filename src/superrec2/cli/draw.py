@@ -2,7 +2,7 @@
 import json
 import textwrap
 import sys
-from .util import add_arg_input, add_arg_output, open_std
+from .util import add_arg_input, add_arg_output
 from superrec2.render import layout, tikz
 from superrec2.render.layout import (
     DrawParams,
@@ -17,12 +17,8 @@ from superrec2.utils.tex import tex_compile, TeXError
 
 def generate_tikz(args):
     """Generate TikZ code corresponding to the given reconciliation."""
-    with open_std(args.input, "r", encoding="utf8") as infile_handle:
-        data = json.load(infile_handle)
-
-    params = DrawParams(
-        orientation=Orientation[args.orientation.upper()],
-    )
+    data = json.load(args.input)
+    params = DrawParams(orientation=Orientation[args.orientation.upper()])
 
     if "syntenies" in data:
         rec_output = SuperReconciliationOutput.from_dict(data)
@@ -38,9 +34,9 @@ def output(args, tikz_code):
     output_type = args.output_type
 
     if output_type is None:
-        if args.output == "-" or args.output.endswith(".tex"):
+        if args.output.name == "-" or args.output.name.endswith(".tex"):
             output_type = "tikz"
-        elif args.output.endswith(".pdf"):
+        elif args.output.name.endswith(".pdf"):
             output_type = "pdf"
         else:
             print(
@@ -51,31 +47,29 @@ type explicitly",
             return 1
 
     if output_type == "tikz":
-        with open_std(args.output, "w", encoding="utf8") as outfile:
-            outfile.write(tikz_code)
+        args.output.write(tikz_code.encode())
     elif output_type == "pdf":
         try:
-            with open_std(args.output, "wb") as outfile:
-                tex_compile(
-                    source=textwrap.dedent(
-                        r"""
-                        \documentclass[crop, tikz, border=20pt]{standalone}
-                        \usepackage{tikz}
-                        \usetikzlibrary{arrows.meta}
-                        \usetikzlibrary{shapes}
-                        \begin{document}
-                        \scrollmode
-                        """
-                    ).lstrip()
-                    + tikz_code
-                    + textwrap.dedent(
-                        r"""
-                        \batchmode
-                        \end{document}
-                        """
-                    ).lstrip(),
-                    dest=outfile,
-                )
+            tex_compile(
+                source=textwrap.dedent(
+                    r"""
+                    \documentclass[crop, tikz, border=20pt]{standalone}
+                    \usepackage{tikz}
+                    \usetikzlibrary{arrows.meta}
+                    \usetikzlibrary{shapes}
+                    \begin{document}
+                    \scrollmode
+                    """
+                ).lstrip()
+                + tikz_code
+                + textwrap.dedent(
+                    r"""
+                    \batchmode
+                    \end{document}
+                    """
+                ).lstrip(),
+                dest=args.output,
+            )
         except TeXError as err:
             print(f"XeLaTeX returned an error (code: {err.code})")
             print("Output from the compiler:")
@@ -97,8 +91,8 @@ def draw(args):
 def add_args(parser):
     """Add the drawing subcommand to a command-line argument parser."""
     subparser = parser.add_parser("draw", description=__doc__)
-    add_arg_input(subparser, "a file defining the reconciliation result to draw")
-    add_arg_output(subparser, "where the resulting drawing will be stored")
+    add_arg_input(subparser, "file defining the history to draw")
+    add_arg_output(subparser, "file where the resulting drawing will be stored", "wb")
     subparser.add_argument(
         "output_type",
         metavar="TYPE",

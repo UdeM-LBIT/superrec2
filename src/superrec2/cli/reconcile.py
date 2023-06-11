@@ -4,7 +4,7 @@ import inspect
 import json
 import textwrap
 import sys
-from .util import add_arg_input, add_arg_output, open_std
+from .util import add_arg_input, add_arg_output
 from superrec2.model.reconciliation import (
     NodeEvent,
     EdgeEvent,
@@ -56,9 +56,7 @@ def eval_cost(cost):
 
 def read_input(args):
     """Read and parse the input data file."""
-    with open_std(args.input, "r", encoding="utf8") as infile:
-        data = json.load(infile)
-
+    data = json.load(args.input)
     data["costs"] = dict(
         (kind, getattr(args, f"cost_{argname}"))
         for kind, (argname, _) in cost_events.items()
@@ -119,10 +117,9 @@ algorithm: you need to provide leaf syntenies",
 
 def dump_results(args, results):
     """Write reconciliation results to output file."""
-    with open_std(args.output, "w", encoding="utf8") as outfile:
-        for result in results:
-            json.dump(result.to_dict(), outfile)
-            print(file=outfile)
+    for result in results:
+        json.dump(result.to_dict(), args.output)
+        print(file=args.output)
 
 
 def reconcile(args):
@@ -154,8 +151,8 @@ def add_args(parser):
         description=desc,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    add_arg_input(subparser, "a file defining the reconciliation problem input")
-    add_arg_output(subparser, "where the reconciliation results will be stored")
+    add_arg_input(subparser, "file defining the reconciliation problem")
+    add_arg_output(subparser, "file where the reconciliation results will be stored")
     subparser.add_argument(
         "algorithm",
         metavar="ALGO",

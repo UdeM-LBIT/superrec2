@@ -32,6 +32,7 @@ def run_fixture_test(fixture, cache_dir):
                     orientation_name,
                     "--input",
                     input_path.as_posix(),
+                    "tikz",
                 ],
                 env={
                     **os.environ,
