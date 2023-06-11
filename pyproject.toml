@@ -37,13 +37,15 @@ only-include = ["src"]
 
 [tool.hatch.envs.dev]
 dependencies = [
+    "pytest",
     "black",
     "ruff",
 ]
 
 [tool.hatch.envs.dev.scripts]
 update-fixtures = "./tests/render/update-fixtures"
-test = "python -m unittest discover --buffer --verbose"
+test = "pytest --exitfirst"
+test-verbose = "pytest --exitfirst -vv"
 format = "black ."
 format-check = "black --check ."
 lint = "ruff check ."

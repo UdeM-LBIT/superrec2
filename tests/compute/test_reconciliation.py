@@ -1,4 +1,3 @@
-import unittest
 from infinity import inf
 from ete3 import Tree
 from superrec2.utils.trees import LowestCommonAncestor
@@ -14,114 +13,111 @@ from superrec2.compute.exhaustive import generate_all
 from superrec2.compute.reconciliation import reconcile_lca, reconcile_thl
 
 
-class TestComputeReconciliation(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.gene_tree = Tree(
-            "((x_1,(x_2,(y_1,z_1)5)4)3,(y_2,z_2)2)1;",
-            format=1,
-        )
+gene_tree = Tree(
+    "((x_1,(x_2,(y_1,z_1)5)4)3,(y_2,z_2)2)1;",
+    format=1,
+)
 
-        cls.species_tree = Tree("(X,(Y,Z)YZ)XYZ;", format=1)
-        cls.species_lca = LowestCommonAncestor(cls.species_tree)
-        cls.leaf_gene_species = get_species_mapping(cls.gene_tree, cls.species_tree)
+species_tree = Tree("(X,(Y,Z)YZ)XYZ;", format=1)
+species_lca = LowestCommonAncestor(species_tree)
+leaf_gene_species = get_species_mapping(gene_tree, species_tree)
 
-        cls.rec_input = ReconciliationInput(
-            cls.gene_tree,
-            cls.species_lca,
-            cls.leaf_gene_species,
-        )
+rec_input = ReconciliationInput(
+    gene_tree,
+    species_lca,
+    leaf_gene_species,
+)
 
-        cls.all_outputs = list(generate_all(cls.rec_input))
+all_outputs = list(generate_all(rec_input))
 
-    def test_output_count(self):
-        self.assertEqual(len(self.all_outputs), 199)
 
-    def test_reconcile_lca(self):
-        self.rec_input.costs[NodeEvent.DUPLICATION] = 1
-        self.rec_input.costs[NodeEvent.HORIZONTAL_TRANSFER] = inf
-        self.rec_input.costs[EdgeEvent.FULL_LOSS] = 1
+def test_output_count():
+    assert len(all_outputs) == 199
 
-        result = reconcile_lca(self.rec_input)
 
-        # Check that the expected result is returned
-        self.assertEqual(
-            result.object_species,
+def test_reconcile_lca():
+    rec_input.costs[NodeEvent.DUPLICATION] = 1
+    rec_input.costs[NodeEvent.HORIZONTAL_TRANSFER] = inf
+    rec_input.costs[EdgeEvent.FULL_LOSS] = 1
+
+    result = reconcile_lca(rec_input)
+
+    # Check that the expected result is returned
+    assert result.object_species == {
+        **leaf_gene_species,
+        gene_tree & "1": species_tree & "XYZ",
+        gene_tree & "2": species_tree & "YZ",
+        gene_tree & "3": species_tree & "XYZ",
+        gene_tree & "4": species_tree & "XYZ",
+        gene_tree & "5": species_tree & "YZ",
+    }
+
+    assert result.cost() == 4
+    assert result in all_outputs
+
+    # Check optimality
+    for possible_rec in all_outputs:
+        cost = possible_rec.cost()
+        assert cost >= result.cost()
+
+        if cost == result.cost():
+            assert possible_rec == result
+
+
+def test_reconcile_thl():
+    rec_input.costs[NodeEvent.DUPLICATION] = 1
+    rec_input.costs[NodeEvent.HORIZONTAL_TRANSFER] = 1
+    rec_input.costs[EdgeEvent.FULL_LOSS] = 1
+
+    any_result = reconcile_thl(rec_input, RetentionPolicy.ANY)
+    results = list(reconcile_thl(rec_input, RetentionPolicy.ALL))
+
+    # Check that any is part of all results
+    assert min(any_result) in results
+
+    # Check that all expected results are returned
+    assert len(results) == 2
+    assert (
+        ReconciliationOutput(
+            rec_input,
             {
-                **self.leaf_gene_species,
-                self.gene_tree & "1": self.species_tree & "XYZ",
-                self.gene_tree & "2": self.species_tree & "YZ",
-                self.gene_tree & "3": self.species_tree & "XYZ",
-                self.gene_tree & "4": self.species_tree & "XYZ",
-                self.gene_tree & "5": self.species_tree & "YZ",
+                **leaf_gene_species,
+                gene_tree & "1": species_tree & "XYZ",
+                gene_tree & "2": species_tree & "YZ",
+                gene_tree & "3": species_tree & "X",
+                gene_tree & "4": species_tree & "X",
+                gene_tree & "5": species_tree & "YZ",
             },
         )
+        in results
+    )
 
-        self.assertEqual(result.cost(), 4)
-        self.assertIn(result, self.all_outputs)
-
-        # Check optimality
-        for possible_rec in self.all_outputs:
-            cost = possible_rec.cost()
-            self.assertTrue(cost >= result.cost())
-
-            if cost == result.cost():
-                self.assertEqual(possible_rec, result)
-
-    def test_reconcile_thl(self):
-        self.rec_input.costs[NodeEvent.DUPLICATION] = 1
-        self.rec_input.costs[NodeEvent.HORIZONTAL_TRANSFER] = 1
-        self.rec_input.costs[EdgeEvent.FULL_LOSS] = 1
-
-        any_result = reconcile_thl(self.rec_input, RetentionPolicy.ANY)
-        results = list(reconcile_thl(self.rec_input, RetentionPolicy.ALL))
-
-        # Check that any is part of all results
-        self.assertIn(min(any_result), results)
-
-        # Check that all expected results are returned
-        self.assertEqual(len(results), 2)
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "1": self.species_tree & "XYZ",
-                    self.gene_tree & "2": self.species_tree & "YZ",
-                    self.gene_tree & "3": self.species_tree & "X",
-                    self.gene_tree & "4": self.species_tree & "X",
-                    self.gene_tree & "5": self.species_tree & "YZ",
-                },
-            ),
-            results,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "1": species_tree & "XYZ",
+                gene_tree & "2": species_tree & "YZ",
+                gene_tree & "3": species_tree & "X",
+                gene_tree & "4": species_tree & "YZ",
+                gene_tree & "5": species_tree & "YZ",
+            },
         )
+        in results
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "1": self.species_tree & "XYZ",
-                    self.gene_tree & "2": self.species_tree & "YZ",
-                    self.gene_tree & "3": self.species_tree & "X",
-                    self.gene_tree & "4": self.species_tree & "YZ",
-                    self.gene_tree & "5": self.species_tree & "YZ",
-                },
-            ),
-            results,
-        )
+    # Check that all results have the same expected cost
+    for result in results:
+        assert result.cost() == 2
 
-        # Check that all results have the same expected cost
-        for result in results:
-            self.assertEqual(result.cost(), 2)
+    for result in results:
+        assert result in all_outputs
 
-        for result in results:
-            self.assertIn(result, self.all_outputs)
+    # Check optimality
+    for possible_rec in all_outputs:
+        cost = possible_rec.cost()
+        assert cost >= 2
 
-        # Check optimality
-        for possible_rec in self.all_outputs:
-            cost = possible_rec.cost()
-            self.assertTrue(cost >= 2)
-
-            if cost == 2:
-                self.assertIn(possible_rec, results)
+        if cost == 2:
+            assert possible_rec in results

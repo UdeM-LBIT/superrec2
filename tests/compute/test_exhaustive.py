@@ -1,4 +1,3 @@
-import unittest
 from ete3 import Tree
 from superrec2.utils.dynamic_programming import RetentionPolicy
 from superrec2.utils.trees import LowestCommonAncestor
@@ -11,251 +10,247 @@ from superrec2.model.reconciliation import (
 from superrec2.compute.exhaustive import generate_all, reconcile_exhaustive
 
 
-class TestComputeExhaustive(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.gene_tree = Tree("((x_1,x_2)2,(y_1,z_1)3)1;", format=1)
-        cls.species_tree = Tree("(X,(Y,Z)YZ)XYZ;", format=1)
-        cls.leaf_gene_species = get_species_mapping(cls.gene_tree, cls.species_tree)
+gene_tree = Tree("((x_1,x_2)2,(y_1,z_1)3)1;", format=1)
+species_tree = Tree("(X,(Y,Z)YZ)XYZ;", format=1)
+leaf_gene_species = get_species_mapping(gene_tree, species_tree)
 
-        cls.species_lca = LowestCommonAncestor(cls.species_tree)
-        cls.rec_input = ReconciliationInput(
-            cls.gene_tree,
-            cls.species_lca,
-            cls.leaf_gene_species,
+species_lca = LowestCommonAncestor(species_tree)
+rec_input = ReconciliationInput(
+    gene_tree,
+    species_lca,
+    leaf_gene_species,
+)
+
+
+def test_generate_all():
+    rec_outputs = list(generate_all(rec_input))
+
+    # Check that all valid reconciliations are generated
+    assert len(rec_outputs) == 16
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "YZ",
+                gene_tree & "1": species_tree & "XYZ",
+            },
         )
+        in rec_outputs
+    )
 
-    def test_generate_all(self):
-        rec_outputs = list(generate_all(self.rec_input))
-
-        # Check that all valid reconciliations are generated
-        self.assertEqual(len(rec_outputs), 16)
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "YZ",
-                    self.gene_tree & "1": self.species_tree & "XYZ",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "YZ",
+                gene_tree & "1": species_tree & "X",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "YZ",
-                    self.gene_tree & "1": self.species_tree & "X",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "YZ",
+                gene_tree & "1": species_tree & "YZ",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "YZ",
-                    self.gene_tree & "1": self.species_tree & "YZ",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "XYZ",
+                gene_tree & "1": species_tree & "XYZ",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "XYZ",
-                    self.gene_tree & "1": self.species_tree & "XYZ",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "Y",
+                gene_tree & "1": species_tree & "YZ",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "Y",
-                    self.gene_tree & "1": self.species_tree & "YZ",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "Y",
+                gene_tree & "1": species_tree & "XYZ",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "Y",
-                    self.gene_tree & "1": self.species_tree & "XYZ",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "Y",
+                gene_tree & "1": species_tree & "X",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "Y",
-                    self.gene_tree & "1": self.species_tree & "X",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "Y",
+                gene_tree & "1": species_tree & "Y",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "Y",
-                    self.gene_tree & "1": self.species_tree & "Y",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "Z",
+                gene_tree & "1": species_tree & "YZ",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "Z",
-                    self.gene_tree & "1": self.species_tree & "YZ",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "Z",
+                gene_tree & "1": species_tree & "XYZ",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "Z",
-                    self.gene_tree & "1": self.species_tree & "XYZ",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "Z",
+                gene_tree & "1": species_tree & "X",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "Z",
-                    self.gene_tree & "1": self.species_tree & "X",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "X",
+                gene_tree & "3": species_tree & "Z",
+                gene_tree & "1": species_tree & "Z",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "X",
-                    self.gene_tree & "3": self.species_tree & "Z",
-                    self.gene_tree & "1": self.species_tree & "Z",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "XYZ",
+                gene_tree & "3": species_tree & "YZ",
+                gene_tree & "1": species_tree & "XYZ",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "XYZ",
-                    self.gene_tree & "3": self.species_tree & "YZ",
-                    self.gene_tree & "1": self.species_tree & "XYZ",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "XYZ",
+                gene_tree & "3": species_tree & "XYZ",
+                gene_tree & "1": species_tree & "XYZ",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "XYZ",
-                    self.gene_tree & "3": self.species_tree & "XYZ",
-                    self.gene_tree & "1": self.species_tree & "XYZ",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "XYZ",
+                gene_tree & "3": species_tree & "Y",
+                gene_tree & "1": species_tree & "XYZ",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "XYZ",
-                    self.gene_tree & "3": self.species_tree & "Y",
-                    self.gene_tree & "1": self.species_tree & "XYZ",
-                },
-            ),
-            rec_outputs,
+    assert (
+        ReconciliationOutput(
+            rec_input,
+            {
+                **leaf_gene_species,
+                gene_tree & "2": species_tree & "XYZ",
+                gene_tree & "3": species_tree & "Z",
+                gene_tree & "1": species_tree & "XYZ",
+            },
         )
+        in rec_outputs
+    )
 
-        self.assertIn(
-            ReconciliationOutput(
-                self.rec_input,
-                {
-                    **self.leaf_gene_species,
-                    self.gene_tree & "2": self.species_tree & "XYZ",
-                    self.gene_tree & "3": self.species_tree & "Z",
-                    self.gene_tree & "1": self.species_tree & "XYZ",
-                },
-            ),
-            rec_outputs,
-        )
+    # Check that all the generated reconciliations are valid
+    for rec in rec_outputs:
+        for gene in gene_tree:
+            assert rec.node_event(gene) != NodeEvent.INVALID
 
-        # Check that all the generated reconciliations are valid
-        for rec in rec_outputs:
-            for gene in self.gene_tree:
-                self.assertNotEqual(
-                    rec.node_event(gene),
-                    NodeEvent.INVALID,
-                )
 
-    def test_exhaustive(self):
-        all_outputs = list(generate_all(self.rec_input))
-        min_cost = min(output.cost() for output in all_outputs)
-        any_min = reconcile_exhaustive(self.rec_input, RetentionPolicy.ANY)
-        all_min = reconcile_exhaustive(self.rec_input, RetentionPolicy.ALL)
+def test_exhaustive():
+    all_outputs = list(generate_all(rec_input))
+    min_cost = min(output.cost() for output in all_outputs)
+    any_min = reconcile_exhaustive(rec_input, RetentionPolicy.ANY)
+    all_min = reconcile_exhaustive(rec_input, RetentionPolicy.ALL)
 
-        self.assertIn(min(any_min), all_outputs)
-        self.assertIn(min(any_min), all_min)
-        self.assertEqual(min(any_min).cost(), min_cost)
+    assert min(any_min) in all_outputs
+    assert min(any_min) in all_min
+    assert min(any_min).cost() == min_cost
 
-        for a_min in all_min:
-            self.assertEqual(a_min.cost(), min_cost)
-            self.assertIn(a_min, all_outputs)
+    for a_min in all_min:
+        assert a_min.cost() == min_cost
+        assert a_min in all_outputs
