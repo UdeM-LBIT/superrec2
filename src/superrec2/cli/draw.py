@@ -12,7 +12,7 @@ from superrec2.model.reconciliation import (
     ReconciliationOutput,
     SuperReconciliationOutput,
 )
-from superrec2.utils.tex import xelatex_compile, TeXError
+from superrec2.utils.tex import tex_compile, TeXError
 
 
 def generate_tikz(args):
@@ -56,7 +56,7 @@ type explicitly",
     elif output_type == "pdf":
         try:
             with open_std(args.output, "wb") as outfile:
-                xelatex_compile(
+                tex_compile(
                     source=textwrap.dedent(
                         r"""
                         \documentclass[crop, tikz, border=20pt]{standalone}

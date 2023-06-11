@@ -1,16 +1,19 @@
 import importlib.resources
 import subprocess
+import os
+import tempfile
 from superrec2.render.model import Orientation
 
 
 def test_fixtures():
     fixtures_path = importlib.resources.files(__package__) / "fixtures"
 
-    for fixture in fixtures_path.iterdir():
-        run_fixture_test(fixture)
+    with tempfile.TemporaryDirectory() as cache_dir:
+        for fixture in fixtures_path.iterdir():
+            run_fixture_test(fixture, cache_dir)
 
 
-def run_fixture_test(fixture):
+def run_fixture_test(fixture, cache_dir):
     input_path = fixture / "input.json"
 
     for orientation in Orientation:
@@ -30,6 +33,10 @@ def run_fixture_test(fixture):
                     "--input",
                     input_path.as_posix(),
                 ],
+                env={
+                    **os.environ,
+                    "TECTONIC_CACHE_DIR": cache_dir,
+                },
                 capture_output=True,
                 check=True,
             )
