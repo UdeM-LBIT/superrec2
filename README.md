@@ -121,7 +121,7 @@ The `superrec2 draw` command can be used to visualize and inspect solutions gene
 The basic usage of the command is as follows:
 
 ```console
-$ superrec2 draw --input example.out.json --orientation horizontal --output example.out.pdf
+$ superrec2 draw --input example.out.json --output example.out.pdf
 ```
 
 This generates the following diagram, representing the reconciliation result:

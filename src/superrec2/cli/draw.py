@@ -104,7 +104,7 @@ extension, or 'tikz' for output to stdout)",
     subparser.add_argument(
         "--orientation",
         choices=("vertical", "horizontal"),
-        default="vertical",
+        default="horizontal",
         help="growing direction of the tree (default: %(default)s)",
     )
     subparser.set_defaults(func=draw)
