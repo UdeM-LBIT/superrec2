@@ -1,5 +1,4 @@
 from sowing.node import Node as N
-from sowing import traversal
 from sowphy.clade import Clade as C
 from sowphy import newick
 from superrec2.model.history import (
@@ -29,9 +28,10 @@ def test_reconciliation_valid():
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         associate_tree=(
             N(Assoc(host=C("4"), clade=C("5")))
-            .add(N(Assoc(host=C("3"), clade=C("3")))
-                 .add(N(Assoc(host=C("8"), clade=C("1"))))
-                 .add(N(Assoc(host=C("9"), clade=C("2"))))
+            .add(
+                N(Assoc(host=C("3"), clade=C("3")))
+                .add(N(Assoc(host=C("8"), clade=C("1"))))
+                .add(N(Assoc(host=C("9"), clade=C("2"))))
             )
             .add(N(Assoc(host=C("9"), clade=C("4"))))
         ),
@@ -43,9 +43,10 @@ def test_reconciliation_valid():
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         associate_tree=(
             N(C("5"))
-            .add(N(C("3"))
-                 .add(N(Assoc(host=C("8"), clade=C("1"))))
-                 .add(N(Assoc(host=C("9"), clade=C("2"))))
+            .add(
+                N(C("3"))
+                .add(N(Assoc(host=C("8"), clade=C("1"))))
+                .add(N(Assoc(host=C("9"), clade=C("2"))))
             )
             .add(N(Assoc(host=C("9"), clade=C("4"))))
         ),
@@ -62,7 +63,8 @@ def test_reconciliation_invalid():
             host_tree=newick.parse("((4,5,10)3,(6,(8,9)7)2)1;"),
             associate_tree=(
                 N(C("5"))
-                .add(N(C("3"))
+                .add(
+                    N(C("3"))
                     .add(N(Assoc(host=C("8"), clade=C("1"))))
                     .add(N(Assoc(host=C("9"), clade=C("2"))))
                 )
@@ -79,7 +81,8 @@ def test_reconciliation_invalid():
             host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
             associate_tree=(
                 N(C("6"))
-                .add(N(C("3"))
+                .add(
+                    N(C("3"))
                     .add(N(Assoc(host=C("8"), clade=C("1"))))
                     .add(N(Assoc(host=C("9"), clade=C("2"))))
                 )
@@ -97,10 +100,7 @@ def test_reconciliation_invalid():
             host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
             associate_tree=(
                 N(C("6"))
-                .add(N(C("3"))
-                    .add(N(Assoc(host=C("8"), clade=C("1"))))
-                    .add(N(C("2")))
-                )
+                .add(N(C("3")).add(N(Assoc(host=C("8"), clade=C("1")))).add(N(C("2"))))
                 .add(N(Assoc(host=C("9"), clade=C("4"))))
             ),
         )
@@ -114,7 +114,8 @@ def test_reconciliation_invalid():
             host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
             associate_tree=(
                 N(C("6"))
-                .add(N(C("3"))
+                .add(
+                    N(C("3"))
                     .add(N(Assoc(host=C("8"), clade=C("1"))))
                     .add(N(Assoc(host=C("7"), clade=C("2"))))
                 )
@@ -165,11 +166,15 @@ def test_history_extant():
 
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8[&&NHX:sampled=],9)7)2)1;"),
-        event_tree=N(Extant(Assoc(
-            host=C("8", props=Map({"sampled": ""})),
-            clade=C("1"),
-            contents=tuple("ab"),
-        ))),
+        event_tree=N(
+            Extant(
+                Assoc(
+                    host=C("8", props=Map({"sampled": ""})),
+                    clade=C("1"),
+                    contents=tuple("ab"),
+                )
+            )
+        ),
     )
 
     rec.validate()
@@ -192,8 +197,9 @@ def test_history_extant():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Extant(Assoc(host=C("8"), clade=C("1"), contents=tuple("ab"))))
-            .add(N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("ab")))))
+            N(Extant(Assoc(host=C("8"), clade=C("1"), contents=tuple("ab")))).add(
+                N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("ab"))))
+            )
         ),
     )
 
@@ -340,10 +346,14 @@ def test_history_diverge():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=0, segment=(0, 3), cut=False,
-            ))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=0,
+                    segment=(0, 3),
+                    cut=False,
+                )
+            )
             .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("abc")))))
             .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
         ),
@@ -366,10 +376,14 @@ def test_history_diverge():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=0, segment=(0, 1), cut=False,
-            ))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=0,
+                    segment=(0, 1),
+                    cut=False,
+                )
+            )
             .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
             .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
         ),
@@ -392,10 +406,14 @@ def test_history_diverge():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=1, segment=(0, 1), cut=False,
-            ))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=1,
+                    segment=(0, 1),
+                    cut=False,
+                )
+            )
             .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("abc")))))
             .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("a")))))
         ),
@@ -418,10 +436,14 @@ def test_history_diverge():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=0, segment=(0, 1), cut=True,
-            ))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=0,
+                    segment=(0, 1),
+                    cut=True,
+                )
+            )
             .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
             .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("bc")))))
         ),
@@ -444,10 +466,14 @@ def test_history_diverge():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=1, segment=(0, 1), cut=True,
-            ))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=1,
+                    segment=(0, 1),
+                    cut=True,
+                )
+            )
             .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("bc")))))
             .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("a")))))
         ),
@@ -461,10 +487,14 @@ def test_history_diverge():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=2, segment=(0, 1), cut=True,
-            ))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=2,
+                    segment=(0, 1),
+                    cut=True,
+                )
+            )
             .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
             .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
         ),
@@ -480,10 +510,14 @@ def test_history_diverge():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=0, segment=(0, 1), cut=True,
-            ))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=0,
+                    segment=(0, 1),
+                    cut=True,
+                )
+            )
             .add(N(Extant(Assoc(host=C("5"), clade=C("2"), contents=tuple("a")))))
             .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
         ),
@@ -502,10 +536,14 @@ def test_history_diverge():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=0, segment=(0, 1), cut=True,
-            ))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=0,
+                    segment=(0, 1),
+                    cut=True,
+                )
+            )
             .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
             .add(N(Extant(Assoc(host=C("5"), clade=C("3"), contents=tuple("abc")))))
         ),
@@ -524,10 +562,14 @@ def test_history_diverge():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=0, segment=(0, 1), cut=False,
-            ))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=0,
+                    segment=(0, 1),
+                    cut=False,
+                )
+            )
             .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("ab")))))
             .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
         ),
@@ -542,15 +584,18 @@ def test_history_diverge():
     ) in str(err.value)
     assert err.value.node == hist.event_tree
 
-
     # Invalid duplication: Unequal conserved contents
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=0, segment=(0, 1), cut=False,
-            ))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=0,
+                    segment=(0, 1),
+                    cut=False,
+                )
+            )
             .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
             .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("ab")))))
         ),
@@ -569,10 +614,14 @@ def test_history_diverge():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=0, segment=(0, 1), cut=True,
-            ))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=0,
+                    segment=(0, 1),
+                    cut=True,
+                )
+            )
             .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
             .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
         ),
@@ -591,11 +640,14 @@ def test_history_diverge():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Diverge(
-                Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                result=0, segment=(0, 1), cut=True,
-            ))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
+            N(
+                Diverge(
+                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
+                    result=0,
+                    segment=(0, 1),
+                    cut=True,
+                )
+            ).add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
         ),
     )
 
@@ -610,16 +662,15 @@ def test_history_transfer():
     # Valid transfer
     rec = Reconciliation(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("6"), clade=C("2"), contents=tuple("abc")))
-        ),
+        associate_tree=(N(Assoc(host=C("6"), clade=C("2"), contents=tuple("abc")))),
     )
 
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Transfer(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc"))))
-            .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("abc")))))
+            N(Transfer(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc")))).add(
+                N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("abc"))))
+            )
         ),
     )
 
@@ -631,8 +682,9 @@ def test_history_transfer():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Transfer(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc"))))
-            .add(N(Extant(Assoc(host=C("5"), clade=C("2"), contents=tuple("abc")))))
+            N(Transfer(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc")))).add(
+                N(Extant(Assoc(host=C("5"), clade=C("2"), contents=tuple("abc"))))
+            )
         ),
     )
 
@@ -650,8 +702,11 @@ def test_history_transfer():
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
             N(Transfer(Assoc(host=C("5"), clade=C("1"), contents=tuple("abc")))).add(
-                N(Transfer(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc"))))
-                .add(N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("abc")))))
+                N(
+                    Transfer(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc")))
+                ).add(
+                    N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("abc"))))
+                )
             )
         ),
     )
@@ -669,8 +724,9 @@ def test_history_transfer():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Transfer(Assoc(host=C("5"), clade=C("1"), contents=tuple("abc"))))
-            .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("ab")))))
+            N(Transfer(Assoc(host=C("5"), clade=C("1"), contents=tuple("abc")))).add(
+                N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("ab"))))
+            )
         ),
     )
 
@@ -704,19 +760,19 @@ def test_history_gain():
     # Valid gain
     rec = Reconciliation(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("6"), clade=C("2"), contents=tuple("adefb")))
-        ),
+        associate_tree=(N(Assoc(host=C("6"), clade=C("2"), contents=tuple("adefb")))),
     )
 
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Gain(
-                Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
-                index=1, gain=tuple("def"),
-            ))
-            .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("adefb")))))
+            N(
+                Gain(
+                    Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
+                    index=1,
+                    gain=tuple("def"),
+                )
+            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("adefb")))))
         ),
     )
 
@@ -728,11 +784,13 @@ def test_history_gain():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Gain(
-                Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
-                index=1, gain=tuple("def"),
-            ))
-            .add(N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("adefb")))))
+            N(
+                Gain(
+                    Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
+                    index=1,
+                    gain=tuple("def"),
+                )
+            ).add(N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("adefb")))))
         ),
     )
 
@@ -749,11 +807,13 @@ def test_history_gain():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Gain(
-                Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
-                index=1, gain=tuple("def"),
-            ))
-            .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("adeb")))))
+            N(
+                Gain(
+                    Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
+                    index=1,
+                    gain=tuple("def"),
+                )
+            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("adeb")))))
         ),
     )
 
@@ -770,10 +830,13 @@ def test_history_gain():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Gain(
-                Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
-                index=1, gain=tuple("def"),
-            ))
+            N(
+                Gain(
+                    Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
+                    index=1,
+                    gain=tuple("def"),
+                )
+            )
             .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("adefb")))))
             .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("adefb")))))
         ),
@@ -789,19 +852,18 @@ def test_history_loss():
     # Valid partial loss
     rec = Reconciliation(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("6"), clade=C("2"), contents=tuple("ad")))
-        ),
+        associate_tree=(N(Assoc(host=C("6"), clade=C("2"), contents=tuple("ad")))),
     )
 
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Loss(
-                Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                segment=(1, 3),
-            ))
-            .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("ad")))))
+            N(
+                Loss(
+                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
+                    segment=(1, 3),
+                )
+            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("ad")))))
         ),
     )
 
@@ -818,10 +880,12 @@ def test_history_loss():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Loss(
-                Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                segment=(0, 4),
-            ))
+            N(
+                Loss(
+                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
+                    segment=(0, 4),
+                )
+            )
         ),
     )
 
@@ -833,11 +897,12 @@ def test_history_loss():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Loss(
-                Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                segment=(1, 3),
-            ))
-            .add(N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("ad")))))
+            N(
+                Loss(
+                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
+                    segment=(1, 3),
+                )
+            ).add(N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("ad")))))
         ),
     )
 
@@ -854,11 +919,12 @@ def test_history_loss():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Loss(
-                Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                segment=(1, 3),
-            ))
-            .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("abd")))))
+            N(
+                Loss(
+                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
+                    segment=(1, 3),
+                )
+            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("abd")))))
         ),
     )
 
@@ -875,10 +941,12 @@ def test_history_loss():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Loss(
-                Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                segment=(1, 3),
-            ))
+            N(
+                Loss(
+                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
+                    segment=(1, 3),
+                )
+            )
         ),
     )
 
@@ -892,11 +960,12 @@ def test_history_loss():
     hist = History(
         host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
         event_tree=(
-            N(Loss(
-                Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                segment=(0, 4),
-            ))
-            .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("abd")))))
+            N(
+                Loss(
+                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
+                    segment=(0, 4),
+                )
+            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("abd")))))
         ),
     )
 

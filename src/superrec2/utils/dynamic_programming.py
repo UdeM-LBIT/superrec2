@@ -225,10 +225,7 @@ class Entry(Generic[ValueTypeT, InfoTypeT]):
             value = candidate.value
             info = candidate.info
 
-            if (
-                (is_min and self._value > value)
-                or (is_max and self._value < value)
-            ):
+            if (is_min and self._value > value) or (is_max and self._value < value):
                 self._infos.clear()
                 self._value = value
 

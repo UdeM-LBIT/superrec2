@@ -5,7 +5,7 @@ from dataclasses import dataclass, field, replace
 from sowing.comb.binary import is_binary
 from sowing.node import Node
 from sowing.zipper import Zipper
-from sowing.indexed import IndexedTree, index_trees
+from sowing.indexed import index_trees
 from sowphy.clade import Clade
 from sowing import traversal
 
@@ -90,8 +90,7 @@ class Reconciliation:
         if isinstance(associate, Associate):
             if associate.host not in self.host_index:
                 raise InvalidReconciliation(
-                    f"associate host {associate.host!r} does not exist"
-                    " in host tree",
+                    f"associate host {associate.host!r} does not exist in host tree",
                     node,
                 )
 
