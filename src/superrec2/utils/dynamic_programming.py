@@ -225,16 +225,19 @@ class Entry(Generic[ValueTypeT, InfoTypeT]):
             value = candidate.value
             info = candidate.info
 
-            if self._value == value:
-                if info and (is_all or (is_any and not self._infos)):
-                    self._infos.add(info)
-
+            if (
+                (is_min and self._value > value)
+                or (is_max and self._value < value)
+            ):
+                self._infos.clear()
                 self._value = value
 
-            if (is_min and self._value > value) or (is_max and self._value < value):
-                if info and (is_all or is_any):
-                    self._infos = {info}
-
+            if (
+                self._value == value
+                and info is not None
+                and (is_all or (is_any and not self._infos))
+            ):
+                self._infos.add(info)
                 self._value = value
 
     update.__doc__ = EntryProtocol.update.__doc__

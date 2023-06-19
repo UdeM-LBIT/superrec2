@@ -125,6 +125,13 @@ def test_min_all():
     table[4][18] = Candidate(3, "tag5")
     assert table[4][18] == table.entry(2, ["tagα"])
 
+    table[4][19] = Candidate(3, "tag")
+    table[4][19] = Candidate(2)
+    assert table[4][19] == table.entry(2, [])
+
+    table[4][19] = Candidate(2, ())
+    assert table[4][19] == table.entry(2, [()])
+
 
 def test_max_all():
     table = Table(
