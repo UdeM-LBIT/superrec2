@@ -1,5 +1,5 @@
 """Reconciliation and evolution model."""
-from typing import Self
+from typing import Self, overload
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, replace
 from sowing.comb.binary import is_binary
@@ -10,13 +10,91 @@ from sowphy.clade import Clade
 from sowing import traversal
 
 
-class InvalidReconciliation(Exception):
-    def __init__(self, message, node=None):
-        if node is not None:
-            message += f" (at node {node!r})"
+# Ordered or unordered contents of an associate
+Contents = tuple[str, ...] | frozenset[str]
 
-        super().__init__(message)
-        self.node = node
+
+# Segment or subset of the existing contents of an associate
+Segment = tuple[int, int] | frozenset[str]
+
+
+# Subsegment (with position) or subset of contents gained in an associate
+GainedContents = tuple[int, tuple[str, ...]] | frozenset[str]
+
+
+@overload
+def insert_gain(
+    contents: tuple[str, ...],
+    gain: tuple[int, tuple[str, ...]],
+) -> tuple[str, ...]:
+    ...
+
+
+@overload
+def insert_gain(
+    contents: frozenset[str],
+    gain: frozenset[str],
+) -> frozenset[str]:
+    ...
+
+
+def insert_gain(contents: Contents, gain: GainedContents) -> Contents:
+    """
+    Add an ordered or unordered gain inside existing string contents.
+
+    :param contents: original contents
+    :param gain: gained segment, with insertion index if ordered
+    :returns: resulting contents
+    """
+    if isinstance(contents, tuple) and isinstance(gain, tuple):
+        position, segment = gain
+        return contents[:position] + segment + contents[position:]
+
+    if isinstance(contents, frozenset) and isinstance(gain, frozenset):
+        return contents | gain
+
+    raise TypeError
+
+
+@overload
+def extract_segment(
+    contents: tuple[str, ...],
+    segment: tuple[int, int],
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    ...
+
+
+@overload
+def extract_segment(
+    contents: frozenset[str],
+    segment: frozenset[str],
+) -> frozenset[str]:
+    ...
+
+
+def extract_segment(contents: Contents, segment: Segment) -> Contents:
+    """
+    Extract an ordered or unordered segment of strings from another.
+
+    :param contents: original string segment
+    :param gain: lost segment
+    :returns: extracted segment and resulting segment
+    """
+    if isinstance(contents, tuple) and isinstance(segment, tuple):
+        start, end = segment
+        return contents[start:end], contents[:start] + contents[end:]
+
+    if isinstance(contents, frozenset) and isinstance(segment, frozenset):
+        return segment, contents - segment
+
+    raise TypeError
+
+
+def show_contents(contents: Contents) -> str:
+    if isinstance(contents, tuple):
+        return f"({', '.join(repr(item) for item in contents)})"
+    else:
+        return f"{{{', '.join(repr(item) for item in sorted(contents))}}}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,7 +108,16 @@ class Associate:
     clade: Clade = Clade()
 
     # Associate contents, if applicable
-    contents: tuple[str, ...] = ()
+    contents: Contents = ()
+
+
+class InvalidReconciliation(Exception):
+    def __init__(self, message, node=None):
+        if node is not None:
+            message += f" (at node {node!r})"
+
+        super().__init__(message)
+        self.node = node
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,9 +132,6 @@ class Reconciliation:
     # Associate phylogeny, with host and contents information (if known)
     associate_tree: Node[Clade | Associate, None]
 
-    # Whether the contents of the associates are to be interpreted as
-    # strings (True) or sets (False)
-    ordered: bool = True
 
     def is_complete(self) -> bool:
         """Check that all ancestral and terminal nodes have associate information."""
@@ -168,7 +252,7 @@ class Diverge(Event):
     result: int
 
     # Segment of the associate contents targeted by the event
-    segment: tuple[int, int] = (0, 0)
+    segment: Segment = ()
 
     # Whether the target segment is cut out (True) or duplicated (False)
     cut: bool = False
@@ -191,11 +275,8 @@ class Transfer(Event):
 class Gain(Event):
     """Event where an associate gains new contents."""
 
-    # Index at which the associate contents are inserted
-    index: int
-
     # Added contents
-    gain: tuple[str, ...]
+    gain: GainedContents
 
     @property
     def arity(self) -> int:
@@ -207,14 +288,12 @@ class Loss(Event):
     """Event where an associate loses part or all of its contents."""
 
     # Lost segment
-    segment: tuple[int, int]
+    segment: Segment = ()
 
     @property
     def arity(self) -> int:
-        if self.segment == (0, len(self.associate.contents)):
-            return 0
-        else:
-            return 1
+        lost, remainder = extract_segment(self.associate.contents, self.segment)
+        return 1 if remainder else 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -228,10 +307,6 @@ class History:
 
     # History tree, with event and associate information at each node
     event_tree: Node[Event, None]
-
-    # Whether the contents of the associates are to be interpreted as
-    # strings (True) or sets (False)
-    ordered: bool = True
 
     def compress(self) -> Reconciliation:
         """
@@ -268,7 +343,6 @@ class History:
                 compress_event,
                 traversal.depth(self.event_tree, preorder=False),
             ),
-            ordered=self.ordered,
         )
 
     def validate(self) -> None:
@@ -280,16 +354,8 @@ class History:
 
         :raises InvalidReconciliation: if any node is invalid
         """
-        # self.compress().validate()
-
         for cursor in traversal.depth(self.event_tree):
             self._validate_at(cursor.node)
-
-    def _contents_equal(self, first: tuple[str, ...], second: tuple[str, ...]) -> bool:
-        if self.ordered:
-            return first == second
-        else:
-            return set(first) == set(second)
 
     def _validate_at(self, node: Node[Associate, None]) -> bool:
         event = node.data
@@ -342,22 +408,23 @@ class History:
                 unequal = None
                 child_contents = None
 
-                if not self._contents_equal(right.contents, contents):
+                if right.contents != contents:
                     unequal = "right"
                     child_contents = right.contents
 
-                if not self._contents_equal(left.contents, contents):
+                if left.contents != contents:
                     unequal = "left"
                     child_contents = left.contents
 
                 if unequal is not None:
                     raise InvalidReconciliation(
-                        f"codivergence {unequal} child contents {child_contents}"
-                        f" does not equal its parent’s contents {contents}",
+                        f"codivergence {unequal} child contents"
+                        f" {show_contents(child_contents)} do not equal"
+                        f" its parent’s contents {show_contents(contents)}",
                         node,
                     )
 
-            case Diverge(cut=cut, result=result_idx, segment=(start, end)):
+            case Diverge(cut=cut, result=result_idx, segment=segment):
                 if result_idx not in (0, 1):
                     raise InvalidReconciliation(
                         f"result index is {result_idx}, expected 0 or 1",
@@ -366,8 +433,7 @@ class History:
 
                 result = node.edges[result_idx].node.data.associate
                 conserved = node.edges[1 - result_idx].node.data.associate
-                target = contents[start:end]
-                remainder = contents[:start] + contents[end:]
+                target, remainder = extract_segment(contents, segment)
 
                 unequal = None
                 child_host = None
@@ -387,27 +453,27 @@ class History:
                         node,
                     )
 
-                if not self._contents_equal(result.contents, target):
+                if result.contents != target:
                     raise InvalidReconciliation(
-                        f"divergence result contents {result.contents}"
-                        f" differ from the targeted segment {target}",
+                        f"divergence result contents {show_contents(result.contents)}"
+                        f" differ from the targeted segment {show_contents(target)}",
                         node,
                     )
 
                 if cut:
-                    if not self._contents_equal(conserved.contents, remainder):
+                    if conserved.contents != remainder:
                         raise InvalidReconciliation(
                             "cut-divergence conserved child contents"
-                            f" {conserved.contents} differ from the remaining"
-                            f" contents {remainder}",
+                            f" {show_contents(conserved.contents)} differ from the"
+                            f" remaining contents {show_contents(remainder)}",
                             node,
                         )
                 else:
-                    if not self._contents_equal(conserved.contents, contents):
+                    if conserved.contents != contents:
                         raise InvalidReconciliation(
                             "copy-divergence conserved child contents"
-                            f" {conserved.contents} differ from its parent’s"
-                            f" contents {contents}",
+                            f" {show_contents(conserved.contents)} differ from its"
+                            f" parent’s contents {show_contents(contents)}",
                             node,
                         )
 
@@ -422,14 +488,15 @@ class History:
                         node,
                     )
 
-                if not self._contents_equal(child.contents, contents):
+                if child.contents != contents:
                     raise InvalidReconciliation(
-                        f"transfer child contents {child.contents}"
-                        f" differs from its parent’s contents {contents}",
+                        f"transfer child contents {show_contents(child.contents)}"
+                        " differ from its parent’s contents"
+                        f" {show_contents(contents)}",
                         node,
                     )
 
-            case Gain(index=index, gain=gain):
+            case Gain(gain=gain):
                 child = node.edges[0].node.data.associate
 
                 if child.host != associate.host:
@@ -439,16 +506,16 @@ class History:
                         node,
                     )
 
-                result = contents[:index] + gain + contents[index:]
+                result = insert_gain(contents, gain)
 
-                if not self._contents_equal(child.contents, result):
+                if child.contents != result:
                     raise InvalidReconciliation(
-                        f"gain child contents {child.contents}"
-                        f" differ from the expected gain result {result}",
+                        f"gain child contents {show_contents(child.contents)} differ"
+                        f" from the expected gain result {show_contents(result)}",
                         node,
                     )
 
-            case Loss(segment=(start, end)):
+            case Loss(segment=segment):
                 if len(node.edges) == 1:
                     child = node.edges[0].node.data.associate
 
@@ -459,12 +526,13 @@ class History:
                             node,
                         )
 
-                    result = contents[:start] + contents[end:]
+                    _, result = extract_segment(contents, segment)
 
-                    if not self._contents_equal(child.contents, result):
+                    if child.contents != result:
                         raise InvalidReconciliation(
-                            f"loss child contents {child.contents}"
-                            f" differ from the expected loss result {result}",
+                            f"loss child contents {show_contents(child.contents)}"
+                            " differ from the expected loss result"
+                            f" {show_contents(result)}",
                             node,
                         )
 
