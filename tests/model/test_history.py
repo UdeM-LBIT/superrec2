@@ -1,21 +1,100 @@
-from sowing.node import Node as N
-from sowphy.clade import Clade as C
-from sowphy import newick
+from sowing import traversal
+from sowing.repr import newick
+from sowing.indexed import IndexedTree
 from superrec2.model.history import (
+    Host,
     Associate as Assoc,
     InvalidReconciliation,
     Reconciliation,
+    InvalidEvent,
     Event,
     Extant,
     Codiverge,
     Diverge,
-    Transfer,
     Gain,
     Loss,
     History,
 )
-from immutables import Map
 import pytest
+
+
+def parse_tree(kind: type, data: str):
+    from_mapping = getattr(kind, "from_mapping")
+    return traversal.map(
+        lambda node, edge, *_: (from_mapping(node or {}), None),
+        traversal.depth(newick.parse(data)),
+    )
+
+
+def test_associate():
+    empty_assoc = Assoc()
+    assert not empty_assoc.is_complete()
+    assert repr(empty_assoc) == "Associate()"
+    assert empty_assoc == Assoc.from_mapping({})
+
+    ord_assoc = Assoc(name="a", host="1", contents=tuple("abc"))
+    assert ord_assoc.is_complete()
+    assert repr(ord_assoc) == "Associate(name='a', host='1', contents=('a', 'b', 'c'))"
+    assert ord_assoc == Assoc.from_mapping(
+        {
+            "name": "a",
+            "host": "1",
+            "contents": "('a', 'b', 'c')",
+        }
+    )
+
+    assert ord_assoc.gain((0, tuple())) == ord_assoc
+    assert ord_assoc.gain((2, tuple("de"))) == Assoc(
+        name="a",
+        host="1",
+        contents=tuple("abdec"),
+    )
+
+    assert ord_assoc.split((1, 2)) == (
+        Assoc(name="a", host="1", contents=tuple("b")),
+        Assoc(name="a", host="1", contents=tuple("ac")),
+    )
+    assert ord_assoc.split((0, 3)) == (
+        Assoc(name="a", host="1", contents=tuple("abc")),
+        Assoc(name="a", host="1", contents=tuple()),
+    )
+
+    assert ord_assoc.switch("2") == Assoc(name="a", host="2", contents=tuple("abc"))
+
+    und_assoc = Assoc(name="b", host="2", contents=frozenset("abc"))
+    assert und_assoc.is_complete()
+    assert repr(und_assoc) == "Associate(name='b', host='2', contents={'a', 'b', 'c'})"
+    assert und_assoc == Assoc.from_mapping(
+        {
+            "name": "b",
+            "host": "2",
+            "contents": "{'a', 'b', 'c'}",
+        }
+    )
+
+    assert und_assoc.gain(frozenset()) == und_assoc
+    assert und_assoc.gain(frozenset("de")) == Assoc(
+        name="b",
+        host="2",
+        contents=frozenset("abcde"),
+    )
+
+    assert und_assoc.split(frozenset()) == (
+        Assoc(name="b", host="2", contents=frozenset()),
+        Assoc(name="b", host="2", contents=frozenset("abc")),
+    )
+    assert und_assoc.split(frozenset("bc")) == (
+        Assoc(name="b", host="2", contents=frozenset("bc")),
+        Assoc(name="b", host="2", contents=frozenset("a")),
+    )
+
+    with pytest.raises(ValueError) as err:
+        und_assoc.split(frozenset("d"))
+
+    assert (
+        "split argument {'d'} is not a subset of existing contents {'a', 'b', 'c'}"
+        in str(err.value)
+    )
 
 
 def test_reconciliation_valid():
@@ -25,31 +104,18 @@ def test_reconciliation_valid():
     assert rec_empty.erase() == rec_empty
 
     rec_full = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("4"), clade=C("5")))
-            .add(
-                N(Assoc(host=C("3"), clade=C("3")))
-                .add(N(Assoc(host=C("8"), clade=C("1"))))
-                .add(N(Assoc(host=C("9"), clade=C("2"))))
-            )
-            .add(N(Assoc(host=C("9"), clade=C("4"))))
+        host_tree=parse_tree(Host, "((4,5)3,(6,(8,9)7)2)1;"),
+        associate_tree=parse_tree(
+            Assoc,
+            "((1[&host=8],2[&host=9])3[&host=3],4[&host=9])5[&host=4];",
         ),
     )
     rec_full.validate()
     assert rec_full.is_complete()
 
     rec_part = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(C("5"))
-            .add(
-                N(C("3"))
-                .add(N(Assoc(host=C("8"), clade=C("1"))))
-                .add(N(Assoc(host=C("9"), clade=C("2"))))
-            )
-            .add(N(Assoc(host=C("9"), clade=C("4"))))
-        ),
+        host_tree=parse_tree(Host, "((4,5)3,(6,(8,9)7)2)1;"),
+        associate_tree=parse_tree(Assoc, "((1[&host=8],2[&host=9])3,4[&host=9])5;"),
     )
     rec_part.validate()
     assert not rec_part.is_complete()
@@ -60,16 +126,8 @@ def test_reconciliation_valid():
 def test_reconciliation_invalid():
     with pytest.raises(InvalidReconciliation) as err:
         rec = Reconciliation(
-            host_tree=newick.parse("((4,5,10)3,(6,(8,9)7)2)1;"),
-            associate_tree=(
-                N(C("5"))
-                .add(
-                    N(C("3"))
-                    .add(N(Assoc(host=C("8"), clade=C("1"))))
-                    .add(N(Assoc(host=C("9"), clade=C("2"))))
-                )
-                .add(N(Assoc(host=C("9"), clade=C("4"))))
-            ),
+            host_tree=parse_tree(Host, "((4,5,10)3,(6,(8,9)7)2)1;"),
+            associate_tree=parse_tree(Assoc, "((1[&host=8],2[&host=9])3,4[&host=9])5;"),
         )
         rec.validate()
 
@@ -78,16 +136,10 @@ def test_reconciliation_invalid():
 
     with pytest.raises(InvalidReconciliation) as err:
         rec = Reconciliation(
-            host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-            associate_tree=(
-                N(C("6"))
-                .add(
-                    N(C("3"))
-                    .add(N(Assoc(host=C("8"), clade=C("1"))))
-                    .add(N(Assoc(host=C("9"), clade=C("2"))))
-                )
-                .add(N(Assoc(host=C("9"), clade=C("4"))))
-                .add(N(Assoc(host=C("4"), clade=C("5"))))
+            host_tree=parse_tree(Host, "((4,5)3,(6,(8,9)7)2)1;"),
+            associate_tree=parse_tree(
+                Assoc,
+                "((1[&host=8],2[&host=9])3,4[&host=9],5[&host=4])6;",
             ),
         )
         rec.validate()
@@ -97,1186 +149,587 @@ def test_reconciliation_invalid():
 
     with pytest.raises(InvalidReconciliation) as err:
         rec = Reconciliation(
-            host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-            associate_tree=(
-                N(C("6"))
-                .add(N(C("3")).add(N(Assoc(host=C("8"), clade=C("1")))).add(N(C("2"))))
-                .add(N(Assoc(host=C("9"), clade=C("4"))))
-            ),
+            host_tree=parse_tree(Host, "((4,5)3,(6,(8,9)7)2)1;"),
+            associate_tree=parse_tree(Assoc, "((1[&host=8],2)3,4[&host=9])6;"),
         )
         rec.validate()
 
-    assert "leaf associates must be labeled by Associate instances" in str(err.value)
-    assert err.value.node.data == C("2")
+    assert "leaf associates must have complete information" in str(err.value)
+    assert err.value.node.data == Assoc("2")
 
     with pytest.raises(InvalidReconciliation) as err:
         rec = Reconciliation(
-            host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-            associate_tree=(
-                N(C("6"))
-                .add(
-                    N(C("3"))
-                    .add(N(Assoc(host=C("8"), clade=C("1"))))
-                    .add(N(Assoc(host=C("7"), clade=C("2"))))
-                )
-                .add(N(Assoc(host=C("9"), clade=C("4"))))
-            ),
+            host_tree=parse_tree(Host, "((4,5)3,(6,(8,9)7)2)1;"),
+            associate_tree=parse_tree(Assoc, "((1[&host=8],2[&host=7])3,4[&host=9])6;"),
         )
         rec.validate()
 
-    assert "leaf associate host Clade(name='7') is not terminal" in str(err.value)
-    assert err.value.node.data == Assoc(host=C("7"), clade=C("2"))
+    assert "leaf associate host '7' is not terminal" in str(err.value)
+    assert err.value.node.data == Assoc(host="7", name="2")
 
 
-def test_events():
+def test_event():
     with pytest.raises(TypeError) as err:
-        Event(Assoc(host=C()))
+        Event()
 
     assert "abstract class Event" in str(err.value)
-    assert Codiverge(Assoc(host=C())).arity == 2
-    assert Diverge(Assoc(host=C()), result=2, segment=(0, 2), cut=False).arity == 2
-    assert Transfer(Assoc(host=C())).arity == 1
-    assert Gain(Assoc(host=C()), gain=(1, tuple("abc"))).arity == 1
-    assert Loss(Assoc(host=C()), segment=(0, 0)).arity == 0
-    assert Loss(Assoc(host=C(), contents=tuple("abc")), segment=(1, 2)).arity == 1
-    assert Loss(Assoc(host=C(), contents=tuple("abc")), segment=(0, 3)).arity == 0
 
 
-def test_history_extant():
-    # Valid extant associate in terminal host
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=N(Assoc(host=C("8"), clade=C("1"), contents=tuple("ab"))),
+def test_event_extant():
+    host_index1 = IndexedTree(parse_tree(Host, "(2,3)1;"))
+    host_index2 = IndexedTree(parse_tree(Host, "(1,2)3;"))
+
+    ordered = Extant(host="3", contents=tuple("abc"))
+    assert ordered == Extant.from_mapping({"host": "3", "contents": "('a', 'b', 'c')"})
+    assert ordered.arity == 0
+    ordered.validate(host_index1, ())
+
+    unordered = Extant(host="3", contents=frozenset("abc"))
+    assert unordered == Extant.from_mapping(
+        {"host": "3", "contents": "{'a', 'b', 'c'}"}
     )
+    assert unordered.arity == 0
+    unordered.validate(host_index1, ())
 
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=N(Extant(Assoc(host=C("8"), clade=C("1"), contents=tuple("ab")))),
+    with pytest.raises(InvalidEvent) as err:
+        ordered.validate(host_index2, ())
+
+    assert "extant host '3' is not terminal" in str(err.value)
+    assert err.value.event == ordered
+
+    with pytest.raises(InvalidEvent) as err:
+        unordered.validate(host_index2, ())
+
+    assert "extant host '3' is not terminal" in str(err.value)
+    assert err.value.event == unordered
+
+
+def test_event_codiverge():
+    host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
+
+    event1 = Codiverge(host="1", contents=tuple("abc"))
+    assert event1 == Codiverge.from_mapping(
+        {"host": "1", "contents": "('a', 'b', 'c')"}
     )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid extant associate in unsampled host
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8[&&NHX:sampled=],9)7)2)1;"),
-        associate_tree=None,
+    assert event1.arity == 2
+    event1.validate(
+        host_index,
+        (
+            Assoc(host="2", contents=tuple("abc")),
+            Assoc(host="3", contents=tuple("abc")),
+        ),
     )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8[&&NHX:sampled=],9)7)2)1;"),
-        event_tree=N(
-            Extant(
-                Assoc(
-                    host=C("8", props=Map({"sampled": ""})),
-                    clade=C("1"),
-                    contents=tuple("ab"),
-                )
-            )
+    event1.validate(
+        host_index,
+        (
+            Assoc(host="3", contents=tuple("abc")),
+            Assoc(host="2", contents=tuple("abc")),
         ),
     )
 
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Invalid extant: Non-terminal host
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=N(Extant(Assoc(host=C("7"), clade=C("1"), contents=tuple("ab")))),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert "leaf associate host Clade(name='7') is not terminal" in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid extant: Non-leaf node
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Extant(Assoc(host=C("8"), clade=C("1"), contents=tuple("ab")))).add(
-                N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("ab"))))
-            )
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert "Extant node must be a leaf, found 1 child(ren) instead" in str(err.value)
-    assert err.value.node == hist.event_tree
-
-
-def test_history_codiverge():
-    # Valid codivergence matching host order
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc")))
-            .add(N(Assoc(host=C("4"), clade=C("2"), contents=tuple("abc"))))
-            .add(N(Assoc(host=C("5"), clade=C("3"), contents=tuple("abc"))))
-        ),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Codiverge(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc"))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("abc")))))
-            .add(N(Extant(Assoc(host=C("5"), clade=C("3"), contents=tuple("abc")))))
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid codivergence in reverse host order
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc")))
-            .add(N(Assoc(host=C("5"), clade=C("2"), contents=tuple("abc"))))
-            .add(N(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc"))))
-        ),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Codiverge(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc"))))
-            .add(N(Extant(Assoc(host=C("5"), clade=C("2"), contents=tuple("abc")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Invalid codivergence: Mismatched child associate hosts
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Codiverge(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc"))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("abc")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        event1.validate(
+            host_index,
+            (
+                Assoc(host="2", contents=tuple("abc")),
+                Assoc(host="2", contents=tuple("abc")),
+            ),
+        )
 
     assert (
-        "codivergence children are linked to (Clade(name='4'), Clade(name='4'))"
-        " instead of their host’s children (Clade(name='4'), Clade(name='5'))"
+        "codivergence event children are "
+        "(Associate(host='2', contents=('a', 'b', 'c')), "
+        "Associate(host='2', contents=('a', 'b', 'c'))), expected "
+        "(Associate(host='2', contents=('a', 'b', 'c')), "
+        "Associate(host='3', contents=('a', 'b', 'c')))"
     ) in str(err.value)
-    assert err.value.node == hist.event_tree
 
-    # Invalid codivergence: Mismatched left child ordered contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Codiverge(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc"))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("acb")))))
-            .add(N(Extant(Assoc(host=C("5"), clade=C("3"), contents=tuple("abc")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        event1.validate(
+            host_index,
+            (
+                Assoc(host="2", contents=tuple("abc")),
+                Assoc(host="3", contents=tuple("ab")),
+            ),
+        )
 
     assert (
-        "codivergence left child contents ('a', 'c', 'b') do not equal"
-        " its parent’s contents ('a', 'b', 'c')"
+        "codivergence event children are "
+        "(Associate(host='2', contents=('a', 'b', 'c')), "
+        "Associate(host='3', contents=('a', 'b'))), expected "
+        "(Associate(host='2', contents=('a', 'b', 'c')), "
+        "Associate(host='3', contents=('a', 'b', 'c')))"
     ) in str(err.value)
-    assert err.value.node == hist.event_tree
 
-    # Invalid codivergence: Mismatched left child unordered contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Codiverge(Assoc(host=C("3"), clade=C("1"), contents=frozenset("abc"))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=frozenset("ab")))))
-            .add(N(Extant(Assoc(host=C("5"), clade=C("3"), contents=frozenset("abc")))))
+
+def test_event_duplicate():
+    host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
+
+    dup = Diverge(host="3", contents=tuple("abc"), result=1, segment=(0, 2), cut=False)
+    assert dup == Diverge.from_mapping(
+        {
+            "host": "3",
+            "contents": "('a', 'b', 'c')",
+            "result": "1",
+            "segment": "(0, 2)",
+            "cut": "false",
+        }
+    )
+    assert dup.arity == 2
+
+    dup.validate(
+        host_index,
+        (
+            Assoc(host="3", contents=tuple("abc")),
+            Assoc(host="3", contents=tuple("ab")),
         ),
     )
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        dup.validate(
+            host_index,
+            (
+                Assoc(host="3", contents=tuple("abc")),
+                Assoc(host="3", contents=tuple("abc")),
+            ),
+        )
 
     assert (
-        "codivergence left child contents {'a', 'b'} do not equal"
-        " its parent’s contents {'a', 'b', 'c'}"
+        "divergence result child is "
+        "Associate(host='3', contents=('a', 'b', 'c')), "
+        "expected Associate(host='3', contents=('a', 'b'))"
     ) in str(err.value)
-    assert err.value.node == hist.event_tree
 
-    # Invalid codivergence: Mismatched right child ordered contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Codiverge(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc"))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("abc")))))
-            .add(N(Extant(Assoc(host=C("5"), clade=C("3"), contents=tuple("acb")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        dup.validate(
+            host_index,
+            (
+                Assoc(host="3", contents=tuple("ab")),
+                Assoc(host="3", contents=tuple("ab")),
+            ),
+        )
 
     assert (
-        "codivergence right child contents ('a', 'c', 'b') do not equal"
-        " its parent’s contents ('a', 'b', 'c')"
+        "divergence conserved child is "
+        "Associate(host='3', contents=('a', 'b')), "
+        "expected Associate(host='3', contents=('a', 'b', 'c'))"
     ) in str(err.value)
-    assert err.value.node == hist.event_tree
 
-    # Invalid codivergence: Mismatched right child unordered contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Codiverge(Assoc(host=C("3"), clade=C("1"), contents=frozenset("abc"))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=frozenset("abc")))))
-            .add(N(Extant(Assoc(host=C("5"), clade=C("3"), contents=frozenset("ab")))))
+    with pytest.raises(InvalidEvent) as err:
+        dup.validate(
+            host_index,
+            (
+                Assoc(host="3", contents=tuple("abc")),
+                Assoc(host="2", contents=tuple("ab")),
+            ),
+        )
+
+    assert "copy-divergence result host '2' differs from its parent host '3'" in str(
+        err.value
+    )
+
+    cut = Diverge(host="3", contents=tuple("abc"), result=1, segment=(0, 2), cut=True)
+    assert cut == Diverge.from_mapping(
+        {
+            "host": "3",
+            "contents": "('a', 'b', 'c')",
+            "result": "1",
+            "segment": "(0, 2)",
+            "cut": "true",
+        }
+    )
+    assert cut.arity == 2
+
+    cut.validate(
+        host_index,
+        (
+            Assoc(host="3", contents=tuple("c")),
+            Assoc(host="3", contents=tuple("ab")),
         ),
     )
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    ucut = Diverge(
+        host="3",
+        contents=frozenset("abc"),
+        result=1,
+        segment=frozenset("ab"),
+        cut=True,
+    )
+    assert ucut == Diverge.from_mapping(
+        {
+            "host": "3",
+            "contents": "{'a', 'b', 'c'}",
+            "result": "1",
+            "segment": "{'a', 'b'}",
+            "cut": "true",
+        }
+    )
+    assert ucut.arity == 2
+
+    ucut.validate(
+        host_index,
+        (
+            Assoc(host="3", contents=frozenset("c")),
+            Assoc(host="3", contents=frozenset("ab")),
+        ),
+    )
+
+    fcut = Diverge(host="3", contents=tuple("abc"), result=0, segment=(0, 3), cut=True)
+    assert fcut == Diverge.from_mapping(
+        {
+            "host": "3",
+            "contents": "('a', 'b', 'c')",
+            "result": "0",
+            "segment": "(0, 3)",
+            "cut": "true",
+        }
+    )
+    assert fcut.arity == 1
+    fcut.validate(host_index, (Assoc(host="3", contents=tuple("abc")),))
+
+    inv = Diverge(host="3", contents=tuple("abc"), result=2, segment=(0, 2), cut=False)
+
+    with pytest.raises(InvalidEvent) as err:
+        inv.validate(
+            host_index,
+            (
+                Assoc(host="3", contents=tuple("abc")),
+                Assoc(host="3", contents=tuple("abc")),
+            ),
+        )
 
     assert (
-        "codivergence right child contents {'a', 'b'} do not equal"
-        " its parent’s contents {'a', 'b', 'c'}"
-    ) in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid codivergence: Invalid arity
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Codiverge(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc"))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("abc")))))
-            .add(N(Extant(Assoc(host=C("5"), clade=C("3"), contents=tuple("abc")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("4"), contents=tuple("abc")))))
-        ),
+        "divergence result index 2 is out of bounds (should be in range [0..1])"
+        in str(err.value)
     )
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    inv = Diverge(host="3", contents=tuple("abc"), result=1, segment=(0, 3), cut=True)
 
-    assert "Codiverge node must be binary, found 3 child(ren) instead" in str(err.value)
-    assert err.value.node == hist.event_tree
-
-
-def test_history_diverge():
-    # Valid full duplication
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")))
-            .add(N(Assoc(host=C("4"), clade=C("2"), contents=tuple("abc"))))
-            .add(N(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc"))))
-        ),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=0,
-                    segment=(0, 3),
-                    cut=False,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("abc")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid partial ordered duplication with result in left child
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")))
-            .add(N(Assoc(host=C("4"), clade=C("2"), contents=tuple("a"))))
-            .add(N(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc"))))
-        ),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=0,
-                    segment=(0, 1),
-                    cut=False,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid partial unordered duplication with result in left child
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("4"), clade=C("1"), contents=frozenset("abc")))
-            .add(N(Assoc(host=C("4"), clade=C("2"), contents=frozenset("a"))))
-            .add(N(Assoc(host=C("4"), clade=C("3"), contents=frozenset("abc"))))
-        ),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=frozenset("abc")),
-                    result=0,
-                    segment=frozenset("a"),
-                    cut=False,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=frozenset("a")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=frozenset("abc")))))
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid partial ordered duplication with result in right child
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")))
-            .add(N(Assoc(host=C("4"), clade=C("2"), contents=tuple("abc"))))
-            .add(N(Assoc(host=C("4"), clade=C("3"), contents=tuple("a"))))
-        ),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=1,
-                    segment=(0, 1),
-                    cut=False,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("abc")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("a")))))
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid ordered cut with result in left child
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")))
-            .add(N(Assoc(host=C("4"), clade=C("2"), contents=tuple("a"))))
-            .add(N(Assoc(host=C("4"), clade=C("3"), contents=tuple("bc"))))
-        ),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=0,
-                    segment=(0, 1),
-                    cut=True,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("bc")))))
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid unordered cut with result in left child
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("4"), clade=C("1"), contents=frozenset("abc")))
-            .add(N(Assoc(host=C("4"), clade=C("2"), contents=frozenset("a"))))
-            .add(N(Assoc(host=C("4"), clade=C("3"), contents=frozenset("bc"))))
-        ),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=frozenset("abc")),
-                    result=0,
-                    segment=frozenset("a"),
-                    cut=True,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=frozenset("a")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=frozenset("bc")))))
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid ordered cut with result in right child
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")))
-            .add(N(Assoc(host=C("4"), clade=C("2"), contents=tuple("bc"))))
-            .add(N(Assoc(host=C("4"), clade=C("3"), contents=tuple("a"))))
-        ),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=1,
-                    segment=(0, 1),
-                    cut=True,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("bc")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("a")))))
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Invalid divergence: Out of range result index
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=2,
-                    segment=(0, 1),
-                    cut=True,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert "result index is 2, expected 0 or 1" in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid divergence: Result child in different host
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=0,
-                    segment=(0, 1),
-                    cut=True,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("5"), clade=C("2"), contents=tuple("a")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        inv.validate(host_index, (Assoc(host="3", contents=tuple("abc")),))
 
     assert (
-        "divergence result child host Clade(name='5')"
-        " differs from its parent host Clade(name='4')"
-    ) in str(err.value)
-    assert err.value.node == hist.event_tree
+        "divergence result index 1 is out of bounds (should be in range [0..0])"
+        in str(err.value)
+    )
 
-    # Invalid divergence: Conserved child in different host
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=0,
-                    segment=(0, 1),
-                    cut=True,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
-            .add(N(Extant(Assoc(host=C("5"), clade=C("3"), contents=tuple("abc")))))
+
+def test_event_transfer():
+    host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
+
+    tra = Diverge(
+        host="3",
+        contents=tuple("abc"),
+        result=1,
+        segment=(0, 2),
+        cut=False,
+        transfer=True,
+    )
+    assert tra == Diverge.from_mapping(
+        {
+            "host": "3",
+            "contents": "('a', 'b', 'c')",
+            "result": "1",
+            "segment": "(0, 2)",
+            "cut": "false",
+            "transfer": "true",
+        }
+    )
+    assert tra.arity == 2
+
+    tra.validate(
+        host_index,
+        (
+            Assoc(host="3", contents=tuple("abc")),
+            Assoc(host="2", contents=tuple("ab")),
         ),
     )
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        tra.validate(
+            host_index,
+            (
+                Assoc(host="3", contents=tuple("abc")),
+                Assoc(host="1", contents=tuple("ab")),
+            ),
+        )
 
     assert (
-        "divergence conserved child host Clade(name='5')"
-        " differs from its parent host Clade(name='4')"
+        "transfer-divergence target host '1' is comparable " "to its origin host '3'"
     ) in str(err.value)
-    assert err.value.node == hist.event_tree
 
-    # Invalid divergence: Unequal ordered copied contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=0,
-                    segment=(0, 1),
-                    cut=False,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("ab")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
-        ),
+    ftra = Diverge(
+        host="3",
+        contents=tuple("abc"),
+        result=0,
+        segment=(0, 3),
+        cut=True,
+        transfer=True,
     )
+    assert ftra == Diverge.from_mapping(
+        {
+            "host": "3",
+            "contents": "('a', 'b', 'c')",
+            "result": "0",
+            "segment": "(0, 3)",
+            "cut": "true",
+            "transfer": "true",
+        }
+    )
+    assert ftra.arity == 1
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    ftra.validate(host_index, (Assoc(host="2", contents=tuple("abc")),))
+
+
+def test_event_gain():
+    host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
+
+    gain = Gain(host="1", contents=tuple("ab"), gained=(1, tuple("bc")))
+    assert gain == Gain.from_mapping(
+        {
+            "host": "1",
+            "contents": "('a', 'b')",
+            "gained": "(1, ('b', 'c'))",
+        }
+    )
+    assert gain.arity == 1
+    gain.validate(host_index, (Assoc(host="1", contents=tuple("abcb")),))
+
+    with pytest.raises(InvalidEvent) as err:
+        gain.validate(host_index, (Assoc(host="2", contents=tuple("abcb")),))
 
     assert (
-        "divergence result contents ('a', 'b') differ from"
-        " the targeted segment ('a')"
+        "gain event child is Associate(host='2', contents=('a', 'b', 'c', 'b')), "
+        "expected Associate(host='1', contents=('a', 'b', 'c', 'b'))"
     ) in str(err.value)
-    assert err.value.node == hist.event_tree
 
-    # Invalid divergence: Unequal unordered copied contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=frozenset("abc")),
-                    result=0,
-                    segment=frozenset("a"),
-                    cut=False,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=frozenset("ab")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=frozenset("abc")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        gain.validate(host_index, (Assoc(host="1", contents=tuple("acbb")),))
 
     assert (
-        "divergence result contents {'a', 'b'} differ from"
-        " the targeted segment {'a'}"
+        "gain event child is Associate(host='1', contents=('a', 'c', 'b', 'b')), "
+        "expected Associate(host='1', contents=('a', 'b', 'c', 'b'))"
     ) in str(err.value)
-    assert err.value.node == hist.event_tree
 
-    # Invalid duplication: Unequal ordered conserved contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=0,
-                    segment=(0, 1),
-                    cut=False,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("ab")))))
-        ),
+    ugain = Gain(host="1", contents=frozenset("ab"), gained=frozenset("c"))
+    assert ugain == Gain.from_mapping(
+        {
+            "host": "1",
+            "contents": "{'a', 'b'}",
+            "gained": "{'c'}",
+        }
     )
+    assert ugain.arity == 1
+    ugain.validate(host_index, (Assoc(host="1", contents=frozenset("abc")),))
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        ugain.validate(host_index, (Assoc(host="2", contents=frozenset("abc")),))
 
     assert (
-        "copy-divergence conserved child contents ('a', 'b') differ from"
-        " its parent’s contents ('a', 'b', 'c')"
+        "gain event child is Associate(host='2', contents={'a', 'b', 'c'}), "
+        "expected Associate(host='1', contents={'a', 'b', 'c'})"
     ) in str(err.value)
-    assert err.value.node == hist.event_tree
 
-    # Invalid duplication: Unequal unordered conserved contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=frozenset("abc")),
-                    result=0,
-                    segment=frozenset("a"),
-                    cut=False,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=frozenset("a")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=frozenset("ab")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        ugain.validate(host_index, (Assoc(host="1", contents=frozenset("abcd")),))
 
     assert (
-        "copy-divergence conserved child contents {'a', 'b'} differ from"
-        " its parent’s contents {'a', 'b', 'c'}"
+        "gain event child is Associate(host='1', contents={'a', 'b', 'c', 'd'}), "
+        "expected Associate(host='1', contents={'a', 'b', 'c'})"
     ) in str(err.value)
-    assert err.value.node == hist.event_tree
 
-    # Invalid cut: Mismatched ordered conserved contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=0,
-                    segment=(0, 1),
-                    cut=True,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=tuple("abc")))))
-        ),
+
+def test_event_loss():
+    host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
+
+    loss = Loss(host="1", contents=tuple("abc"), segment=(1, 2))
+    assert loss == Loss.from_mapping(
+        {
+            "host": "1",
+            "contents": "('a', 'b', 'c')",
+            "segment": "(1, 2)",
+        }
     )
+    assert loss.arity == 1
+    loss.validate(host_index, (Assoc(host="1", contents=tuple("ac")),))
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        loss.validate(host_index, (Assoc(host="2", contents=tuple("ac")),))
 
     assert (
-        "cut-divergence conserved child contents ('a', 'b', 'c') differ from"
-        " the remaining contents ('b', 'c')"
+        "loss event child is Associate(host='2', contents=('a', 'c')), "
+        "expected Associate(host='1', contents=('a', 'c'))"
     ) in str(err.value)
-    assert err.value.node == hist.event_tree
 
-    # Invalid cut: Mismatched unordered conserved contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=frozenset("abc")),
-                    result=0,
-                    segment=frozenset("a"),
-                    cut=True,
-                )
-            )
-            .add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=frozenset("a")))))
-            .add(N(Extant(Assoc(host=C("4"), clade=C("3"), contents=frozenset("abc")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        loss.validate(host_index, (Assoc(host="1", contents=tuple("a")),))
 
     assert (
-        "cut-divergence conserved child contents {'a', 'b', 'c'} differ from"
-        " the remaining contents {'b', 'c'}"
+        "loss event child is Associate(host='1', contents=('a',)), "
+        "expected Associate(host='1', contents=('a', 'c'))"
     ) in str(err.value)
-    assert err.value.node == hist.event_tree
 
-    # Invalid divergence: Invalid arity
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Diverge(
-                    Assoc(host=C("4"), clade=C("1"), contents=tuple("abc")),
-                    result=0,
-                    segment=(0, 1),
-                    cut=True,
-                )
-            ).add(N(Extant(Assoc(host=C("4"), clade=C("2"), contents=tuple("a")))))
+    floss = Loss(host="1", contents=tuple("abc"), segment=(0, 3))
+    assert floss == Loss.from_mapping(
+        {
+            "host": "1",
+            "contents": "('a', 'b', 'c')",
+            "segment": "(0, 3)",
+        }
+    )
+    assert floss.arity == 0
+    floss.validate(host_index, ())
+
+    uloss = Loss(host="1", contents=frozenset("abc"), segment=frozenset("ab"))
+    assert uloss == Loss.from_mapping(
+        {
+            "host": "1",
+            "contents": "{'a', 'b', 'c'}",
+            "segment": "{'a', 'b'}",
+        }
+    )
+    assert uloss.arity == 1
+    uloss.validate(host_index, (Assoc(host="1", contents=frozenset("c")),))
+
+
+def test_history_validate():
+    valid = History(
+        host_tree=parse_tree(Host, "(1,2)3;"),
+        event_tree=parse_tree(
+            Event,
+            '([&host=1,contents=\'{"a","b"}\'],[&host=2,contents=\'{"a","b"}\'])'
+            '[&kind=codiverge,host=3,contents=\'{"a","b"}\'];',
+        ),
+    )
+    valid.validate()
+
+    unknown_host = History(
+        host_tree=parse_tree(Host, "(a,2)3;"),
+        event_tree=parse_tree(
+            Event,
+            '([&host=1,contents=\'{"a","b"}\'],[&host=2,contents=\'{"a","b"}\'])'
+            '[&kind=codiverge,host=3,contents=\'{"a","b"}\'];',
         ),
     )
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        unknown_host.validate()
 
-    assert "Diverge node must be binary, found 1 child(ren) instead" in str(err.value)
-    assert err.value.node == hist.event_tree
+    assert "undefined event host '1'" in str(err.value)
 
-
-def test_history_transfer():
-    # Valid transfer
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(N(Assoc(host=C("6"), clade=C("2"), contents=tuple("abc")))),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Transfer(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc")))).add(
-                N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("abc"))))
-            )
+    invalid_arity = History(
+        host_tree=parse_tree(Host, "(1,2)3;"),
+        event_tree=parse_tree(
+            Event,
+            '([&host=1,contents=\'{"a","b"}\'])'
+            '[&kind=codiverge,host=3,contents=\'{"a","b"}\'];',
         ),
     )
 
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
+    with pytest.raises(InvalidEvent) as err:
+        invalid_arity.validate()
 
-    # Invalid transfer: Targets descendant
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Transfer(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc")))).add(
-                N(Extant(Assoc(host=C("5"), clade=C("2"), contents=tuple("abc"))))
-            )
+    assert "codiverge event must be binary, found 1 child(ren) instead" in str(
+        err.value
+    )
+
+    event_error = History(
+        host_tree=parse_tree(Host, "(1,2)3;"),
+        event_tree=parse_tree(
+            Event,
+            '([&host=1,contents=\'{"a","b"}\'],[&host=1,contents=\'{"a","b"}\'])'
+            '[&kind=codiverge,host=3,contents=\'{"a","b"}\'];',
         ),
     )
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
+    with pytest.raises(InvalidEvent) as err:
+        event_error.validate()
 
     assert (
-        "transfer child host Clade(name='5') is comparable to its origin host"
-        " Clade(name='3')"
-    ) in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid transfer: Targets ancestor
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Transfer(Assoc(host=C("5"), clade=C("1"), contents=tuple("abc")))).add(
-                N(
-                    Transfer(Assoc(host=C("3"), clade=C("1"), contents=tuple("abc")))
-                ).add(
-                    N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("abc"))))
-                )
-            )
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert (
-        "transfer child host Clade(name='3') is comparable to its origin host"
-        " Clade(name='5')"
-    ) in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid transfer: Differing ordered contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Transfer(Assoc(host=C("5"), clade=C("1"), contents=tuple("abc")))).add(
-                N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("acb"))))
-            )
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert (
-        "transfer child contents ('a', 'c', 'b') differ from its"
-        " parent’s contents ('a', 'b', 'c')"
-    ) in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid transfer: Differing unordered contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Transfer(Assoc(host=C("5"), clade=C("1"), contents=frozenset("abc")))
-            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=frozenset("ab")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert (
-        "transfer child contents {'a', 'b'} differ from its"
-        " parent’s contents {'a', 'b', 'c'}"
-    ) in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid transfer: Invalid arity
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(Transfer(Assoc(host=C("5"), clade=C("1"), contents=tuple("abc"))))
-            .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("ab")))))
-            .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("ab")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert "Transfer node must be unary, found 2 child(ren) instead" in str(err.value)
-    assert err.value.node == hist.event_tree
-
-
-def test_history_gain():
-    # Valid ordered gain
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(N(Assoc(host=C("6"), clade=C("2"), contents=tuple("adefb")))),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Gain(
-                    Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
-                    gain=(1, tuple("def")),
-                )
-            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("adefb")))))
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid unordered gain
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(
-            N(Assoc(host=C("6"), clade=C("2"), contents=frozenset("adefb")))
-        ),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Gain(
-                    Assoc(host=C("6"), clade=C("1"), contents=frozenset("ab")),
-                    gain=frozenset("def"),
-                )
-            ).add(
-                N(Extant(Assoc(host=C("6"), clade=C("2"), contents=frozenset("abdef"))))
-            )
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Invalid gain: Different host
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Gain(
-                    Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
-                    gain=(1, tuple("def")),
-                )
-            ).add(N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("adefb")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert (
-        "gain child host Clade(name='8') differs from its"
-        " parent host Clade(name='6')"
+        "codivergence event children are "
+        "(Associate(host='1', contents={'a', 'b'}), "
+        "Associate(host='1', contents={'a', 'b'})), expected "
+        "(Associate(host='1', contents={'a', 'b'}), "
+        "Associate(host='2', contents={'a', 'b'}))"
     ) in str(err.value)
 
-    # Invalid gain: Mismatched ordered contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Gain(
-                    Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
-                    gain=(1, tuple("def")),
-                )
-            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("abdef")))))
+
+def test_history_compress():
+    compress_unary = History(
+        host_tree=parse_tree(Host, "((1,2)3,4)5;"),
+        event_tree=parse_tree(
+            Event,
+            """(
+                (([&host=1,contents=\'{"a","c"}\'])
+                    [&kind=loss,host=1,contents=\'{"a","b","c"}\',segment=\'{"b"}\'])
+                    [&kind=gain,host=1,contents=\'{"a","b"}\',gained=\'{"c"}\'],
+                (([&host=4,contents=\'{"b"}\'])
+                    [&kind=loss,host=4,contents=\'{"a","b"}\',segment=\'{"a"}\'])
+                    [&kind=diverge,host=2,contents=\'{"a","b"}\',segment=\'{"a","b"}\',
+                        transfer=true,cut=true]
+            )[&kind=codiverge,host=3,contents=\'{"a","b"}\'];""",
         ),
     )
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert (
-        "gain child contents ('a', 'b', 'd', 'e', 'f') differ from the expected"
-        " gain result ('a', 'd', 'e', 'f', 'b')"
-    ) in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid gain: Mismatched unordered contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Gain(
-                    Assoc(host=C("6"), clade=C("1"), contents=frozenset("ab")),
-                    gain=frozenset("def"),
-                )
-            ).add(
-                N(Extant(Assoc(host=C("6"), clade=C("2"), contents=frozenset("adeb"))))
-            )
+    compress_unary.validate()
+    assert compress_unary.compress() == Reconciliation(
+        host_tree=parse_tree(Host, "((1,2)3,4)5;"),
+        associate_tree=parse_tree(
+            Assoc,
+            '([&host=1,contents=\'{"a","c"}\'],[&host=4,contents=\'{"b"}\'])'
+            '[&host=3,contents=\'{"a","b"}\'];',
         ),
     )
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert (
-        "gain child contents {'a', 'b', 'd', 'e'} differ from the expected"
-        " gain result {'a', 'b', 'd', 'e', 'f'}"
-    ) in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid gain: Invalid arity
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Gain(
-                    Assoc(host=C("6"), clade=C("1"), contents=tuple("ab")),
-                    gain=(1, tuple("def")),
-                )
-            )
-            .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("adefb")))))
-            .add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("adefb")))))
+    compress_loss = History(
+        host_tree=parse_tree(Host, "(1,2)3;"),
+        event_tree=parse_tree(
+            Event,
+            """(
+                [&host=1,contents=\'{"a","b"}\'],
+                [&kind=loss,host=2,contents=\'{"a","b"}\',segment=\'{"a","b"}\']
+            )[&kind=codiverge,host=3,contents=\'{"a","b"}\'];""",
         ),
     )
 
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert "Gain node must be unary, found 2 child(ren) instead" in str(err.value)
-
-
-def test_history_loss():
-    # Valid partial ordered loss
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(N(Assoc(host=C("6"), clade=C("2"), contents=tuple("ad")))),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Loss(
-                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                    segment=(1, 3),
-                )
-            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("ad")))))
+    compress_loss.validate()
+    assert compress_loss.compress() == Reconciliation(
+        host_tree=parse_tree(Host, "(1,2)3;"),
+        associate_tree=parse_tree(
+            Assoc,
+            '[&host=1,contents=\'{"a","b"}\'];',
         ),
     )
 
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid partial unordered loss
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=(N(Assoc(host=C("6"), clade=C("2"), contents=frozenset("bc")))),
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Loss(
-                    Assoc(host=C("6"), clade=C("1"), contents=frozenset("abcd")),
-                    segment=frozenset("ad"),
-                )
-            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=frozenset("bc")))))
+    compress_unsampled = History(
+        host_tree=parse_tree(Host, "((1,(2,2U[&sampled=false])2P)3,4)5;"),
+        event_tree=parse_tree(
+            Event,
+            """(
+                [&host=1,contents=\'{"a","b"}\'],
+                (
+                    [&host=2,contents=\'{"a","b"}\'],
+                    (
+                        [&host=4,contents=\'{"b"}\'],
+                        [&host=2U,contents=\'{"a","b"}\']
+                    )
+                    [&kind=diverge,result=0,host=2U,contents=\'{"a","b"}\',transfer=true,segment=\'{"b"}\']
+                )[&kind=codiverge,host=2P,contents=\'{"a","b"}\']
+            )[&kind=codiverge,host=3,contents=\'{"a","b"}\'];""",
         ),
     )
 
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid complete ordered loss
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=None,
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Loss(
-                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                    segment=(0, 4),
-                )
-            )
+    compress_unsampled.validate()
+    assert compress_unsampled.compress() == Reconciliation(
+        host_tree=parse_tree(Host, "((1,(2,2U[&sampled=false])2P)3,4)5;"),
+        associate_tree=parse_tree(
+            Assoc,
+            """(
+                [&host=1,contents=\'{"a","b"}\'],
+                (
+                    [&host=2,contents=\'{"a","b"}\'],
+                    [&host=4,contents=\'{"b"}\']
+                )[&host=2P,contents=\'{"a","b"}\']
+            )[&host=3,contents=\'{"a","b"}\'];""",
         ),
     )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Valid complete unordered loss
-    rec = Reconciliation(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        associate_tree=None,
-    )
-
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Loss(
-                    Assoc(host=C("6"), clade=C("1"), contents=frozenset("abcd")),
-                    segment=frozenset("abcd"),
-                )
-            )
-        ),
-    )
-
-    rec.validate()
-    hist.validate()
-    assert hist.compress() == rec
-
-    # Invalid loss: Different hosts
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Loss(
-                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                    segment=(1, 3),
-                )
-            ).add(N(Extant(Assoc(host=C("8"), clade=C("2"), contents=tuple("ad")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert (
-        "loss child host Clade(name='8') differs from its"
-        " parent host Clade(name='6')"
-    ) in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid loss: Mismatched ordered contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Loss(
-                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                    segment=(1, 3),
-                )
-            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("da")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert (
-        "loss child contents ('d', 'a') differ from the expected"
-        " loss result ('a', 'd')"
-    ) in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid loss: Mismatched unordered contents
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Loss(
-                    Assoc(host=C("6"), clade=C("1"), contents=frozenset("abcd")),
-                    segment=frozenset("b"),
-                )
-            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=frozenset("ad")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert (
-        "loss child contents {'a', 'd'} differ from the expected"
-        " loss result {'a', 'c', 'd'}"
-    ) in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid loss: Invalid partial arity
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Loss(
-                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                    segment=(1, 3),
-                )
-            )
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert "Loss node must be unary, found 0 child(ren) instead" in str(err.value)
-    assert err.value.node == hist.event_tree
-
-    # Invalid loss: Invalid complete arity
-    hist = History(
-        host_tree=newick.parse("((4,5)3,(6,(8,9)7)2)1;"),
-        event_tree=(
-            N(
-                Loss(
-                    Assoc(host=C("6"), clade=C("1"), contents=tuple("abcd")),
-                    segment=(0, 4),
-                )
-            ).add(N(Extant(Assoc(host=C("6"), clade=C("2"), contents=tuple("abd")))))
-        ),
-    )
-
-    with pytest.raises(InvalidReconciliation) as err:
-        hist.validate()
-
-    assert "Loss node must be a leaf, found 1 child(ren) instead" in str(err.value)
-    assert err.value.node == hist.event_tree
