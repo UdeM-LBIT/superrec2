@@ -1,5 +1,3 @@
-from sowing import traversal
-from sowing.repr import newick
 from sowing.indexed import IndexedTree
 from superrec2.model.history import (
     parse_tree,
@@ -172,16 +170,26 @@ def test_event_extant():
     host_index1 = IndexedTree(parse_tree(Host, "(2,3)1;"))
     host_index2 = IndexedTree(parse_tree(Host, "(1,2)3;"))
 
-    ordered = Extant(host="3", contents=tuple("abc"))
-    assert ordered == Extant.from_mapping({"host": "3", "contents": "('a', 'b', 'c')"})
+    ordered = Extant(name="x", host="3", contents=tuple("abc"))
+    assert ordered == Extant.from_mapping(
+        {
+            "name": "x",
+            "host": "3",
+            "contents": "('a', 'b', 'c')",
+        }
+    )
     assert ordered.arity == 0
+    assert ordered.associate() == Assoc(name="x", host="3", contents=tuple("abc"))
+    assert ordered.anon_associate() == Assoc(host="3", contents=tuple("abc"))
     ordered.validate(host_index1, ())
 
-    unordered = Extant(host="3", contents=frozenset("abc"))
+    unordered = Extant(name="x", host="3", contents=frozenset("abc"))
     assert unordered == Extant.from_mapping(
-        {"host": "3", "contents": "{'a', 'b', 'c'}"}
+        {"name": "x", "host": "3", "contents": "{'a', 'b', 'c'}"}
     )
     assert unordered.arity == 0
+    assert unordered.associate() == Assoc(name="x", host="3", contents=frozenset("abc"))
+    assert unordered.anon_associate() == Assoc(host="3", contents=frozenset("abc"))
     unordered.validate(host_index1, ())
 
     with pytest.raises(InvalidEvent) as err:
@@ -200,19 +208,23 @@ def test_event_extant():
 def test_event_codiverge():
     host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
 
-    event1 = Codiverge(host="1", contents=tuple("abc"))
-    assert event1 == Codiverge.from_mapping(
-        {"host": "1", "contents": "('a', 'b', 'c')"}
+    spe = Codiverge(name="x", host="1", contents=tuple("abc"))
+    assert spe == Codiverge.from_mapping(
+        {
+            "name": "x",
+            "host": "1",
+            "contents": "('a', 'b', 'c')",
+        }
     )
-    assert event1.arity == 2
-    event1.validate(
+    assert spe.arity == 2
+    spe.validate(
         host_index,
         (
             Assoc(host="2", contents=tuple("abc")),
             Assoc(host="3", contents=tuple("abc")),
         ),
     )
-    event1.validate(
+    spe.validate(
         host_index,
         (
             Assoc(host="3", contents=tuple("abc")),
@@ -221,7 +233,7 @@ def test_event_codiverge():
     )
 
     with pytest.raises(InvalidEvent) as err:
-        event1.validate(
+        spe.validate(
             host_index,
             (
                 Assoc(host="2", contents=tuple("abc")),
@@ -238,7 +250,7 @@ def test_event_codiverge():
     ) in str(err.value)
 
     with pytest.raises(InvalidEvent) as err:
-        event1.validate(
+        spe.validate(
             host_index,
             (
                 Assoc(host="2", contents=tuple("abc")),
@@ -258,9 +270,17 @@ def test_event_codiverge():
 def test_event_duplicate():
     host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
 
-    dup = Diverge(host="3", contents=tuple("abc"), result=1, segment=(0, 2), cut=False)
+    dup = Diverge(
+        name="x",
+        host="3",
+        contents=tuple("abc"),
+        result=1,
+        segment=(0, 2),
+        cut=False,
+    )
     assert dup == Diverge.from_mapping(
         {
+            "name": "x",
             "host": "3",
             "contents": "('a', 'b', 'c')",
             "result": "1",
@@ -321,9 +341,17 @@ def test_event_duplicate():
         err.value
     )
 
-    cut = Diverge(host="3", contents=tuple("abc"), result=1, segment=(0, 2), cut=True)
+    cut = Diverge(
+        name="x",
+        host="3",
+        contents=tuple("abc"),
+        result=1,
+        segment=(0, 2),
+        cut=True,
+    )
     assert cut == Diverge.from_mapping(
         {
+            "name": "x",
             "host": "3",
             "contents": "('a', 'b', 'c')",
             "result": "1",
@@ -367,9 +395,17 @@ def test_event_duplicate():
         ),
     )
 
-    fcut = Diverge(host="3", contents=tuple("abc"), result=0, segment=(0, 3), cut=True)
+    fcut = Diverge(
+        name="x",
+        host="3",
+        contents=tuple("abc"),
+        result=0,
+        segment=(0, 3),
+        cut=True,
+    )
     assert fcut == Diverge.from_mapping(
         {
+            "name": "x",
             "host": "3",
             "contents": "('a', 'b', 'c')",
             "result": "0",
@@ -380,7 +416,14 @@ def test_event_duplicate():
     assert fcut.arity == 1
     fcut.validate(host_index, (Assoc(host="3", contents=tuple("abc")),))
 
-    inv = Diverge(host="3", contents=tuple("abc"), result=2, segment=(0, 2), cut=False)
+    inv = Diverge(
+        name="x",
+        host="3",
+        contents=tuple("abc"),
+        result=2,
+        segment=(0, 2),
+        cut=False,
+    )
 
     with pytest.raises(InvalidEvent) as err:
         inv.validate(
@@ -396,7 +439,14 @@ def test_event_duplicate():
         in str(err.value)
     )
 
-    inv = Diverge(host="3", contents=tuple("abc"), result=1, segment=(0, 3), cut=True)
+    inv = Diverge(
+        name="x",
+        host="3",
+        contents=tuple("abc"),
+        result=1,
+        segment=(0, 3),
+        cut=True,
+    )
 
     with pytest.raises(InvalidEvent) as err:
         inv.validate(host_index, (Assoc(host="3", contents=tuple("abc")),))
@@ -411,6 +461,7 @@ def test_event_transfer():
     host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
 
     tra = Diverge(
+        name="x",
         host="3",
         contents=tuple("abc"),
         result=1,
@@ -420,6 +471,7 @@ def test_event_transfer():
     )
     assert tra == Diverge.from_mapping(
         {
+            "name": "x",
             "host": "3",
             "contents": "('a', 'b', 'c')",
             "result": "1",
@@ -452,6 +504,7 @@ def test_event_transfer():
     ) in str(err.value)
 
     ftra = Diverge(
+        name="x",
         host="3",
         contents=tuple("abc"),
         result=0,
@@ -461,6 +514,7 @@ def test_event_transfer():
     )
     assert ftra == Diverge.from_mapping(
         {
+            "name": "x",
             "host": "3",
             "contents": "('a', 'b', 'c')",
             "result": "0",
@@ -477,9 +531,10 @@ def test_event_transfer():
 def test_event_gain():
     host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
 
-    gain = Gain(host="1", contents=tuple("ab"), gained=(1, tuple("bc")))
+    gain = Gain(name="x", host="1", contents=tuple("ab"), gained=(1, tuple("bc")))
     assert gain == Gain.from_mapping(
         {
+            "name": "x",
             "host": "1",
             "contents": "('a', 'b')",
             "gained": "(1, ('b', 'c'))",
@@ -504,9 +559,10 @@ def test_event_gain():
         "expected Associate(host='1', contents=('a', 'b', 'c', 'b'))"
     ) in str(err.value)
 
-    ugain = Gain(host="1", contents=frozenset("ab"), gained=frozenset("c"))
+    ugain = Gain(name="x", host="1", contents=frozenset("ab"), gained=frozenset("c"))
     assert ugain == Gain.from_mapping(
         {
+            "name": "x",
             "host": "1",
             "contents": "{'a', 'b'}",
             "gained": "{'c'}",
@@ -535,9 +591,10 @@ def test_event_gain():
 def test_event_loss():
     host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
 
-    loss = Loss(host="1", contents=tuple("abc"), segment=(1, 2))
+    loss = Loss(name="x", host="1", contents=tuple("abc"), segment=(1, 2))
     assert loss == Loss.from_mapping(
         {
+            "name": "x",
             "host": "1",
             "contents": "('a', 'b', 'c')",
             "segment": "(1, 2)",
@@ -562,9 +619,10 @@ def test_event_loss():
         "expected Associate(host='1', contents=('a', 'c'))"
     ) in str(err.value)
 
-    floss = Loss(host="1", contents=tuple("abc"), segment=(0, 3))
+    floss = Loss(name="x", host="1", contents=tuple("abc"), segment=(0, 3))
     assert floss == Loss.from_mapping(
         {
+            "name": "x",
             "host": "1",
             "contents": "('a', 'b', 'c')",
             "segment": "(0, 3)",
@@ -573,9 +631,10 @@ def test_event_loss():
     assert floss.arity == 0
     floss.validate(host_index, ())
 
-    uloss = Loss(host="1", contents=frozenset("abc"), segment=frozenset("ab"))
+    uloss = Loss(name="x", host="1", contents=frozenset("abc"), segment=frozenset("ab"))
     assert uloss == Loss.from_mapping(
         {
+            "name": "x",
             "host": "1",
             "contents": "{'a', 'b', 'c'}",
             "segment": "{'a', 'b'}",
@@ -590,7 +649,7 @@ def test_history_validate():
         host_tree=parse_tree(Host, "(1,2)3;"),
         event_tree=parse_tree(
             Event,
-            '([&host=1,contents=\'{"a","b"}\'],[&host=2,contents=\'{"a","b"}\'])'
+            '(x[&host=1,contents=\'{"a","b"}\'],y[&host=2,contents=\'{"a","b"}\'])'
             '[&kind=codiverge,host=3,contents=\'{"a","b"}\'];',
         ),
     )
@@ -600,7 +659,7 @@ def test_history_validate():
         host_tree=parse_tree(Host, "(a,2)3;"),
         event_tree=parse_tree(
             Event,
-            '([&host=1,contents=\'{"a","b"}\'],[&host=2,contents=\'{"a","b"}\'])'
+            '(x[&host=1,contents=\'{"a","b"}\'],y[&host=2,contents=\'{"a","b"}\'])'
             '[&kind=codiverge,host=3,contents=\'{"a","b"}\'];',
         ),
     )
@@ -614,7 +673,7 @@ def test_history_validate():
         host_tree=parse_tree(Host, "(1,2)3;"),
         event_tree=parse_tree(
             Event,
-            '([&host=1,contents=\'{"a","b"}\'])'
+            '(x[&host=1,contents=\'{"a","b"}\'])'
             '[&kind=codiverge,host=3,contents=\'{"a","b"}\'];',
         ),
     )
@@ -630,7 +689,7 @@ def test_history_validate():
         host_tree=parse_tree(Host, "(1,2)3;"),
         event_tree=parse_tree(
             Event,
-            '([&host=1,contents=\'{"a","b"}\'],[&host=1,contents=\'{"a","b"}\'])'
+            '(x[&host=1,contents=\'{"a","b"}\'],y[&host=1,contents=\'{"a","b"}\'])'
             '[&kind=codiverge,host=3,contents=\'{"a","b"}\'];',
         ),
     )
@@ -653,10 +712,10 @@ def test_history_compress():
         event_tree=parse_tree(
             Event,
             """(
-                (([&host=1,contents=\'{"a","c"}\'])
+                ((x[&host=1,contents=\'{"a","c"}\'])
                     [&kind=loss,host=1,contents=\'{"a","b","c"}\',segment=\'{"b"}\'])
                     [&kind=gain,host=1,contents=\'{"a","b"}\',gained=\'{"c"}\'],
-                (([&host=4,contents=\'{"b"}\'])
+                ((y[&host=4,contents=\'{"b"}\'])
                     [&kind=loss,host=4,contents=\'{"a","b"}\',segment=\'{"a"}\'])
                     [&kind=diverge,host=2,contents=\'{"a","b"}\',segment=\'{"a","b"}\',
                         transfer=true,cut=true]
@@ -669,7 +728,7 @@ def test_history_compress():
         host_tree=parse_tree(Host, "((1,2)3,4)5;"),
         associate_tree=parse_tree(
             Assoc,
-            '([&host=1,contents=\'{"a","c"}\'],[&host=4,contents=\'{"b"}\'])'
+            '(x[&host=1,contents=\'{"a","c"}\'],y[&host=4,contents=\'{"b"}\'])'
             '[&host=3,contents=\'{"a","b"}\'];',
         ),
     )
@@ -679,7 +738,7 @@ def test_history_compress():
         event_tree=parse_tree(
             Event,
             """(
-                [&host=1,contents=\'{"a","b"}\'],
+                x[&host=1,contents=\'{"a","b"}\'],
                 [&kind=loss,host=2,contents=\'{"a","b"}\',segment=\'{"a","b"}\']
             )[&kind=codiverge,host=3,contents=\'{"a","b"}\'];""",
         ),
@@ -690,7 +749,7 @@ def test_history_compress():
         host_tree=parse_tree(Host, "(1,2)3;"),
         associate_tree=parse_tree(
             Assoc,
-            '[&host=1,contents=\'{"a","b"}\'];',
+            'x[&host=1,contents=\'{"a","b"}\'];',
         ),
     )
 
@@ -699,14 +758,21 @@ def test_history_compress():
         event_tree=parse_tree(
             Event,
             """(
-                [&host=1,contents=\'{"a","b"}\'],
+                a[&host=1,contents=\'{"a","b"}\'],
                 (
-                    [&host=2,contents=\'{"a","b"}\'],
+                    b[&host=2,contents=\'{"a","b"}\'],
                     (
-                        [&host=4,contents=\'{"b"}\'],
+                        c[&host=4,contents=\'{"b"}\'],
                         [&host=2U,contents=\'{"a","b"}\']
                     )
-                    [&kind=diverge,result=0,host=2U,contents=\'{"a","b"}\',transfer=true,segment=\'{"b"}\']
+                    [&
+                        kind=diverge,
+                        result=0,
+                        host=2U,
+                        contents=\'{"a","b"}\',
+                        transfer=true,
+                        segment=\'{"b"}\'
+                    ]
                 )[&kind=codiverge,host=2P,contents=\'{"a","b"}\']
             )[&kind=codiverge,host=3,contents=\'{"a","b"}\'];""",
         ),
@@ -718,10 +784,10 @@ def test_history_compress():
         associate_tree=parse_tree(
             Assoc,
             """(
-                [&host=1,contents=\'{"a","b"}\'],
+                a[&host=1,contents=\'{"a","b"}\'],
                 (
-                    [&host=2,contents=\'{"a","b"}\'],
-                    [&host=4,contents=\'{"b"}\']
+                    b[&host=2,contents=\'{"a","b"}\'],
+                    c[&host=4,contents=\'{"b"}\']
                 )[&host=2P,contents=\'{"a","b"}\']
             )[&host=3,contents=\'{"a","b"}\'];""",
         ),

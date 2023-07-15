@@ -306,6 +306,10 @@ class Event(Associate, ABC):
         """Get the associate corresponding to this event."""
         return Associate(name=self.name, host=self.host, contents=self.contents)
 
+    def anon_associate(self) -> Associate:
+        """Get the unnamed associate corresponding to this event."""
+        return Associate(host=self.host, contents=self.contents)
+
     @property
     @abstractmethod
     def arity(self) -> int:
@@ -409,7 +413,7 @@ class Codiverge(Event):
         left_host = host_node.down(0).node.data.name
         right_host = host_node.down(1).node.data.name
 
-        assoc = self.associate()
+        assoc = self.anon_associate()
         expected_children = (assoc.switch(left_host), assoc.switch(right_host))
 
         if set(children) != set(expected_children):
@@ -460,7 +464,7 @@ class Diverge(Event):
             )
 
         result = children[self.result]
-        assoc = self.associate()
+        assoc = self.anon_associate()
 
         if self.transfer and host_index.is_comparable(result.host, assoc.host):
             raise InvalidEvent(
@@ -533,7 +537,7 @@ class Gain(Event):
     ) -> None:
         Event.validate(self, host_index, children)
         child = children[0]
-        expect_child = self.associate().gain(self.gained)
+        expect_child = self.anon_associate().gain(self.gained)
 
         if child != expect_child:
             raise InvalidEvent(
@@ -573,7 +577,7 @@ class Loss(Event):
         Event.validate(self, host_index, children)
 
         if self.arity == 1:
-            _, expect_child = self.associate().split(self.segment)
+            _, expect_child = self.anon_associate().split(self.segment)
             child = children[0]
 
             if child != expect_child:
@@ -654,5 +658,5 @@ class History:
             node = cursor.node
             event = node.data
 
-            children = tuple(edge.node.data.associate() for edge in node.edges)
+            children = tuple(edge.node.data.anon_associate() for edge in node.edges)
             event.validate(self.host_index, children)
