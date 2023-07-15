@@ -2,6 +2,7 @@ from sowing import traversal
 from sowing.repr import newick
 from sowing.indexed import IndexedTree
 from superrec2.model.history import (
+    parse_tree,
     Host,
     Associate as Assoc,
     InvalidReconciliation,
@@ -16,14 +17,6 @@ from superrec2.model.history import (
     History,
 )
 import pytest
-
-
-def parse_tree(kind: type, data: str):
-    from_mapping = getattr(kind, "from_mapping")
-    return traversal.map(
-        lambda node, edge, *_: (from_mapping(node or {}), None),
-        traversal.depth(newick.parse(data)),
-    )
 
 
 def test_associate():

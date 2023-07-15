@@ -9,7 +9,16 @@ from sowing.node import Node
 from sowing.zipper import Zipper
 from sowing.indexed import index_trees, IndexedTree
 from sowing import traversal
+from sowing.repr import newick
 from sowing.util.dataclasses import repr_default
+
+
+def parse_tree(kind: type, data: str):
+    from_mapping = getattr(kind, "from_mapping")
+    return traversal.map(
+        lambda node, edge, *_: (from_mapping(node or {}), None),
+        traversal.depth(newick.parse(data)),
+    )
 
 
 # Ordered or unordered contents of an associate
@@ -249,7 +258,7 @@ class Reconciliation:
                         node,
                     )
 
-                if is_leaf and len(self.host_index[associate.host].edges) != 0:
+                if is_leaf and not self.host_index[associate.host].is_leaf():
                     raise InvalidReconciliation(
                         f"leaf associate host {associate.host!r} is not terminal",
                         node,
@@ -369,9 +378,8 @@ class Extant(Event):
         children: tuple[Associate, ...],
     ) -> None:
         Event.validate(self, host_index, children)
-        host_node = host_index[self.host]
 
-        if len(host_node.edges) != 0:
+        if not host_index[self.host].is_leaf():
             raise InvalidEvent(
                 f"extant host {self.host!r} is not terminal",
                 self,
@@ -398,8 +406,8 @@ class Codiverge(Event):
         Event.validate(self, host_index, children)
         host_node = host_index[self.host]
 
-        left_host = host_node.edges[0].node.data.name
-        right_host = host_node.edges[1].node.data.name
+        left_host = host_node.down(0).node.data.name
+        right_host = host_node.down(1).node.data.name
 
         assoc = self.associate()
         expected_children = (assoc.switch(left_host), assoc.switch(right_host))
@@ -608,7 +616,7 @@ class History:
             node = cursor.node
             event = node.data
 
-            sampled = self.host_index[event.host].data.sampled
+            sampled = self.host_index[event.host].node.data.sampled
             new_node = node.replace(data=event.associate())
 
             match len(node.edges):
