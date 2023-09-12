@@ -1,6 +1,7 @@
 from sowing.indexed import IndexedTree
 from superrec2.model.history import (
     parse_tree,
+    graft_unsampled_hosts,
     Host,
     Associate as Assoc,
     InvalidReconciliation,
@@ -86,6 +87,41 @@ def test_associate():
         "split argument {'d'} is not a subset of existing contents {'a', 'b', 'c'}"
         in str(err.value)
     )
+
+
+def test_host():
+    host_tree = parse_tree(Host, "((4,5)3,(6,(8,9)7)2)1;")
+    grafted_tree = parse_tree(
+        Host,
+        """
+        (
+          '1[U]'[&sampled=false],
+          (
+            (
+              '3[U]'[&sampled=false],
+              (
+                ('4[U]'[&sampled=false],4)'4[P]',
+                ('5[U]'[&sampled=false],5)'5[P]'
+              )3
+            )'3[P]',
+            (
+              '2[U]'[&sampled=false],
+              (
+                ('6[U]'[&sampled=false],6)'6[P]',
+                (
+                  '7[U]'[&sampled=false],
+                  (
+                    ('8[U]'[&sampled=false],8)'8[P]',
+                    ('9[U]'[&sampled=false],9)'9[P]'
+                  )7
+                )'7[P]'
+              )2
+            )'2[P]'
+          )1
+        )'1[P]';
+        """
+    )
+    assert graft_unsampled_hosts(host_tree) == grafted_tree
 
 
 def test_reconciliation_valid():

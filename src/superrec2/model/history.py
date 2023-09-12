@@ -1,5 +1,5 @@
 """Reconciliation and evolution model."""
-from typing import Self
+from typing import Self, TypeVar
 from abc import ABC, abstractmethod
 from ast import literal_eval
 from collections.abc import Mapping
@@ -13,8 +13,12 @@ from sowing.repr import newick
 from sowing.util.dataclasses import repr_default
 
 
-def parse_tree(kind: type, data: str):
-    from_mapping = getattr(kind, "from_mapping")
+T = TypeVar("T")
+
+
+def parse_tree(datatype: type[T], data: str) -> Node[T, None]:
+    """Read a Newick-formatted tree and cast its nodes to the given datatype."""
+    from_mapping = getattr(datatype, "from_mapping")
     return traversal.map(
         lambda node, edge, *_: (from_mapping(node or {}), None),
         traversal.depth(newick.parse(data)),
@@ -194,6 +198,22 @@ class Host:
             data["sampled"] = _bool_from_str(data["sampled"])
 
         return Host(**data)
+
+
+def graft_unsampled_hosts(host_tree: Node[Host, None]) -> Node[Host, None]:
+    """Extend a host tree to add all possible unsampled species."""
+    def graft(cursor: Zipper[Host, None]) -> Zipper[Host, None]:
+        node = cursor.node
+        host = node.data
+        return cursor.replace(
+            node=(
+                Node(Host(name=f"{host.name}[P]"))
+                .add(Node(Host(name=f"{host.name}[U]", sampled=False)))
+                .add(node)
+            ),
+        )
+
+    return traversal.fold(graft, traversal.depth(host_tree))
 
 
 class InvalidReconciliation(Exception):
