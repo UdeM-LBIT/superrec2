@@ -15,6 +15,7 @@ from superrec2.model.history import (
     Loss,
     History,
 )
+from superrec2.model.graph import CycleError
 import pytest
 
 
@@ -119,7 +120,7 @@ def test_host():
             )'2[P]'
           )1
         )'1[P]';
-        """
+        """,
     )
     assert graft_unsampled_hosts(host_tree) == grafted_tree
 
@@ -828,3 +829,111 @@ def test_history_compress():
             )[&host=3,contents=\'{"a","b"}\'];""",
         ),
     )
+
+
+def test_history_epochs():
+    simple = History(
+        host_tree=parse_tree(Host, "(1,(2,(3,4)t)s)r;"),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              x[&host=1,contents='{"a","b"}'],
+              (
+                [&kind=loss,host=t,contents='{"a","b"}',segment='{"a","b"}'],
+                y[&host=2,contents='{"a","b"}']
+              )[&kind=codiverge,host=s,contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    simple.validate()
+    assert simple.epochs() == {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "t": -1,
+        "s": -2,
+        "r": -3,
+    }
+
+    with_transfer = History(
+        host_tree=parse_tree(Host, "((1,2)s,(3,4)t)r;"),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              (
+                [&kind=loss,host=s,contents='{"a","b"}',segment='{"a","b"}'],
+                (
+                  [&kind=loss,host=3,contents='{"a","b"}',segment='{"a","b"}'],
+                  [&host=2,contents='{"a","b"}']
+                )[&kind=diverge,host=3,contents='{"a","b"}',segment='{"a","b"}',result=1,transfer=true]
+              )[&kind=diverge,host=s,contents='{"a","b"}',segment='{"a","b"}',result=1,transfer=true],
+              (
+                [&kind=loss,host=3,contents='{"a","b"}',segment='{"a","b"}'],
+                [&host=4,contents='{"a","b"}']
+              )[&kind=codiverge,host=t,contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    with_transfer.validate()
+    assert with_transfer.epochs() == {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "s": -1,
+        "t": -2,
+        "r": -3,
+    }
+
+    with_cycle = History(
+        host_tree=parse_tree(Host, "((1,2)s,(3,4)t)r;"),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              [&kind=loss,host=t,contents='{"a","b"}',segment='{"a","b"}'],
+              (
+                [&kind=loss,host=1,contents='{"a","b"}',segment='{"a","b"}'],
+                (
+                  [&kind=loss,host=2,contents='{"a","b"}',segment='{"a","b"}'],
+                  (
+                    [&kind=loss,host=4,contents='{"a","b"}',segment='{"a","b"}'],
+                    (
+                      [&kind=loss,host=3,contents='{"a","b"}',segment='{"a","b"}'],
+                      (
+                        [&kind=loss,host=2,contents='{"a","b"}',segment='{"a","b"}'],
+                        [&host=1,contents='{"a","b"}']
+                      )[&kind=codiverge,host=s,contents='{"a","b"}']
+                    )[&
+                      kind=diverge,
+                      host=3,
+                      contents='{"a","b"}',
+                      segment='{"a","b"}',
+                      result=1,
+                      transfer=true
+                    ]
+                  )[&kind=codiverge,host=t,contents='{"a","b"}']
+                )[&
+                  kind=diverge,
+                  host=2,
+                  contents='{"a","b"}',
+                  segment='{"a","b"}',
+                  result=1,
+                  transfer=true
+                ]
+              )[&kind=codiverge,host=s,contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    with_cycle.validate()
+
+    with pytest.raises(CycleError, match="negative-weight cycle exists") as err:
+        with_cycle.epochs()
+
+    assert err.value.args[1] == ["s", "t"]

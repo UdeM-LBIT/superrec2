@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from ast import literal_eval
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields, asdict, replace
+from .graph import Edge, shortest_paths
 from sowing.comb.binary import is_binary
 from sowing.node import Node
 from sowing.zipper import Zipper
@@ -202,6 +203,7 @@ class Host:
 
 def graft_unsampled_hosts(host_tree: Node[Host, None]) -> Node[Host, None]:
     """Extend a host tree to add all possible unsampled species."""
+
     def graft(cursor: Zipper[Host, None]) -> Zipper[Host, None]:
         node = cursor.node
         host = node.data
@@ -629,6 +631,60 @@ class History:
 
     # History tree, with event and associate information at each node
     event_tree: Node[Event, None]
+
+    def epochs(self) -> dict[str, int]:
+        """
+        Compute minimum feasible dates for each host of this history, taking
+        into account codivergence and horizontal transfer relations.
+
+        :returns: minimal dates for each host name
+        :raises CycleError: if the history has no feasible datation
+        """
+        leaves_node = "__leaves__"
+        nodes = set([leaves_node])
+        leaves = set()
+        edges = set()
+
+        # Divergence constraints: Any host must come strictly before its descendants
+        for host_name, host in self.host_index.items():
+            if host.is_leaf():
+                leaves.add(host_name)
+                host_name = leaves_node
+
+            nodes.add(host_name)
+
+            if not host.is_root():
+                parent = host.up().node.data.name
+                nodes.add(parent)
+                edges.add(Edge(start=host_name, end=parent, weight=-1))
+
+        # Transfer constraints: Transfers can only happen between coexisting species
+        for cursor in traversal.depth(self.event_tree):
+            event = cursor.node.data
+
+            if isinstance(event, Diverge) and event.transfer:
+                source = event.host
+                source_parent = self.host_index[source].up().node.data.name
+
+                result = cursor.down(event.result).node.data
+                target = result.host
+                target_parent = self.host_index[target].up().node.data.name
+
+                if source in leaves:
+                    source = leaves_node
+
+                if target in leaves:
+                    target = leaves_node
+
+                edges.add(Edge(start=source, end=target_parent, weight=-1))
+                edges.add(Edge(start=target, end=source_parent, weight=-1))
+
+        # Assign minimum epochs, or detect cycles, using shortest paths
+        epochs, _ = shortest_paths(leaves_node, nodes, edges)
+        return {
+            host_name: epochs[leaves_node if host_name in leaves else host_name]
+            for host_name in self.host_index.keys()
+        }
 
     def compress(self) -> Reconciliation:
         """
