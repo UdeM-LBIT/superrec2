@@ -640,23 +640,24 @@ class History:
         :returns: minimal dates for each host name
         :raises CycleError: if the history has no feasible datation
         """
-        leaves_node = "__leaves__"
-        nodes = set([leaves_node])
-        leaves = set()
+        root = self.host_tree.data.name
+        leaves_sink = object()
+        nodes = set([leaves_sink])
         edges = set()
 
-        # Divergence constraints: Any host must come strictly before its descendants
         for host_name, host in self.host_index.items():
-            if host.is_leaf():
-                leaves.add(host_name)
-                host_name = leaves_node
+            # Leaves constraint: Sampled leaves must be contemporaneous
+            if host.is_leaf() and host.node.data.sampled:
+                edges.add(Edge(start=leaves_sink, end=host_name, weight=0))
+                edges.add(Edge(start=host_name, end=leaves_sink, weight=0))
 
             nodes.add(host_name)
 
+            # Divergence constraint: Any host must come strictly before its descendants
             if not host.is_root():
                 parent = host.up().node.data.name
                 nodes.add(parent)
-                edges.add(Edge(start=host_name, end=parent, weight=-1))
+                edges.add(Edge(start=parent, end=host_name, weight=-1))
 
         # Transfer constraints: Transfers can only happen between coexisting species
         for cursor in traversal.depth(self.event_tree):
@@ -670,21 +671,12 @@ class History:
                 target = result.host
                 target_parent = self.host_index[target].up().node.data.name
 
-                if source in leaves:
-                    source = leaves_node
-
-                if target in leaves:
-                    target = leaves_node
-
-                edges.add(Edge(start=source, end=target_parent, weight=-1))
-                edges.add(Edge(start=target, end=source_parent, weight=-1))
+                edges.add(Edge(start=target_parent, end=source, weight=-1))
+                edges.add(Edge(start=source_parent, end=target, weight=-1))
 
         # Assign minimum epochs, or detect cycles, using shortest paths
-        epochs, _ = shortest_paths(leaves_node, nodes, edges)
-        return {
-            host_name: epochs[leaves_node if host_name in leaves else host_name]
-            for host_name in self.host_index.keys()
-        }
+        epochs, _ = shortest_paths(root, nodes, edges)
+        return {host_name: -epochs[host_name] for host_name in self.host_index.keys()}
 
     def compress(self) -> Reconciliation:
         """

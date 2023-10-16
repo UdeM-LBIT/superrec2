@@ -849,13 +849,13 @@ def test_history_epochs():
     )
     simple.validate()
     assert simple.epochs() == {
-        "1": 0,
-        "2": 0,
-        "3": 0,
-        "4": 0,
-        "t": -1,
-        "s": -2,
-        "r": -3,
+        "1": 3,
+        "2": 3,
+        "3": 3,
+        "4": 3,
+        "t": 2,
+        "s": 1,
+        "r": 0,
     }
 
     with_transfer = History(
@@ -881,13 +881,13 @@ def test_history_epochs():
     )
     with_transfer.validate()
     assert with_transfer.epochs() == {
-        "1": 0,
-        "2": 0,
-        "3": 0,
-        "4": 0,
-        "s": -1,
-        "t": -2,
-        "r": -3,
+        "1": 3,
+        "2": 3,
+        "3": 3,
+        "4": 3,
+        "s": 2,
+        "t": 1,
+        "r": 0,
     }
 
     with_cycle = History(

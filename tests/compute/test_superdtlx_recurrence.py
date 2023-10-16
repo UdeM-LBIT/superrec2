@@ -121,7 +121,8 @@ def test_reconcile_simple():
 def test_reconcile_extra_contents():
     host_tree = parse_tree(Host, "(((a,b)c,d)e,f)g;")
 
-    # Three leaves with disjoint contents and intermediate loss: Factorized loss in leaves
+    # Three leaves with disjoint contents and intermediate loss:
+    # Factorized loss in leaves
     associate_tree = parse_tree(
         Associate,
         """
@@ -135,7 +136,7 @@ def test_reconcile_extra_contents():
           ),
           4[&host=f,contents='{"w","x","y","z"}']
         );
-        """
+        """,
     )
     setting = Reconciliation(host_tree, associate_tree)
     assert reconcile(setting, scaled_cost) == 2
@@ -357,7 +358,7 @@ def test_reconcile_unsampled():
           ),
           5[&contents='{"a"}',host=Z]
         );
-        """
+        """,
     )
     setting = Reconciliation(host_tree, associate_tree)
     assert reconcile(setting, scaled_cost) == 7
