@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 def reconciliation_algorithm(algo):
     """Wrap a reconciliation algorithm so that it receives only binary inputs."""
+
     def reconcile(setting, structure):
         count_bins = sum(1 for _ in setting.binarize())
         return sum(
@@ -27,6 +28,7 @@ def reconciliation_algorithm(algo):
 
 def make_cost_algebra(typename: str, costs: Mapping[str, float]):
     """Create a structure that computes reconciliation costs."""
+
     def make(event: Event):
         match event:
             case Extant():

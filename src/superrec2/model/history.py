@@ -1,12 +1,13 @@
 """Reconciliation and evolution model."""
-from typing import Self, TypeVar
+from typing import Iterable, Self, TypeVar
 from abc import ABC, abstractmethod
 from ast import literal_eval
+from itertools import product
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields, asdict, replace
 from immutables import Map
 from .graph import Edge, shortest_paths
-from sowing.comb.binary import is_binary
+from sowing.comb.binary import binarize
 from sowing.node import Node
 from sowing.zipper import Zipper
 from sowing.indexed import index_trees, IndexedTree
@@ -282,6 +283,14 @@ class Reconciliation:
     # Associate phylogeny, partially or completely mapped onto the host phylogeny
     associate_tree: Node[Associate, None]
 
+    def binarize(self) -> Iterable[Self]:
+        """Generate all possible binarizations of this reconciliation."""
+        host_trees = binarize(self.host_tree, default=Node(Host()))
+        associate_trees = binarize(self.associate_tree, default=Node(Associate()))
+
+        for host_tree, associate_tree in product(host_trees, associate_trees):
+            yield Reconciliation(host_tree=host_tree, associate_tree=associate_tree)
+
     def is_complete(self) -> bool:
         """Check that all ancestral and terminal nodes have complete information."""
         return all(
@@ -298,12 +307,6 @@ class Reconciliation:
 
         :raises InvalidReconciliation: if any node is invalid
         """
-        if not is_binary(self.host_tree):
-            raise InvalidReconciliation("host tree must be binary")
-
-        if not is_binary(self.associate_tree):
-            raise InvalidReconciliation("associate tree must be binary")
-
         for cursor in traversal.depth(self.associate_tree):
             node = cursor.node
             associate = node.data

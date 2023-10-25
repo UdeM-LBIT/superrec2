@@ -12,6 +12,7 @@ from ...model.history import (
     Codiverge,
     Diverge,
 )
+from ..util import reconciliation_algorithm
 from .paths import make_path
 from .contents import AssociateNode, Contents, EXTRA_CONTENTS, compute_min_contents
 
@@ -251,9 +252,10 @@ def join_binary_event(
     return results
 
 
-def reconcile(input: Reconciliation, structure: type[Semiring[T]]) -> T:
+@reconciliation_algorithm
+def reconcile(setting: Reconciliation, structure: type[Semiring[T]]) -> Semiring[T]:
     results = defaultdict(structure.null)
-    root = input.associate_tree
+    root = setting.associate_tree
     min_contents = compute_min_contents(root)
 
     for cursor in traversal.depth(root, preorder=False):
@@ -267,7 +269,7 @@ def reconcile(input: Reconciliation, structure: type[Semiring[T]]) -> T:
             results[(node, host, contents)] += value
         else:
             for host, contents in product(
-                input.host_index.keys(),
+                setting.host_index.keys(),
                 (min_contents[cursor], min_contents[cursor] | {EXTRA_CONTENTS}),
             ):
                 left = cursor.down(0)
@@ -276,7 +278,7 @@ def reconcile(input: Reconciliation, structure: type[Semiring[T]]) -> T:
                 choices_args = {
                     "incoming_host": host,
                     "incoming_contents": contents,
-                    "host_index": input.host_index,
+                    "host_index": setting.host_index,
                     "structure": structure,
                     "table": results,
                 }
@@ -305,11 +307,11 @@ def reconcile(input: Reconciliation, structure: type[Semiring[T]]) -> T:
                 end_host=host,
                 start_contents=frozenset(),
                 end_contents=root_contents,
-                host_index=input.host_index,
+                host_index=setting.host_index,
                 structure=structure,
                 path=results[(root, host, root_contents)],
             )
-            for host in input.host_index.keys()
+            for host in setting.host_index.keys()
         ),
         start=structure.null(),
-    ).value
+    )
