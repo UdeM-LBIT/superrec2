@@ -7,7 +7,7 @@ from superrec2.compute.superdtlx.paths import (
     make_transfer_path,
     make_path,
 )
-from superrec2.compute.algebras import (
+from superrec2.compute.util import (
     make_cost_algebra,
     history_builder,
     history_generator,

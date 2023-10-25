@@ -6,6 +6,7 @@ def add_arg_input(parser, message, mode="r"):
     """Add argparse argument for specifying an input file."""
     parser.add_argument(
         "--input",
+        "-i",
         metavar="PATH",
         type=argparse.FileType(mode),
         default="-",
@@ -17,6 +18,7 @@ def add_arg_output(parser, message, mode="w"):
     """Add argparse argument for specifying an output file."""
     parser.add_argument(
         "--output",
+        "-o",
         metavar="PATH",
         type=argparse.FileType(mode),
         default="-",

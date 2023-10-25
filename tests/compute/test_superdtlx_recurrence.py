@@ -26,8 +26,8 @@ scaled_cost = make_cost_algebra(
         "loss": 1,
         "dup": 2,
         "cut": 2.5,
-        "transfer_dup": 4,
-        "transfer_cut": 4.5,
+        "transfer-dup": 4,
+        "transfer-cut": 4.5,
     },
 )
 best_scaled_cost = make_selector("best_scaled_cost", scaled_cost, history_generator)

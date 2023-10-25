@@ -1,14 +1,4 @@
 {
-    "object_tree": "((x_1,x_2),y_1);",
-    "species_tree": "(X,Y);",
-    "leaf_object_species": {
-        "x_1": "X",
-        "x_2": "X",
-        "y_1": "Y"
-    },
-    "leaf_syntenies": {
-        "x_1": ["g1", "g2", "g3"],
-        "x_2": ["g1", "g3", "g4"],
-        "y_1": ["g1", "g2", "g3", "g4"]
-    }
+    "host_tree": "(X,Y);",
+    "associate_tree": "(('x_1'[&host=X,contents='{''g1'',''g2'',''g3''}'],'x_2'[&host=X,contents='{''g1'',''g3'',''g4''}']),'y_1'[&host=Y,contents='{''g1'',''g2'',''g3'',''g4''}']);"
 }

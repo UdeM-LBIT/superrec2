@@ -138,6 +138,21 @@ def make_unit_magma(
     return Result
 
 
+def make_unit_generator(
+    typename: str, Solution: type[UnitMagma]
+) -> "Semiring[UnitMagma]":
+    return make_semiring(
+        typename,
+        null=None,
+        unit=Solution.unit(),
+        add=lambda sol1, sol2: sol1 if sol1 is not None else sol2,
+        mul=lambda sol1, sol2: (
+            sol1 * sol2 if sol1 is not None and sol2 is not None else None
+        ),
+        make=Solution.make,
+    )
+
+
 def make_generator(
     typename: str, Solution: type[UnitMagma]
 ) -> "Semiring[frozenset[UnitMagma]]":

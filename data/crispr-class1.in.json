@@ -1,38 +1,4 @@
 {
-    "object_tree": "(((I-B,I-C,I-G),I-D,(I-E,((I-F1,I-F3),I-F2)))TypeI[&&NHX:color=0037DB],((IV-A,IV-B),IV-C)TypeIV[&&NHX:color=DB0505],((III-A,(III-D,III-E)),III-F)TypeIII[&&NHX:color=0C8F00])Class1;",
-    "species_tree": "((((((Clostridium kluyveri DSM 555,(Bacillus halodurans C-125,Staphylococcus epidermidis)Bacillales)Firmicutes,Rhodococcus jostii RHA1)Actinobacteriota+Firmicutes,Thermoflexia bacterium)Actinobacteriota+Firmicutes+Chloroflexota,(Cyanothece sp. PCC 8802,Synechocystis sp. 6803)Cyanobacteria)Terrabacteria,Thermotoga lettingae TMO)DST+Terrabacteria,(Candidatus Scalindua brodae,(Geobacter sulfurreducens,(Thioalkalivibrio sp. K90mix,(Shewanella putrefaciens CN-32,(Vibrio crassostreae J5 20,(Yersinia pseudotuberculosis,Escherichia coli K12)Enterobacteriales)Vibrionales+Enterobacteriales)Alteromonadales+Vibrionales+Enterobacteriales)Gammaproteobacteria)Proteobacteria)Gracilicutes)BACTERIA;",
-    "leaf_object_species": {
-        "I-B": "Clostridium kluyveri DSM 555",
-        "I-C": "Bacillus halodurans C-125",
-        "I-D": "Cyanothece sp. PCC 8802",
-        "I-E": "Escherichia coli K12",
-        "I-F1": "Yersinia pseudotuberculosis",
-        "I-F2": "Shewanella putrefaciens CN-32",
-        "I-F3": "Vibrio crassostreae J5 20",
-        "I-G": "Geobacter sulfurreducens",
-        "III-A": "Staphylococcus epidermidis",
-        "III-D": "Synechocystis sp. 6803",
-        "III-E": "Candidatus Scalindua brodae",
-        "III-F": "Thermotoga lettingae TMO",
-        "IV-A": "Thioalkalivibrio sp. K90mix",
-        "IV-B": "Rhodococcus jostii RHA1",
-        "IV-C": "Thermoflexia bacterium"
-    },
-    "leaf_syntenies": {
-        "I-B": ["6", "8", "7", "5", "3\"", "3'", "4", "1", "2"],
-        "I-C": ["3\"", "3'", "5", "8", "7", "4", "1", "2"],
-        "I-D": ["3'", "10", "7", "5", "6", "4", "1", "2"],
-        "I-E": ["3\"", "3'", "8", "11", "7", "5", "6", "1", "2"],
-        "I-F1": ["1", "2", "3\"", "3'", "8", "5", "7", "6"],
-        "I-F3": ["8", "5", "7", "6"],
-        "I-F2": ["1", "2", "3\"", "3'", "7", "5", "6"],
-        "I-G": ["3'", "3\"", "8", "7", "5", "6", "4", "1", "2"],
-        "IV-A": ["6", "8", "7", "5"],
-        "IV-B": ["8", "11", "7", "5"],
-        "IV-C": ["10", "11", "7", "5"],
-        "III-A": ["6", "10", "11", "7", "5", "1", "2"],
-        "III-D": ["10", "7", "5", "11"],
-        "III-E": ["11", "7", "1", "2"],
-        "III-F": ["10", "5", "11", "7"]
-    }
+    "host_tree": "(((((('Clostridium kluyveri DSM 555',('Bacillus halodurans C-125','Staphylococcus epidermidis')'Bacillales')'Firmicutes','Rhodococcus jostii RHA1')'Actinobacteriota+Firmicutes','Thermoflexia bacterium')'Actinobacteriota+Firmicutes+Chloroflexota',('Cyanothece sp. PCC 8802','Synechocystis sp. 6803')'Cyanobacteria')'Terrabacteria','Thermotoga lettingae TMO')'DST+Terrabacteria',('Candidatus Scalindua brodae',('Geobacter sulfurreducens',('Thioalkalivibrio sp. K90mix',('Shewanella putrefaciens CN-32',('Vibrio crassostreae J5 20',('Yersinia pseudotuberculosis','Escherichia coli K12')'Enterobacteriales')'Vibrionales+Enterobacteriales')'Alteromonadales+Vibrionales+Enterobacteriales')'Gammaproteobacteria')'Proteobacteria')'Gracilicutes')'BACTERIA';",
+    "associate_tree": "(((I-B[&host='Clostridium kluyveri DSM 555',contents='{''6'',''8'',''7'',''5'',''3\"'',''3\\''',''4'',''1'',''2''}'],I-C[&host='Bacillus halodurans C-125',contents='{''3\"'',''3\\''',''5'',''8'',''7'',''4'',''1'',''2''}'],I-G[&host='Geobacter sulfurreducens',contents='{''3\\''',''3\"'',''8'',''7'',''5'',''6'',''4'',''1'',''2''}']),I-D[&host='Cyanothece sp. PCC 8802',contents='{''3\\''',''10'',''7'',''5'',''6'',''4'',''1'',''2''}'],(I-E[&host='Escherichia coli K12',contents='{''3\"'',''3\\''',''8'',''11'',''7'',''5'',''6'',''1'',''2''}'],((I-F1[&host='Yersinia pseudotuberculosis',contents='{''1'',''2'',''3\"'',''3\\''',''8'',''5'',''7'',''6''}'],I-F3[&host='Vibrio crassostreae J5 20',contents='{''8'',''5'',''7'',''6''}']),I-F2[&host='Shewanella putrefaciens CN-32',contents='{''1'',''2'',''3\"'',''3\\''',''7'',''5'',''6''}'])))TypeI,((IV-A[&host='Thioalkalivibrio sp. K90mix',contents='{''6'',''8'',''7'',''5''}'],IV-B[&host='Rhodococcus jostii RHA1',contents='{''8'',''11'',''7'',''5''}']),IV-C[&host='Thermoflexia bacterium',contents='{''10'',''11'',''7'',''5''}'])TypeIV,((III-A[&host='Staphylococcus epidermidis',contents='{''6'',''10'',''11'',''7'',''5'',''1'',''2''}'],(III-D[&host='Synechocystis sp. 6803',contents='{''10'',''7'',''5'',''11''}'],III-E[&host='Candidatus Scalindua brodae',contents='{''11'',''7'',''1'',''2''}'])),III-F[&host='Thermotoga lettingae TMO',contents='{''10'',''5'',''11'',''7''}'])TypeIII)Class1;"
 }

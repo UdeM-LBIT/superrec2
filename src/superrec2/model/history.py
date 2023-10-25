@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from ast import literal_eval
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields, asdict, replace
+from immutables import Map
 from .graph import Edge, shortest_paths
 from sowing.comb.binary import is_binary
 from sowing.node import Node
@@ -26,6 +27,16 @@ def parse_tree(datatype: type[T], data: str) -> Node[T, None]:
     )
 
 
+def write_tree(tree: Node[T, None]) -> str:
+    """Write a tree to a Newick-formatted string."""
+    return newick.write(
+        traversal.map(
+            lambda node, edge, *_: (Map(node.to_mapping()), None),
+            traversal.depth(tree),
+        )
+    )
+
+
 # Ordered or unordered contents of an associate
 Contents = tuple[str, ...] | frozenset[str]
 
@@ -45,6 +56,13 @@ def _contents_from_str(data: str) -> Contents:
         return frozenset(result)
 
     return result
+
+
+def _contents_to_str(contents: Contents) -> str:
+    if isinstance(contents, frozenset):
+        return str(set(contents))
+
+    return str(contents)
 
 
 def _bool_from_str(data: str) -> bool:
@@ -179,6 +197,20 @@ class Associate:
 
         return Associate(**data)
 
+    def to_mapping(self) -> dict[str, str]:
+        result = {}
+
+        if self.name is not None:
+            result["name"] = self.name
+
+        if self.host is not None:
+            result["host"] = self.host
+
+        if self.contents is not None:
+            result["contents"] = _contents_to_str(self.contents)
+
+        return result
+
 
 @repr_default
 @dataclass(frozen=True, slots=True)
@@ -199,6 +231,17 @@ class Host:
             data["sampled"] = _bool_from_str(data["sampled"])
 
         return Host(**data)
+
+    def to_mapping(self) -> dict[str, str]:
+        result = {}
+
+        if self.name is not None:
+            result["name"] = self.name
+
+        if not self.sampled:
+            result["sampled"] = "False"
+
+        return result
 
 
 def graft_unsampled_hosts(host_tree: Node[Host, None]) -> Node[Host, None]:
@@ -310,6 +353,19 @@ class Reconciliation:
             ),
         )
 
+    @staticmethod
+    def from_mapping(data: Mapping) -> Self:
+        return Reconciliation(
+            host_tree=parse_tree(Host, data["host_tree"]),
+            associate_tree=parse_tree(Associate, data["associate_tree"]),
+        )
+
+    def to_mapping(self) -> dict[str, str]:
+        return {
+            "host_tree": write_tree(self.host_tree),
+            "associate_tree": write_tree(self.associate_tree),
+        }
+
 
 class InvalidEvent(Exception):
     def __init__(self, message, event=None):
@@ -415,6 +471,11 @@ class Extant(Event):
     def from_mapping(data: Mapping) -> Self:
         return Extant(**asdict(Associate.from_mapping(data)))
 
+    def to_mapping(self) -> dict[str, str]:
+        result = super(Event, self).to_mapping()
+        result["kind"] = "extant"
+        return result
+
 
 @dataclass(frozen=True, slots=True, repr=False)
 class Codiverge(Event):
@@ -449,6 +510,11 @@ class Codiverge(Event):
     def from_mapping(data: Mapping) -> Self:
         return Codiverge(**asdict(Associate.from_mapping(data)))
 
+    def to_mapping(self) -> dict[str, str]:
+        result = super(Event, self).to_mapping()
+        result["kind"] = "codiverge"
+        return result
+
 
 @dataclass(frozen=True, slots=True, repr=False)
 class Diverge(Event):
@@ -468,8 +534,13 @@ class Diverge(Event):
 
     @property
     def arity(self) -> int:
-        target, remainder = self.split(self.segment)
-        return 1 if self.cut and not remainder.contents else 2
+        if self.contents is None:
+            complete = True
+        else:
+            target, remainder = self.split(self.segment)
+            complete = not remainder.contents
+
+        return 1 if self.cut and complete else 2
 
     def validate(
         self,
@@ -502,7 +573,11 @@ class Diverge(Event):
                 self,
             )
 
-        segment, remainder = assoc.split(self.segment)
+        if self.contents is None:
+            segment = remainder = Associate(host=self.host)
+        else:
+            segment, remainder = assoc.split(self.segment)
+
         expect_result = segment.switch(result.host)
 
         if result != expect_result:
@@ -539,6 +614,24 @@ class Diverge(Event):
 
         associate = asdict(Associate.from_mapping(data))
         return Diverge(**associate, **attrs)
+
+    def to_mapping(self) -> dict[str, str]:
+        result = super(Event, self).to_mapping()
+        result["kind"] = "diverge"
+
+        if self.segment != ():
+            result["segment"] = _contents_to_str(self.segment)
+
+        if self.cut:
+            result["cut"] = "True"
+
+        if self.transfer:
+            result["transfer"] = "True"
+
+        if self.result != 0:
+            result["result"] = str(self.result)
+
+        return result
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -577,6 +670,15 @@ class Gain(Event):
 
         associate = asdict(Associate.from_mapping(data))
         return Gain(**associate, **attrs)
+
+    def to_mapping(self) -> dict[str, str]:
+        result = super(Event, self).to_mapping()
+        result["kind"] = "gain"
+
+        if self.gained != ():
+            result["gained"] = _contents_to_str(self.gained)
+
+        return result
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -618,6 +720,15 @@ class Loss(Event):
 
         associate = asdict(Associate.from_mapping(data))
         return Loss(**associate, **attrs)
+
+    def to_mapping(self) -> dict[str, str]:
+        result = super(Event, self).to_mapping()
+        result["kind"] = "loss"
+
+        if self.segment != ():
+            result["segment"] = _contents_to_str(self.segment)
+
+        return result
 
 
 @dataclass(frozen=True, slots=True)
@@ -728,3 +839,16 @@ class History:
 
             children = tuple(edge.node.data.anon_associate() for edge in node.edges)
             event.validate(self.host_index, children)
+
+    @staticmethod
+    def from_mapping(data: Mapping) -> Self:
+        return Reconciliation(
+            host_tree=parse_tree(Host, data["host_tree"]),
+            event_tree=parse_tree(Event, data["event_tree"]),
+        )
+
+    def to_mapping(self) -> dict[str, str]:
+        return {
+            "host_tree": write_tree(self.host_tree),
+            "event_tree": write_tree(self.event_tree),
+        }
