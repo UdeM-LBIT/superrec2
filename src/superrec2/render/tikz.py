@@ -143,7 +143,7 @@ def render_event(event: Event, position: Position, params: DrawParams) -> str:
     """Generate the TikZ code for drawing an event node."""
     if event.contents is not None:
         label = format_synteny(
-            map(tex.escape, event.name),
+            map(tex.escape, event.contents),
             params.event_label_width,
         ).replace("\n", "\\\\")
     elif event.name is not None and isinstance(event, Extant):
@@ -168,7 +168,7 @@ def render_event(event: Event, position: Position, params: DrawParams) -> str:
             return rf"\node[{kind}] at ({position}) {{{label}}};"
 
         case Gain(gained):
-            return rf"\node[gain={{{gained or ''}}}] at ({position}) {{{label}}};"
+            return rf"\node[gain={{{gained or ''}}}{{{label}}}] at ({position}) {{}};"
 
         case Loss(segment):
             return rf"\node[loss={{{segment or ''}}}] at ({position}) {{{label}}};"
@@ -325,6 +325,7 @@ def render(
     \documentclass[crop, tikz, border=20pt]{standalone}
 
     \usepackage{tikz}
+    \usetikzlibrary{patterns.meta}
     \usetikzlibrary{arrows.meta}
     \usetikzlibrary{shapes}
 

@@ -845,7 +845,7 @@ class History:
 
     @staticmethod
     def from_mapping(data: Mapping) -> Self:
-        return Reconciliation(
+        return History(
             host_tree=parse_tree(Host, data["host_tree"]),
             event_tree=parse_tree(Event, data["event_tree"]),
         )

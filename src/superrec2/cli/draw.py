@@ -3,30 +3,18 @@ import json
 import textwrap
 import sys
 from .util import add_arg_input, add_arg_output
-from superrec2.render import layout, tikz
-from superrec2.render.layout import (
-    DrawParams,
-    Orientation,
-)
-from superrec2.model.reconciliation import (
-    ReconciliationOutput,
-    SuperReconciliationOutput,
-)
+from ..model.history import History
+from ..render import layout, tikz
+from ..render.model import DrawParams, Orientation
 from superrec2.utils.tex import tex_compile, TeXError
 
 
 def generate_tikz(args):
     """Generate TikZ code corresponding to the given reconciliation."""
-    data = json.load(args.input)
-    params = DrawParams(orientation=Orientation[args.orientation.upper()])
-
-    if "syntenies" in data:
-        rec_output = SuperReconciliationOutput.from_dict(data)
-    else:
-        rec_output = ReconciliationOutput.from_dict(data)
-
-    layout_info = layout.compute(rec_output, params)
-    return tikz.render(rec_output, layout_info, params)
+    history = History.from_mapping(json.load(args.input))
+    params = DrawParams(orientation=Orientation[args.orientation.title()])
+    result = layout.compute(history, tikz.measure_events, params)
+    return tikz.render(result, params)
 
 
 def output(args, tikz_code):
@@ -55,6 +43,7 @@ type explicitly",
                     r"""
                     \documentclass[crop, tikz, border=20pt]{standalone}
                     \usepackage{tikz}
+                    \usetikzlibrary{patterns.meta}
                     \usetikzlibrary{arrows.meta}
                     \usetikzlibrary{shapes}
                     \begin{document}
