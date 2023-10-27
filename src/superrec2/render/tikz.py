@@ -1,15 +1,18 @@
 """Generate a TikZ drawing from a reconciliation layout."""
-from typing import Sequence
+from typing import Callable, Sequence
 from dataclasses import dataclass
-import textwrap
+from textwrap import indent, dedent
 import math
+import re
 from .model import DrawParams, Orientation, HostLayout, Layout
-from ..model.synteny import format_synteny
 from ..model.history import Event, Extant, Codiverge, Diverge, Gain, Loss
 from ..utils import tex
 from ..utils.tex import measure
-from ..utils.text import balanced_wrap
 from ..utils.geometry import Position, Size
+
+
+# Regex to match digit groups in a string
+DIGITS = re.compile(r"([0-9]+)")
 
 
 # Round all coordinates to this number of decimal places in generated TikZ code
@@ -18,102 +21,123 @@ MAX_DIGITS = 4
 
 def get_tikz_definitions(params: DrawParams):
     """Get TikZ definitions matching a set of drawing parameters."""
+    style = []
+
     if params.orientation == Orientation.Vertical:
-        leaf_label_style = textwrap.dedent(
-            r"""
-            [font={\color{#1}},
-                align=center,
-                text depth=0pt,
-                inner xsep=0pt, inner ysep=4pt,
-                outer xsep=0pt, outer ysep=0pt]
-            below:#2
-            """
-        )
-        host_label_style = textwrap.dedent(
-            rf"""
-            font=\bfseries,
-            midway,
-            anchor=north,
-            align=center,
-            yshift=-{params.host_label_spacing},
-            """
+        style.extend(
+            (
+                f"x={{({params.x_unit},0)}}",
+                f"y={{(0,-{params.y_unit})}}",
+            )
         )
     else:
-        leaf_label_style = textwrap.dedent(
-            r"""
-            [font={\color{#1}},
-                align=justify,
-                inner xsep=4pt, inner ysep=0pt,
-                outer xsep=0pt, outer ysep=0pt]
-            right:#2
-            """
-        )
-        host_label_style = textwrap.dedent(
-            rf"""
-            font=\bfseries,
-            midway,
-            anchor=west,
-            align=left,
-            xshift={params.host_label_spacing},
-            """
+        style.extend(
+            (
+                f"y={{({params.x_unit},0)}}",
+                f"x={{(0,-{params.y_unit})}}",
+            )
         )
 
-    return textwrap.dedent(
-        rf"""
-        \colorlet{{host background color}}{{black!15}}
-        \tikzset{{
-            x={{{params.x_unit}}},
-            y={{-{params.y_unit}}},
+    style.extend(
+        (
+            """\
+            limit width/.style 2 args={
+                execute at begin node={\\begin{varwidth}{#1}#2},
+                execute at end node={\\end{varwidth}},
+            }""",
+            f"""\
             host background/.style={{
                 fill=host background color,
                 draw=host background color,
                 line width={{{params.host_border_thickness}}},
-            }},
-            unsampled host background/.style={{
-                pattern={{Lines[angle=0, distance=2.5pt, line width=1pt]}},
-                pattern color=host background color!65,
-            }},
+            }}""",
+            """\
+            unsampled host background/.style={
+                pattern={Lines[angle=45, distance=3pt, line width=2pt]},
+                pattern color=host background color!50,
+            }""",
+        )
+    )
+
+    if params.orientation == Orientation.Vertical:
+        host_label_anchor = "north"
+        host_label_align = "\\centering"
+    else:
+        host_label_anchor = "west"
+        host_label_align = "\\narrowragged"
+
+    style.extend(
+        (
+            f"""\
             host label/.style={{
-                {textwrap.indent(host_label_style, " " * 16).strip()}
-            }},
+                font=\\bfseries,
+                midway,
+                anchor={host_label_anchor},
+                limit width={{{params.host_label_width}em}}{{{host_label_align}}},
+            }}""",
+            f"""\
             branch/.style={{
                 draw={{#1}},
                 line width={{{params.branch_thickness}}},
-            }},
-            transfer branch/.style={{
-                branch={{#1}},
+            }}""",
+            """\
+            transfer branch/.style={
+                branch={#1},
                 densely dashed,
-                -{{Latex[length=0pt 8]}},
-            }},
-            extant gene/.style 2 args={{
+                -{Latex[length=0pt 8]},
+            }""",
+            f"""\
+            event/.style={{
+                draw={{#1}}, fill={{host background color!50!white}},
+                font={{\\color{{#1}}}},
+                outer sep=0pt, inner xsep=0pt, inner ysep=2pt,
+                limit width={{{params.event_label_width}em}}{{\\centering}},
+                line width={{{params.branch_thickness}}},
+            }}""",
+            "event/.default={black}",
+        )
+    )
+
+    if params.orientation == Orientation.Vertical:
+        extant_label_position = "below"
+        extant_label_align = "\\centering"
+    else:
+        extant_label_position = "right"
+        extant_label_align = "\\narrowragged"
+
+    style.extend(
+        (
+            f"""\
+            extant/.style 2 args={{
                 circle, fill={{#1}},
                 outer sep=0pt, inner sep=0pt,
                 minimum size={{{params.extant_gene_diameter}}},
                 label={{
-                    {textwrap.indent(leaf_label_style, " " * 20).strip()}
+                    [font={{\\color{{#1}}}},
+                        text depth=0pt,
+                        inner xsep=0pt, inner ysep=4pt,
+                        outer xsep=0pt, outer ysep=0pt,
+                        limit width={{{params.event_label_width}em}}{{{
+                            extant_label_align}}}]
+                    {extant_label_position}:#2
                 }},
-            }},
-            extant gene/.default={{black}}{{}},
-            event/.style={{
-                draw={{#1}}, fill={{host background color!50!white}},
-                align=center,
-                font={{\color{{#1}}}},
-                outer sep=0pt, inner xsep=0pt, inner ysep=2pt,
-                line width={{{params.branch_thickness}}},
-            }},
-            event/.default={{black}},
+            }}""",
+            "extant/.default={black}{}",
+            f"""\
             speciation/.style={{
                 event={{#1}}, rectangle, rounded corners,
                 inner xsep=4pt,
                 minimum width={{{params.speciation_size}}},
                 minimum height={{{params.speciation_size}}},
-            }},
+            }}""",
+            f"""\
             duplication/.style={{
                 event={{#1}}, rectangle,
                 inner xsep=4pt,
                 minimum width={{{params.duplication_size}}},
                 minimum height={{{params.duplication_size}}},
-            }},
+            }}""",
+            f"""\
             transfer/.style={{
                 event={{#1}}, chamfered rectangle,
                 chamfered rectangle sep={{{params.transfer_size} / 2.4}},
@@ -121,31 +145,68 @@ def get_tikz_definitions(params: DrawParams):
                 inner ysep=-1pt,
                 minimum width={{{params.transfer_size}}},
                 minimum height={{{params.transfer_size}}},
-            }},
+            }}""",
+        )
+    )
+
+    if params.orientation == Orientation.Vertical:
+        segment_position = "right"
+        segment_align = "\\narrowragged"
+    else:
+        segment_position = "above"
+        segment_align = "\\centering"
+
+    style.extend(
+        (
+            f"""\
             gain/.style 2 args={{
                 draw={{#1}}, fill=white,
                 circle, inner sep=1.5pt,
-                label={{[font={{\strut\scriptsize}},xshift=-2pt]right:#2}},
-            }},
-            loss/.style={{
+                label={{[%
+                    font={{\\strut\\scriptsize}},
+                    limit width={{{params.event_label_width}em}}{{{segment_align}}},
+                ]{segment_position}:#2}},
+            }}""",
+            f"""\
+            loss/.style 2 args={{
                 draw={{#1}}, cross out, thick,
                 line width={{{params.branch_thickness}}},
                 inner sep=0pt,
                 outer sep=0pt,
                 minimum width={{{params.loss_size}}},
                 minimum height={{{params.loss_size}}},
-            }},
-        }}"""
-    ).lstrip()
+                label={{[%
+                    font={{\\strut\\scriptsize}},
+                    limit width={{{params.event_label_width}em}}{{{segment_align}}},
+                ]{segment_position}:#2}},
+            }}""",
+        )
+    )
+
+    result = "\\colorlet{host background color}{black!15}\n"
+    complete_style = ",\n".join(indent(dedent(item), " " * 4) for item in style)
+    result += f"\\tikzset{{\n{complete_style},\n}}"
+    return result
+
+
+def contents_key(item: str):
+    parts = DIGITS.split(item)
+    return [int(part) if part.isdigit() else part for part in parts]
+
+
+def format_contents(
+    contents: frozenset[str] | None,
+    wrapper: Callable[[str], str] = lambda x: x,
+) -> str:
+    return ", ".join(
+        wrapper(tex.escape(item)) for item in sorted(contents, key=contents_key)
+    )
 
 
 def render_event(event: Event, position: Position, params: DrawParams) -> str:
     """Generate the TikZ code for drawing an event node."""
     if event.contents is not None:
-        label = format_synteny(
-            map(tex.escape, event.contents),
-            params.event_label_width,
-        ).replace("\n", "\\\\")
+        label = format_contents(event.contents)
     elif event.name is not None and isinstance(event, Extant):
         if "_" in event.name:
             base, index = event.name.rsplit("_", 1)
@@ -158,20 +219,44 @@ def render_event(event: Event, position: Position, params: DrawParams) -> str:
 
     match event:
         case Extant():
-            return rf"\node[extant gene={{black}}{{{label}}}] at " f"({position}) {{}};"
+            return rf"\node[extant={{black}}{{{label}}}] at ({position}) {{}};"
 
         case Codiverge():
             return rf"\node[speciation] at ({position}) {{{label}}};"
 
-        case Diverge(segment, _, transfer):
+        case Diverge(contents=contents, segment=segment, transfer=transfer, cut=cut):
             kind = "transfer" if transfer else "duplication"
+
+            if contents is not None:
+                if cut:
+                    remainder = format_contents(contents - segment)
+                    segment = format_contents(segment)
+                    label = f"{segment} / {remainder or '---'}"
+                else:
+                    label = ", ".join(
+                        [
+                            rf"\underline{{{tex.escape(item)}}}"
+                            for item in sorted(segment, key=contents_key)
+                        ]
+                        + [
+                            tex.escape(item)
+                            for item in sorted(contents - segment, key=contents_key)
+                        ]
+                    )
+
             return rf"\node[{kind}] at ({position}) {{{label}}};"
 
-        case Gain(gained):
-            return rf"\node[gain={{{gained or ''}}}{{{label}}}] at ({position}) {{}};"
+        case Gain(gained=gained):
+            gained = format_contents(gained)
+            return rf"\node[gain={{black}}{{{gained}}}] at ({position}) {{}};"
 
-        case Loss(segment):
-            return rf"\node[loss={{{segment or ''}}}] at ({position}) {{{label}}};"
+        case Loss(contents=contents, segment=segment):
+            if segment is not None and segment != contents:
+                segment = format_contents(segment)
+            else:
+                segment = ""
+
+            return rf"\node[loss={{black}}{{{segment}}}] at ({position}) {{}};"
 
     return rf"\node at ({position}) {{{label}{segment}}};"
 
@@ -190,7 +275,9 @@ def measure_events(events: Sequence[Event], params: DrawParams) -> dict[Event, S
             r"\tikz" + render_event(event, Position(0, 0), params) for event in events
         ),
         preamble=(
+            r"\usepackage{varwidth}"
             r"\usepackage{tikz}"
+            r"\usetikzlibrary{patterns.meta}"
             r"\usetikzlibrary{arrows.meta}"
             r"\usetikzlibrary{shapes}" + get_tikz_definitions(params)
         ),
@@ -237,7 +324,7 @@ def _render_host(
 
     if children:
         # Connect root with leftmost and rightmost children
-        # TODO: Connect to intermediate children
+        # TODO: Connect to intermediate children for non-binary trees
         fork_area = layout.fork_events_area
         left_area = children[0].events_area
         right_area = children[-1].events_area
@@ -259,14 +346,7 @@ def _render_host(
         leaf_shift = Position(0, params.host_leaf_spacing)
 
         if sampled:
-            host_name = tex.escape(layout.host.name)
-
-            if params.host_label_width is not None:
-                host_name = balanced_wrap(host_name, params.host_label_width).replace(
-                    "\n", "\\\\"
-                )
-
-            host_label = f"node[host label] {{{host_name}}}"
+            host_label = f"node[host label] {{{tex.escape(layout.host.name)}}}"
         else:
             host_label = ""
 
@@ -324,6 +404,7 @@ def render(
     ```
     \documentclass[crop, tikz, border=20pt]{standalone}
 
+    \usepackage{varwidth}
     \usepackage{tikz}
     \usetikzlibrary{patterns.meta}
     \usetikzlibrary{arrows.meta}

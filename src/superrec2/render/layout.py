@@ -2,7 +2,7 @@
 from typing import Callable
 from itertools import chain
 from sowing import traversal
-from .model import EventLayout, DrawParams, HostLayout, Layout
+from .model import EventLayout, DrawParams, HostLayout, Layout, Orientation
 from ..model.history import Event, History
 from ..utils.geometry import Position, Rect, Size
 
@@ -46,13 +46,17 @@ def _process_events(
             else:
                 out_children.append(child)
 
-        host_layout = layout[event.host]
+        size = sizes[event]
 
+        if params.orientation == Orientation.Horizontal:
+            size = Size(size.h, size.w)
+
+        host_layout = layout[event.host]
         host_layout.events[cursor.node] = EventLayout(
             forking=bool(out_children) and not in_children,
             in_children=in_children,
             out_children=out_children,
-            area=Rect(Position(0, 0), sizes[event]),
+            area=Rect(Position(0, 0), size),
         )
 
     return layout

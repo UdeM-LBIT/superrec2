@@ -113,6 +113,14 @@ class DrawParams:
     # Space to allocate in the host outline around events
     events_host_padding: float = 3
 
+    # Maximum width (in ems) before the species labels will be
+    # wrapped (leave as None to disable wrapping)
+    host_label_width: int | None = 12
+
+    # Maximum width (in ems) before the event node labels will be
+    # wrapped (leave as None to disable wrapping)
+    event_label_width: int | None = 6
+
     ###
 
     # Minimum space between the outline of the species tree
@@ -140,19 +148,11 @@ class DrawParams:
     # Distance of the species labels from the species leaves
     host_label_spacing: float = 4
 
-    # Maximum width (in number of chars) before the species labels will be
-    # wrapped (leave as None to disable wrapping)
-    host_label_width: int | None = 21
-
     # Size of the filled circles that represent extant genes
     extant_gene_diameter: float = 3
 
     # Size of the crosses that represent lost genes
     loss_size: float = 3
-
-    # Maximum width (in number of chars) before the event node labels will be
-    # wrapped (leave as None to disable wrapping)
-    event_label_width: int | None = 18
 
     # Minimum size of the hollow circles that represent speciation events
     speciation_size: float = 8

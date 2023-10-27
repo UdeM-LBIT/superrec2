@@ -42,6 +42,7 @@ type explicitly",
                 source=textwrap.dedent(
                     r"""
                     \documentclass[crop, tikz, border=20pt]{standalone}
+                    \usepackage{varwidth}
                     \usepackage{tikz}
                     \usetikzlibrary{patterns.meta}
                     \usetikzlibrary{arrows.meta}
