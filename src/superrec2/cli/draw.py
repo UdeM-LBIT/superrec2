@@ -11,7 +11,15 @@ from superrec2.utils.tex import tex_compile, TeXError
 
 def generate_tikz(args):
     """Generate TikZ code corresponding to the given reconciliation."""
-    history = History.from_mapping(json.load(args.input))
+    for line in args.input:
+        try:
+            history = History.from_mapping(json.loads(line))
+            break
+        except json.JSONDecodeError:
+            pass
+    else:
+        raise RuntimeError("No valid history found in input")
+
     params = DrawParams(orientation=Orientation[args.orientation.title()])
     result = layout.compute(history, tikz.measure_events, params)
     return tikz.render(result, params)
