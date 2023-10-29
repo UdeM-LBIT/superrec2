@@ -792,6 +792,79 @@ class History:
         epochs, _ = shortest_paths(root, nodes, edges)
         return {host_name: -epochs[host_name] for host_name in self.host_index.keys()}
 
+    def prune_unsampled(self) -> Self:
+        """Remove unsampled species containing no non-extant events from the history."""
+
+        # Collect events by the host they belong to
+        events_by_host = {
+            cursor.node.data.name: [] for cursor in traversal.depth(self.host_tree)
+        }
+
+        for cursor in traversal.depth(self.event_tree):
+            event = cursor.node.data
+            events_by_host[event.host].append(event)
+
+        # Remove and regraft unsampled hosts that only contain extant events
+        pruned_leaves = set()
+        pruned_internal = set()
+
+        def prune_hosts(cursor: Zipper[Host, None]) -> Zipper[Host, None]:
+            host = cursor.node.data
+
+            if not host.sampled and all(
+                (
+                    isinstance(event, Extant)
+                    or (isinstance(event, Loss) and event.arity == 0)
+                )
+                for event in events_by_host[host.name]
+            ):
+                pruned_leaves.add(host.name)
+                return cursor.replace(node=None)
+
+            if len(cursor.node.edges) == 1:
+                pruned_internal.add(host.name)
+                return cursor.replace(node=cursor.down().node)
+
+            return cursor
+
+        host_tree = traversal.fold(
+            prune_hosts,
+            traversal.depth(self.host_tree, preorder=False),
+        )
+
+        # Remove and regraft events happening in pruned hosts
+        def prune_events(cursor: Zipper[Event, None]) -> Zipper[Event, None]:
+            event = cursor.node.data
+            actual_arity = len(cursor.node.edges)
+
+            if event.host in pruned_leaves:
+                return cursor.replace(node=None)
+
+            if actual_arity < event.arity:
+                if actual_arity == 0:
+                    return cursor.replace(node=None)
+
+                if actual_arity == 1:
+                    return cursor.replace(node=cursor.down().node)
+
+            if event.host in pruned_internal:
+                host = next(
+                    edge.node.data.name
+                    for edge in self.host_index[event.host].node.edges
+                    if edge.node.data.name not in pruned_leaves
+                )
+                return cursor.replace(
+                    node=cursor.node.replace(data=replace(event, host=host))
+                )
+
+            return cursor
+
+        event_tree = traversal.fold(
+            prune_events,
+            traversal.depth(self.event_tree, preorder=False),
+        )
+        return History(host_tree=host_tree, event_tree=event_tree)
+
     def compress(self) -> Reconciliation:
         """
         Reduce this history to a binary associate phylogeny mapped onto

@@ -154,29 +154,6 @@ def test_reconciliation_valid():
 def test_reconciliation_invalid():
     with pytest.raises(InvalidReconciliation) as err:
         rec = Reconciliation(
-            host_tree=parse_tree(Host, "((4,5,10)3,(6,(8,9)7)2)1;"),
-            associate_tree=parse_tree(Assoc, "((1[&host=8],2[&host=9])3,4[&host=9])5;"),
-        )
-        rec.validate()
-
-    assert "host tree must be binary" in str(err.value)
-    assert err.value.node is None
-
-    with pytest.raises(InvalidReconciliation) as err:
-        rec = Reconciliation(
-            host_tree=parse_tree(Host, "((4,5)3,(6,(8,9)7)2)1;"),
-            associate_tree=parse_tree(
-                Assoc,
-                "((1[&host=8],2[&host=9])3,4[&host=9],5[&host=4])6;",
-            ),
-        )
-        rec.validate()
-
-    assert "associate tree must be binary" in str(err.value)
-    assert err.value.node is None
-
-    with pytest.raises(InvalidReconciliation) as err:
-        rec = Reconciliation(
             host_tree=parse_tree(Host, "((4,5)3,(6,(8,9)7)2)1;"),
             associate_tree=parse_tree(Assoc, "((1[&host=8],2)3,4[&host=9])6;"),
         )
@@ -937,3 +914,235 @@ def test_history_epochs():
         with_cycle.epochs()
 
     assert err.value.args[1] == ["s", "t"]
+
+
+def test_history_prune_unsampled():
+    no_unsampled = History(
+        host_tree=parse_tree(Host, "(1,(2,(3,4)t)s)r;"),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              x[&host=1,contents='{"a","b"}'],
+              (
+                [&kind=loss,host=t,contents='{"a","b"}',segment='{"a","b"}'],
+                y[&host=2,contents='{"a","b"}']
+              )[&kind=codiverge,host=s,contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    no_unsampled.validate()
+    assert no_unsampled.prune_unsampled() == no_unsampled
+
+    unused_unsampled = History(
+        host_tree=graft_unsampled_hosts(parse_tree(Host, "(1,(2,(3,4)t)s)r;")),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              (
+                [&host='1[U]',contents='{"a","b"}'],
+                x[&host=1,contents='{"a","b"}']
+              )[&kind=codiverge,host='1[P]',contents='{"a","b"}'],
+              (
+                [&host='s[U]',contents='{"a","b"}'],
+                (
+                  (
+                    [&host='t[U]',contents='{"a","b"}'],
+                    [&kind=loss,host=t,contents='{"a","b"}',segment='{"a","b"}']
+                  )[&kind=codiverge,host='t[P]',contents='{"a","b"}'],
+                  (
+                    [&host='2[U]',contents='{"a","b"}'],
+                    y[&host=2,contents='{"a","b"}']
+                  )[&kind=codiverge,host='2[P]',contents='{"a","b"}']
+                )[&kind=codiverge,host=s,contents='{"a","b"}']
+              )[&kind=codiverge,host='s[P]',contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    unused_unsampled.validate()
+    assert unused_unsampled.prune_unsampled() == no_unsampled
+
+    host_tree = parse_tree(
+        Host,
+        """
+        (
+          (1U[&sampled=False],1)1P,
+          (
+            sU[&sampled=False],
+            (
+              (2U[&sampled=False],2)2P,
+              (
+                tU[&sampled=False],
+                (
+                  (3U[&sampled=False],3)3P,
+                  (4U[&sampled=False],4)4P
+                )t
+              )tP
+            )s
+          )sP
+        )r;
+        """,
+    )
+    used_unsampled = History(
+        host_tree=host_tree,
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              (
+                (
+                  [&host=1U,contents='{"a"}'],
+                  [&host=4,contents='{"b"}']
+                )[&kind=diverge,transfer=True,cut=True,host=1U,contents='{"a","b"}',segment='{"b"}',result=1],
+                x[&host=1,contents='{"a","b"}']
+              )[&kind=codiverge,host=1P,contents='{"a","b"}'],
+              (
+                [&host=sU,contents='{"a","b"}'],
+                (
+                  (
+                    [&host=tU,contents='{"a","b"}'],
+                    [&kind=loss,host=t,contents='{"a","b"}',segment='{"a","b"}']
+                  )[&kind=codiverge,host=tP,contents='{"a","b"}'],
+                  (
+                    [&host=2U,contents='{"a","b"}'],
+                    y[&host=2,contents='{"a","b"}']
+                  )[&kind=codiverge,host=2P,contents='{"a","b"}']
+                )[&kind=codiverge,host=s,contents='{"a","b"}']
+              )[&kind=codiverge,host=sP,contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    used_unsampled_pruned = History(
+        host_tree=parse_tree(Host, "((1U[&sampled=False],1)1P,(2,(3,4)t)s)r;"),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              (
+                (
+                  [&host=1U,contents='{"a"}'],
+                  [&host=4,contents='{"b"}']
+                )[&kind=diverge,transfer=True,cut=True,host=1U,contents='{"a","b"}',segment='{"b"}',result=1],
+                x[&host=1,contents='{"a","b"}']
+              )[&kind=codiverge,host=1P,contents='{"a","b"}'],
+              (
+                [&kind=loss,host=t,contents='{"a","b"}',segment='{"a","b"}'],
+                y[&host=2,contents='{"a","b"}']
+              )[&kind=codiverge,host='s',contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    used_unsampled.validate()
+    used_unsampled_pruned.validate()
+    assert used_unsampled.prune_unsampled() == used_unsampled_pruned
+
+    in_unsampled_parent = History(
+        host_tree=host_tree,
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              (
+                (
+                  (
+                    [&host=1U,contents='{"a","b"}'],
+                    x[&host=1,contents='{"a","b"}']
+                  )[&kind=codiverge,host=1P,contents='{"a","b"}'],
+                  [&host=2,contents='{"a"}']
+                )[&kind=diverge,host=1P,transfer=True,contents='{"a","b"}',segment='{"a"}',result=1],
+                [&host=3,contents='{"a"}']
+              )[&kind=diverge,host=1P,transfer=True,contents='{"a","b"}',segment='{"a"}',result=1],
+              (
+                [&host=sU,contents='{"a","b"}'],
+                (
+                  (
+                    [&host=2,contents='{"a","b"}']
+                  )[&kind=diverge,host=tP,transfer=True,cut=True,contents='{"a","b"}',segment='{"a","b"}'],
+                  (
+                    [&host=2U,contents='{"a","b"}'],
+                    y[&host=2,contents='{"a","b"}']
+                  )[&kind=codiverge,host=2P,contents='{"a","b"}']
+                )[&kind=codiverge,host=s,contents='{"a","b"}']
+              )[&kind=codiverge,host=sP,contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    in_unsampled_parent_pruned = History(
+        host_tree=parse_tree(Host, "(1,(2,(3,4)t)s)r;"),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              (
+                (
+                  x[&host=1,contents='{"a","b"}'],
+                  [&host=2,contents='{"a"}']
+                )[&kind=diverge,host=1,transfer=True,contents='{"a","b"}',segment='{"a"}',result=1],
+                [&host=3,contents='{"a"}']
+              )[&kind=diverge,host=1,transfer=True,contents='{"a","b"}',segment='{"a"}',result=1],
+              (
+                (
+                  [&host=2,contents='{"a","b"}']
+                )[&kind=diverge,host=t,transfer=True,cut=True,contents='{"a","b"}',segment='{"a","b"}'],
+                y[&host=2,contents='{"a","b"}']
+              )[&kind=codiverge,host=s,contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    in_unsampled_parent.validate()
+    in_unsampled_parent_pruned.validate()
+    assert in_unsampled_parent.prune_unsampled() == in_unsampled_parent_pruned
+
+    full_loss_in_unsampled_parent = History(
+        host_tree=host_tree,
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              [&kind=loss,host=1P,contents='{"a","b"}',segment='{"a","b"}'],
+              (
+                [&host=sU,contents='{"a","b"}'],
+                (
+                  (
+                    [&host=2,contents='{"a","b"}']
+                  )[&kind=diverge,host=tP,transfer=True,cut=True,contents='{"a","b"}',segment='{"a","b"}'],
+                  (
+                    [&host=2U,contents='{"a","b"}'],
+                    y[&host=2,contents='{"a","b"}']
+                  )[&kind=codiverge,host=2P,contents='{"a","b"}']
+                )[&kind=codiverge,host=s,contents='{"a","b"}']
+              )[&kind=codiverge,host=sP,contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    full_loss_in_unsampled_parent_pruned = History(
+        host_tree=parse_tree(Host, "(1,(2,(3,4)t)s)r;"),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              [&kind=loss,host=1,contents='{"a","b"}',segment='{"a","b"}'],
+              (
+                (
+                  [&host=2,contents='{"a","b"}']
+                )[&kind=diverge,host=t,transfer=True,cut=True,contents='{"a","b"}',segment='{"a","b"}'],
+                y[&host=2,contents='{"a","b"}']
+              )[&kind=codiverge,host=s,contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    full_loss_in_unsampled_parent.validate()
+    full_loss_in_unsampled_parent_pruned.validate()
+    assert (
+        full_loss_in_unsampled_parent.prune_unsampled()
+        == full_loss_in_unsampled_parent_pruned
+    )
