@@ -21,13 +21,13 @@ T = TypeVar("T")
 
 
 class HostChoice(Enum):
-    # Starts at the specified parent host, ends at any descendant
+    # Starts at the specified parent host, ends at any non-ancestor
     Incoming = auto()
 
-    # Starts at the left child of the parent host, ends at any of its descendants
+    # Starts at the left child of the parent host, ends at any non-ancestor
     Left = auto()
 
-    # Starts at the right child of the parent host, ends at any of its descendants
+    # Starts at the right child of the parent host, ends at any non-ancestor
     Right = auto()
 
     # Starts and ends at any separate host
@@ -155,7 +155,7 @@ def join_binary_event(
                 Diverge(
                     host=host,
                     contents=contents,
-                    segment=left_contents,
+                    segment=right_contents,
                     cut=False,
                     transfer=False,
                     result=1,

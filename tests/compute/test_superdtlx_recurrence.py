@@ -196,6 +196,51 @@ def test_reconcile_dup_cut():
     )
     assert all(_history_match_input(setting, history) for history in results)
 
+    # Three leaves in same host with distinct and non-subsumed contents:
+    # Partial duplication and partial loss
+    associate_tree = parse_tree(
+        Associate,
+        """
+        (
+          (1[&host=a,contents='{"x","y"}'],2[&host=a,contents='{"x","z"}']),
+          3[&host=a,contents='{"x","y","z"}']
+        );
+        """,
+    )
+    setting = Reconciliation(host_tree, associate_tree)
+    assert reconcile(setting, scaled_cost) == 5
+
+    results = reconcile(setting, best_scaled_cost).selected.value
+    assert results == _tree_set(
+        """
+        (
+          (
+            (
+              (
+                1[&host=a,contents='{"x","y"}']
+              )[&kind=loss,host=a,contents='{"x","y","z"}',segment='{"z"}'],
+              2[&host=a,contents='{"x","z"}']
+            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","z"}',result=1],
+            3[&host=a,contents='{"x","y","z"}']
+          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}']
+        )[&kind=gain,host=a,contents='set()',gained='{"x","y","z"}'];
+        """,
+        """
+        (
+          (
+            (
+              (
+                1[&host=a,contents='{"x","y"}']
+              )[&kind=loss,host=a,contents='{"x","y","__extra__"}',segment='{"__extra__"}'],
+              2[&host=a,contents='{"x","z"}']
+            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","z"}',result=1],
+            3[&host=a,contents='{"x","y","z"}']
+          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}']
+        )[&kind=gain,host=a,contents='set()',gained='{"x","y","z"}'];
+        """,
+    )
+    assert all(_history_match_input(setting, history) for history in results)
+
     # Three leaves in same host with disjoint contents: Cuts
     associate_tree = parse_tree(
         Associate,
