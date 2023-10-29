@@ -9,7 +9,7 @@ from superrec2.model.history import (
 )
 from superrec2.compute.superdtlx.recurrence import reconcile
 from superrec2.utils.algebras import make_selector
-from superrec2.compute.algebras import (
+from superrec2.compute.util import (
     make_cost_algebra,
     history_builder,
     history_generator,

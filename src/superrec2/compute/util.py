@@ -5,6 +5,7 @@ from superrec2.utils.algebras import (
     make_unit_generator,
     make_generator,
     min_plus,
+    count,
 )
 from superrec2.model.history import Event, Codiverge, Diverge, Gain, Loss, Extant
 from tqdm import tqdm
@@ -79,5 +80,6 @@ history_builder = make_unit_magma(
     make=Node,
 )
 
+history_counter = count("history_counter", lambda _: 1)
 history_generator = make_generator("history_generator", history_builder)
 history_unit_generator = make_unit_generator("history_unit_generator", history_builder)

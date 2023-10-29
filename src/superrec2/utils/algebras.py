@@ -234,6 +234,20 @@ def count(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]:
     )
 
 
+def make_product(typename: str, Left: type[Semiring], Right: type[Semiring]) -> Semiring:
+    return make_semiring(
+        typename,
+        null=(Left.null(), Right.null()),
+        unit=(Left.unit(), Right.unit()),
+        add=lambda x, y: (x[0] + y[0], x[1] + y[1]),
+        mul=lambda x, y: (x[0] * y[0], x[1] * y[1]),
+        make=lambda *args, **kwargs: (
+            Left.make(*args, **kwargs),
+            Right.make(*args, **kwargs),
+        ),
+    )
+
+
 def make_selector(
     typename: str, Cost: type[Semiring], Value: type[Semiring]
 ) -> Semiring:

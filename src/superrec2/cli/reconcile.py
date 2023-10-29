@@ -4,8 +4,10 @@ import json
 from ast import literal_eval
 from .util import add_arg_input, add_arg_output
 from ..model.history import Reconciliation, History, graft_unsampled_hosts
-from ..utils.algebras import make_selector, count
-from ..compute.util import make_cost_algebra, history_unit_generator, history_generator
+from ..utils.algebras import make_selector, make_product
+from ..compute.util import (
+    make_cost_algebra, history_counter, history_unit_generator, history_generator,
+)
 from ..compute import superdtlx
 
 
@@ -18,25 +20,19 @@ def register_method(method):
 
 
 @register_method
-def min_cost(algo, cost_algebra, setting, output):
-    """Compute the minimum cost over all reconciliations."""
-    result = algo(setting, cost_algebra)
-    print(result, file=output)
-
-
-@register_method
 def single_solution(algo, cost_algebra, setting, output):
     """Report a single arbitrary minimum-cost solution."""
     single_solution_algebra = make_selector(
         "single_solution_algebra",
         cost_algebra,
-        history_unit_generator,
+        make_product("history_count_unit_gen", history_counter, history_unit_generator),
     )
 
     result = algo(setting, single_solution_algebra)
     print(f"cost={result.cost.value}", file=output)
+    print(f"count={result.selected.value[0].value}", file=output)
 
-    history = History(setting.host_tree, result.selected.value.value)
+    history = History(setting.host_tree, result.selected.value[1].value.value)
     json.dump(history.to_mapping(), output)
     print(file=output)
 
@@ -52,25 +48,12 @@ def all_solutions(algo, cost_algebra, setting, output):
 
     result = algo(setting, all_solutions_algebra)
     print(f"cost={result.cost.value}", file=output)
+    print(f"count={len(result.selected.value)}", file=output)
 
     for solution in result.selected.value:
         history = History(setting.host_tree, solution.value)
         json.dump(history.to_mapping(), output)
         print(file=output)
-
-
-@register_method
-def count_solutions(algo, cost_algebra, setting, output):
-    """Count the number of minimum-cost solutions."""
-    count_solutions_algebra = make_selector(
-        "count_solutions_algebra",
-        cost_algebra,
-        count("history_counter", lambda _: 1),
-    )
-
-    result = algo(setting, count_solutions_algebra)
-    print(f"cost={result.cost.value}", file=output)
-    print(f"count={result.selected.value}", file=output)
 
 
 def reconcile(args):
@@ -138,7 +121,7 @@ def add_args(parser):
         "--method",
         "-m",
         metavar="METHOD",
-        default="count-solutions",
+        default="single-solution",
         help=(
             "select what to compute (default: %(default)s). available methods: "
             + ", ".join(
