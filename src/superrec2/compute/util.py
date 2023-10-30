@@ -38,6 +38,12 @@ def reconciliation_algorithm(algo):
 def make_cost_algebra(typename: str, costs: Mapping[str, float]):
     """Create a structure that computes reconciliation costs."""
 
+    allowed_costs = {"speciation", "dup", "transfer-dup", "cut", "transfer-cut", "loss"}
+
+    for key in costs.keys():
+        if key not in allowed_costs:
+            raise RuntimeError(f"'{key}' is not a valid cost type")
+
     def make(event: Event):
         match event:
             case Extant():
