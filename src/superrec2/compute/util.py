@@ -8,18 +8,26 @@ from superrec2.utils.algebras import (
     count,
 )
 from superrec2.model.history import Event, Codiverge, Diverge, Gain, Loss, Extant
-from tqdm import tqdm
 
 
 def reconciliation_algorithm(algo):
-    """Wrap a reconciliation algorithm so that it receives only binary inputs."""
+    """
+    Wrap a constitent interface around a reconciliation algorithm.
 
-    def reconcile(setting, structure):
+    The wrapped algorithm can accept any input, even non-binary ones, and
+    automatically searches through all possible binarizations.
+
+    :param algo: original algorithm
+    :param progress: callback to report progress, if needed (default: no-op)
+    :returns: wrapped algorithm
+    """
+
+    def reconcile(setting, structure, progress=lambda iterator, **kwargs: iterator):
         count_bins = sum(1 for _ in setting.binarize())
         return sum(
             (
                 algo(bin_setting, structure)
-                for bin_setting in tqdm(setting.binarize(), total=count_bins)
+                for bin_setting in progress(setting.binarize(), total=count_bins)
             ),
             start=structure.null(),
         ).value

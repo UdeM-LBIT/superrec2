@@ -2,6 +2,7 @@
 import argparse
 import json
 from ast import literal_eval
+from tqdm import tqdm
 from .util import add_arg_input, add_arg_output
 from ..model.history import Reconciliation, History, graft_unsampled_hosts
 from ..utils.algebras import make_selector, make_product
@@ -28,7 +29,7 @@ def single_solution(algo, cost_algebra, setting, output):
         make_product("history_count_unit_gen", history_counter, history_unit_generator),
     )
 
-    result = algo(setting, single_solution_algebra)
+    result = algo.reconcile(setting, single_solution_algebra, progress=tqdm)
     print(f"cost={result.cost.value}", file=output)
     print(f"count={result.selected.value[0].value}", file=output)
 
@@ -46,7 +47,7 @@ def all_solutions(algo, cost_algebra, setting, output):
         history_generator,
     )
 
-    result = algo(setting, all_solutions_algebra)
+    result = algo.reconcile(setting, all_solutions_algebra, progress=tqdm)
     print(f"cost={result.cost.value}", file=output)
     print(f"count={len(result.selected.value)}", file=output)
 
@@ -76,7 +77,7 @@ def reconcile(args):
         )
 
     setting.validate()
-    methods[args.method](superdtlx.reconcile, cost_algebra, setting, args.output)
+    methods[args.method](superdtlx, cost_algebra, setting, args.output)
 
 
 def add_args(parser):
