@@ -234,7 +234,9 @@ def count(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]:
     )
 
 
-def make_product(typename: str, Left: type[Semiring], Right: type[Semiring]) -> Semiring:
+def make_product(
+    typename: str, Left: type[Semiring], Right: type[Semiring]
+) -> Semiring:
     return make_semiring(
         typename,
         null=(Left.null(), Right.null()),

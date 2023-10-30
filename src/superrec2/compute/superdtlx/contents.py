@@ -1,6 +1,8 @@
 from sowing.node import Node
+from sowing.zipper import Zipper
 from sowing import traversal
-from ...model.history import Associate
+from dataclasses import replace
+from ...model.history import Associate, Event, Gain, Loss, Diverge, History
 
 
 Contents = frozenset[str]
@@ -56,3 +58,39 @@ def compute_min_contents(
             min_contents[cursor] -= gains[left_child] | gains[right_child]
 
     return min_contents
+
+
+def propagate_contents(history: History) -> History:
+    """Replace all extra-contents placeholders with actual contents."""
+
+    def propagate_at_node(cursor: Zipper[Event, None]) -> Zipper[Event, None]:
+        parent_event = cursor.node.data
+        edges = cursor.node.edges
+        new_edges = []
+
+        for edge in edges:
+            event = edge.node.data
+            extra = parent_event.contents - event.contents
+
+            if EXTRA_CONTENTS in event.contents:
+                event = replace(
+                    event, contents=event.contents - {EXTRA_CONTENTS} | extra
+                )
+
+            if isinstance(event, (Loss, Diverge)) and EXTRA_CONTENTS in event.segment:
+                event = replace(event, segment=event.segment - {EXTRA_CONTENTS} | extra)
+
+            if isinstance(event, Gain) and EXTRA_CONTENTS in event.gained:
+                event = replace(event, segment=event.segment - {EXTRA_CONTENTS} | extra)
+
+            new_edges.append(edge.replace(node=edge.node.replace(data=event)))
+
+        return cursor.replace(node=cursor.node.replace(edges=tuple(new_edges)))
+
+    return History(
+        host_tree=history.host_tree,
+        event_tree=traversal.fold(
+            propagate_at_node,
+            traversal.depth(history.event_tree, preorder=True),
+        ),
+    )

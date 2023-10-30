@@ -7,7 +7,10 @@ from .util import add_arg_input, add_arg_output
 from ..model.history import Reconciliation, History, graft_unsampled_hosts
 from ..utils.algebras import make_selector, make_product
 from ..compute.util import (
-    make_cost_algebra, history_counter, history_unit_generator, history_generator,
+    make_cost_algebra,
+    history_counter,
+    history_unit_generator,
+    history_generator,
 )
 from ..compute import superdtlx
 
@@ -34,7 +37,7 @@ def single_solution(algo, cost_algebra, setting, output):
     print(f"count={result.selected.value[0].value}", file=output)
 
     history = History(setting.host_tree, result.selected.value[1].value.value)
-    json.dump(history.to_mapping(), output)
+    json.dump(algo.finalize_history(history).to_mapping(), output)
     print(file=output)
 
 
@@ -53,7 +56,7 @@ def all_solutions(algo, cost_algebra, setting, output):
 
     for solution in result.selected.value:
         history = History(setting.host_tree, solution.value)
-        json.dump(history.to_mapping(), output)
+        json.dump(algo.finalize_history(history).to_mapping(), output)
         print(file=output)
 
 
