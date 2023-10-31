@@ -45,7 +45,6 @@ dependencies = [
 ]
 
 [tool.hatch.envs.dev.scripts]
-update-fixtures = "./tests/render/update-fixtures"
 test = "pytest --exitfirst"
 test-verbose = "pytest --exitfirst -vv"
 format = "black ."
