@@ -2,6 +2,7 @@ from typing import Any, Self, Generic, Protocol, Callable, TypeVar
 from dataclasses import dataclass
 from functools import wraps
 from itertools import product
+from immutables import Map
 import operator
 
 
@@ -92,6 +93,30 @@ def make_semiring(
     return Result
 
 
+def min_plus(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]:
+    """Semiring used for finding the minimum cost of any solution."""
+    return make_semiring(
+        typename,
+        null=float("inf"),
+        unit=0,
+        add=min,
+        mul=operator.add,
+        make=make,
+    )
+
+
+def max_plus(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]:
+    """Semiring used for finding the maximum score of any solution."""
+    return make_semiring(
+        typename,
+        null=float("-inf"),
+        unit=0,
+        add=max,
+        mul=operator.add,
+        make=make,
+    )
+
+
 class UnitMagma(Generic[T], Protocol):
     """Structure with an operation and a unit element."""
 
@@ -174,27 +199,52 @@ def make_generator(
     )
 
 
-def min_plus(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]:
-    """Semiring used for finding the minimum cost of any solution."""
-    return make_semiring(
-        typename,
-        null=float("inf"),
-        unit=0,
-        add=min,
-        mul=operator.add,
-        make=make,
-    )
+class OrderedMagma(Generic[T], UnitMagma[T], Protocol):
+    """Magma with a partial order."""
+
+    def __le__(self, other):
+        ...
 
 
-def max_plus(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]:
-    """Semiring used for finding the maximum score of any solution."""
+def tuple_ordered_magma(cls):
+    """Decorate a named tuple to make it into an ordered magma."""
+
+    @classmethod
+    def unit(cls) -> Self:
+        return cls()
+
+    def __le__(self, other):
+        return all(left <= right for left, right in zip(self, other))
+
+    def __mul__(self, other):
+        return self.__class__(*(left + right for left, right in zip(self, other)))
+
+    cls.unit = unit
+    cls.__le__ = __le__
+    cls.__mul__ = __mul__
+
+    return cls
+
+
+def pareto(
+    typename: str, Value: type[OrderedMagma]
+) -> Semiring[frozenset[OrderedMagma]]:
+    def select(options):
+        return frozenset(
+            {
+                value
+                for value in options
+                if not any(other <= value and other != value for other in options)
+            }
+        )
+
     return make_semiring(
         typename,
-        null=float("-inf"),
-        unit=0,
-        add=max,
-        mul=operator.add,
-        make=make,
+        null=frozenset(),
+        unit=frozenset({Value.unit()}),
+        add=lambda x, y: select(x | y),
+        mul=lambda x, y: select({a * b for a, b in product(x, y)}),
+        make=lambda *args, **kwargs: frozenset({Value.make(*args, **kwargs)}),
     )
 
 
@@ -250,45 +300,96 @@ def make_product(
     )
 
 
-def make_selector(
-    typename: str, Cost: type[Semiring], Value: type[Semiring]
+def make_single_selector(
+    typename: str, Key: type[Semiring], Value: type[Semiring]
 ) -> Semiring:
     """
-    Make a selector that keeps only least- or greatest-cost values of a semiring.
+    Make a selector that keeps a single least or greatest value for a
+    scalar idempotent semiring.
 
     :param name: name of the semiring type to create
-    :param Cost: additively-idempotent semiring (min-plus, max-plus, viterbi, ...)
+    :param Key: scalar idempotent semiring (min-plus, max-plus, viterbi, ...)
     :param Value: semiring to augment
     """
 
     @dataclass(frozen=True, slots=True)
-    class CostValue:
-        cost: Cost
-        selected: Value
+    class KeyValue:
+        key: Key
+        value: Value
 
     def select(item1, item2):
-        cost_sum = item1.cost + item2.cost
+        key_sum = item1.key + item2.key
 
-        if item1.cost != item2.cost:
-            if item1.cost == cost_sum:
+        if item1.key != item2.key:
+            if item1.key == key_sum:
                 return item1
 
-            if item2.cost == cost_sum:
+            if item2.key == key_sum:
                 return item2
 
-        return CostValue(cost_sum, item1.selected + item2.selected)
+        return KeyValue(key_sum, item1.value + item2.value)
 
     def combine(item1, item2):
-        return CostValue(item1.cost * item2.cost, item1.selected * item2.selected)
+        return KeyValue(item1.key * item2.key, item1.value * item2.value)
 
     return make_semiring(
         typename,
-        null=CostValue(Cost.null(), Value.null()),
-        unit=CostValue(Cost.unit(), Value.unit()),
+        null=KeyValue(Key.null(), Value.null()),
+        unit=KeyValue(Key.unit(), Value.unit()),
         add=select,
         mul=combine,
-        make=lambda *args, **kwargs: CostValue(
-            Cost.make(*args, **kwargs),
+        make=lambda *args, **kwargs: KeyValue(
+            Key.make(*args, **kwargs),
             Value.make(*args, **kwargs),
+        ),
+    )
+
+
+def make_multiple_selector(
+    typename: str,
+    Key: type[Semiring],
+    Value: type[Semiring],
+) -> Semiring:
+    """
+    Make a selector that keeps all least or greatest values for an
+    iterable partially-ordered semiring.
+
+    :param name: name of the semiring type to create
+    :param Key: iterable partially-ordered semiring (pareto, ...)
+    :param Value: semiring to augment
+    """
+
+    def select(opts1, opts2):
+        keys = Key(frozenset(opts1.keys())) + Key(frozenset(opts2.keys()))
+        return Map(
+            {
+                key: opts1.get(key, Value.null()) + opts2.get(key, Value.null())
+                for key in keys.value
+            }
+        )
+
+    def combine(opts1, opts2):
+        keys = Key(frozenset(opts1.keys())) * Key(frozenset(opts2.keys()))
+        return Map(
+            {
+                key1 * key2: value1 * value2
+                for (key1, value1), (key2, value2) in product(
+                    opts1.items(), opts2.items()
+                )
+                if key1 * key2 in keys.value
+            }
+        )
+
+    return make_semiring(
+        typename,
+        null=Map({}),
+        unit=Map({key: Value.unit() for key in Key.unit().value}),
+        add=select,
+        mul=combine,
+        make=lambda *args, **kwargs: Map(
+            {
+                key: Value.make(*args, **kwargs)
+                for key in Key.make(*args, **kwargs).value
+            }
         ),
     )

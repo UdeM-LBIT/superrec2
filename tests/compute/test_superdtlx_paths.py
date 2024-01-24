@@ -8,13 +8,14 @@ from superrec2.compute.superdtlx.paths import (
     make_path,
 )
 from superrec2.compute.util import (
+    EventCosts,
     make_cost_algebra,
     history_builder,
     history_generator,
 )
 
 
-unit_cost = make_cost_algebra("unit_cost", costs={})
+unit_cost = make_cost_algebra("unit_cost", costs=EventCosts())
 host_tree = parse_tree(
     Host,
     """

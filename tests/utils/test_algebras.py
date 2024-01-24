@@ -1,14 +1,18 @@
-from typing import TypeVar, Sequence
+from typing import TypeVar, Sequence, NamedTuple
 from collections import defaultdict
+from immutables import Map
 from superrec2.utils.algebras import (
     Semiring,
+    tuple_ordered_magma,
     min_plus,
     max_plus,
+    pareto,
     viterbi,
     count,
     boolean,
     make_unit_magma,
-    make_selector,
+    make_single_selector,
+    make_multiple_selector,
     make_generator,
 )
 from sowing.node import Node
@@ -47,6 +51,24 @@ def edit_distance(
     return table[(n, m)].value
 
 
+@tuple_ordered_magma
+class EditVector(NamedTuple):
+    insert: int = 0
+    delete: int = 0
+    change: int = 0
+
+    @classmethod
+    def make(cls, source, target):
+        if source is None:
+            return EditVector(insert=1)
+        elif target is None:
+            return EditVector(delete=1)
+        elif source != target:
+            return EditVector(change=1)
+        else:
+            return EditVector()
+
+
 def test_edit_distance():
     words = ("elephant", "relevnat")
 
@@ -66,17 +88,43 @@ def test_edit_distance():
     )
     assert edit_distance(*words, edit_score) == 1
 
+    # Compute the set of Pareto-optimal costs of any alignment
+    edit_pareto = pareto("edit_pareto", EditVector)
+    assert edit_distance(*words, edit_pareto) == frozenset(
+        {
+            EditVector(insert=0, delete=0, change=7),
+            EditVector(insert=1, delete=1, change=2),
+            EditVector(insert=2, delete=2, change=1),
+            EditVector(insert=3, delete=3, change=0),
+        }
+    )
+
     # Count the number of minimum-cost alignments
-    count_min_cost = make_selector("count_min_cost", edit_cost, alignment_count)
+    count_min_cost = make_single_selector("count_min_cost", edit_cost, alignment_count)
     min_count = edit_distance(*words, count_min_cost)
-    assert min_count.cost.value == 4
-    assert min_count.selected.value == 1
+    assert min_count.key.value == 4
+    assert min_count.value.value == 1
 
     # Count the number of maximum-score alignments
-    count_max_score = make_selector("count_max_score", edit_score, alignment_count)
+    count_max_score = make_single_selector(
+        "count_max_score", edit_score, alignment_count
+    )
     max_count = edit_distance(*words, count_max_score)
-    assert max_count.cost.value == 1
-    assert max_count.selected.value == 1
+    assert max_count.key.value == 1
+    assert max_count.value.value == 1
+
+    # Count the number of each type of Pareto-optimal alignment
+    count_min_pareto = make_multiple_selector(
+        "count_min_pareto", edit_pareto, alignment_count
+    )
+    assert edit_distance(*words, count_min_pareto) == Map(
+        {
+            EditVector(insert=0, delete=0, change=7): alignment_count(1),
+            EditVector(insert=1, delete=1, change=2): alignment_count(1),
+            EditVector(insert=2, delete=2, change=1): alignment_count(9),
+            EditVector(insert=3, delete=3, change=0): alignment_count(10),
+        }
+    )
 
     # Generate all minimum-cost alignments
     alignment_builder = make_unit_magma(
@@ -86,15 +134,15 @@ def test_edit_distance():
         make=lambda letter1, letter2: ((letter1,), (letter2,)),
     )
     alignment_generator = make_generator("alignment_generator", alignment_builder)
-    min_alignment_selector = make_selector(
+    min_alignment_selector = make_single_selector(
         "min_alignment_selector",
         edit_cost,
         alignment_generator,
     )
 
     solutions = edit_distance(*words, min_alignment_selector)
-    assert solutions.cost.value == 4
-    assert solutions.selected.value == frozenset(
+    assert solutions.key.value == 4
+    assert solutions.value.value == frozenset(
         {
             alignment_builder(
                 (
@@ -106,14 +154,14 @@ def test_edit_distance():
     )
 
     # Generate all maximum-score alignments
-    max_alignment_selector = make_selector(
+    max_alignment_selector = make_single_selector(
         "max_alignment_selector",
         edit_score,
         alignment_generator,
     )
     solutions = edit_distance(*words, max_alignment_selector)
-    assert solutions.cost.value == 1
-    assert solutions.selected.value == frozenset(
+    assert solutions.key.value == 1
+    assert solutions.value.value == frozenset(
         {
             alignment_builder(
                 (
@@ -250,15 +298,15 @@ def test_parse_grammar():
     )
 
     # Generate the most probable parse trees for a sentence
-    best_parse_tree_selector = make_selector(
+    best_parse_tree_selector = make_single_selector(
         "best_parse_tree_selector",
         best_prob,
         parse_tree_generator,
     )
 
     solutions = parse_grammar(grammar, word, best_parse_tree_selector)
-    assert solutions.cost.value == 0.24
-    assert solutions.selected.value == frozenset(
+    assert solutions.key.value == 0.24
+    assert solutions.value.value == frozenset(
         {
             parse_tree_builder(
                 Node("S")
