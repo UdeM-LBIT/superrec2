@@ -33,6 +33,11 @@ class Semiring(Generic[T], Protocol):
     value: T
 
     @classmethod
+    def cast(cls, other: Any) -> Self:
+        """Cast an element to be part of the semiring."""
+        ...
+
+    @classmethod
     def null(cls) -> Self:
         """Return the unit element for addition."""
         ...
@@ -56,6 +61,7 @@ class Semiring(Generic[T], Protocol):
 
 def make_semiring(
     typename: str,
+    cast: Callable[[Any], T],
     null: T,
     unit: T,
     add: Callable[[T, T], T],
@@ -67,6 +73,10 @@ def make_semiring(
     @dataclass(frozen=True, slots=True)
     class Result(Semiring[T]):
         value: T
+
+        @classmethod
+        def cast(cls, other: Any) -> Self:
+            return cls(cast(other.value))
 
         @classmethod
         def null(cls) -> Self:
@@ -97,6 +107,7 @@ def min_plus(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]
     """Semiring used for finding the minimum cost of any solution."""
     return make_semiring(
         typename,
+        cast=lambda x: x,
         null=float("inf"),
         unit=0,
         add=min,
@@ -109,6 +120,7 @@ def max_plus(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]
     """Semiring used for finding the maximum score of any solution."""
     return make_semiring(
         typename,
+        cast=lambda x: x,
         null=float("-inf"),
         unit=0,
         add=max,
@@ -121,6 +133,11 @@ class UnitMagma(Generic[T], Protocol):
     """Structure with an operation and a unit element."""
 
     value: T
+
+    @classmethod
+    def cast(cls, other: Any) -> Self:
+        """Cast an element to be part of the magma."""
+        ...
 
     @classmethod
     def unit(cls) -> Self:
@@ -147,6 +164,10 @@ def make_unit_magma(
         value: T
 
         @classmethod
+        def cast(cls, other: Any) -> Self:
+            return cls(other.value)
+
+        @classmethod
         def unit(cls) -> Self:
             return cls(unit)
 
@@ -168,6 +189,7 @@ def make_unit_generator(
 ) -> "Semiring[UnitMagma]":
     return make_semiring(
         typename,
+        cast=Solution.cast,
         null=None,
         unit=Solution.unit(),
         add=lambda sol1, sol2: sol1 if sol1 is not None else sol2,
@@ -189,6 +211,7 @@ def make_generator(
     """
     return make_semiring(
         typename,
+        cast=lambda set1: frozenset(map(Solution.cast, set1)),
         null=frozenset(),
         unit=frozenset({Solution.unit()}),
         add=operator.or_,
@@ -240,6 +263,7 @@ def pareto(
 
     return make_semiring(
         typename,
+        cast=lambda x: x,
         null=frozenset(),
         unit=frozenset({Value.unit()}),
         add=lambda x, y: select(x | y),
@@ -252,6 +276,7 @@ def viterbi(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]:
     """Semiring used for finding the maximum probability of any solution."""
     return make_semiring(
         typename,
+        cast=lambda x: x,
         null=0,
         unit=1,
         add=max,
@@ -264,6 +289,7 @@ def boolean(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]:
     """Semiring used for testing the existence of any solution."""
     return make_semiring(
         typename,
+        cast=lambda x: x,
         null=False,
         unit=True,
         add=operator.or_,
@@ -276,6 +302,7 @@ def count(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]:
     """Semiring used for counting the number of solutions."""
     return make_semiring(
         typename,
+        cast=lambda x: x,
         null=0,
         unit=1,
         add=operator.add,
@@ -289,6 +316,7 @@ def make_product(
 ) -> Semiring:
     return make_semiring(
         typename,
+        cast=lambda data: (Left.cast(data[0]), Right.cast(data[1])),
         null=(Left.null(), Right.null()),
         unit=(Left.unit(), Right.unit()),
         add=lambda x, y: (x[0] + y[0], x[1] + y[1]),
@@ -334,6 +362,7 @@ def make_single_selector(
 
     return make_semiring(
         typename,
+        cast=lambda item: KeyValue(Key.cast(item.key), Value.cast(item.value)),
         null=KeyValue(Key.null(), Value.null()),
         unit=KeyValue(Key.unit(), Value.unit()),
         add=select,
@@ -382,6 +411,7 @@ def make_multiple_selector(
 
     return make_semiring(
         typename,
+        cast=lambda opts: Map({key: Value.cast(value) for key, value in opts.items()}),
         null=Map({}),
         unit=Map({key: Value.unit() for key in Key.unit().value}),
         add=select,

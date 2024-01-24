@@ -5,6 +5,7 @@ import inspect
 from ast import literal_eval
 from tqdm import tqdm
 from functools import partial
+from pathos.multiprocessing import Pool
 from .util import add_arg_input, add_arg_output
 from ..model.history import Reconciliation, History, graft_unsampled_hosts
 from ..utils.algebras import make_single_selector, make_multiple_selector, make_product
@@ -109,6 +110,7 @@ def reconcile(args):
             superdtlx.reconcile,
             setting=setting,
             progress=tqdm,
+            pool=Pool(args.processes),
         ),
         cost_algebra,
         args.output,
@@ -167,6 +169,15 @@ def add_args(parser):
             "select what to compute (default: %(default)s). "
             "available methods: " + ", ".join(methods_help)
         ),
+    )
+
+    subparser.add_argument(
+        "--processes",
+        "-p",
+        metavar="NPROC",
+        default=1,
+        type=int,
+        help="number of processes to spawn for computing (default: %(default)s)",
     )
 
     subparser.set_defaults(func=reconcile)

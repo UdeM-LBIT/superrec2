@@ -20,6 +20,14 @@ class DummyProgress:
         pass
 
 
+class DummyPool:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def map(self, func, iterable):
+        return map(func, iterable)
+
+
 def reconciliation_algorithm(algo):
     """
     Wrap a consistent interface around a reconciliation algorithm.
@@ -36,15 +44,16 @@ def reconciliation_algorithm(algo):
         setting,
         structure,
         progress=DummyProgress,
+        pool=DummyPool(),
     ):
         bar = progress(total=sum(1 for _ in setting.binarize()))
         result = structure.null()
 
-        for item in map(
+        for item in pool.map(
             lambda binary_setting: algo(binary_setting, structure),
             setting.binarize(),
         ):
-            result += item
+            result += structure.cast(item)
             bar.update()
 
         return result.value
