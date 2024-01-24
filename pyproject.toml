@@ -17,11 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "infinity",
-    "ete3",
-    "six",
     "pathos",
-    "numpy",
     "tqdm",
     "sowing",
 ]

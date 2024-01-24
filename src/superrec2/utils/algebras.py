@@ -1,3 +1,4 @@
+from math import inf
 from typing import Any, Self, Generic, Protocol, Callable, TypeVar
 from dataclasses import dataclass
 from functools import wraps
@@ -108,7 +109,7 @@ def min_plus(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]
     return make_semiring(
         typename,
         cast=lambda x: x,
-        null=float("inf"),
+        null=inf,
         unit=0,
         add=min,
         mul=operator.add,
@@ -121,7 +122,7 @@ def max_plus(typename: str, make: Callable[..., T] = lambda x: x) -> Semiring[T]
     return make_semiring(
         typename,
         cast=lambda x: x,
-        null=float("-inf"),
+        null=-inf,
         unit=0,
         add=max,
         mul=operator.add,

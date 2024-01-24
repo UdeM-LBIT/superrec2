@@ -1,4 +1,4 @@
-from infinity import inf
+from math import inf
 from sowing.indexed import IndexedTree
 from superrec2.model.history import parse_tree, Host, Event, Extant
 from superrec2.compute.superdtlx.contents import EXTRA_CONTENTS
