@@ -150,9 +150,11 @@ def get_tikz_definitions(params: DrawParams):
     )
 
     if params.orientation == Orientation.Vertical:
+        unary_rotate = 0
         segment_position = "right"
         segment_align = "\\narrowragged"
     else:
+        unary_rotate = 90
         segment_position = "above"
         segment_align = "\\centering"
 
@@ -160,23 +162,23 @@ def get_tikz_definitions(params: DrawParams):
         (
             f"""\
             gain/.style 2 args={{
-                draw={{#1}}, fill=white,
-                circle, inner sep=1.5pt,
+                draw={{#1}}, fill=black,
+                semicircle, inner sep=1pt,
+                shape border rotate={{{unary_rotate}}},
                 label={{[%
-                    font={{\\strut\\scriptsize}},
+                    font={{\\scriptsize}},
+                    text depth=0pt,
                     limit width={{{params.event_label_width}em}}{{{segment_align}}},
                 ]{segment_position}:#2}},
             }}""",
             f"""\
             loss/.style 2 args={{
-                draw={{#1}}, cross out, thick,
-                line width={{{params.branch_thickness}}},
-                inner sep=0pt,
-                outer sep=0pt,
-                minimum width={{{params.loss_size}}},
-                minimum height={{{params.loss_size}}},
+                draw={{#1}}, fill=black,
+                semicircle, inner sep=1pt,
+                shape border rotate={{180+{unary_rotate}}},
                 label={{[%
-                    font={{\\strut\\scriptsize}},
+                    font={{\\scriptsize}},
+                    text depth=0pt,
                     limit width={{{params.event_label_width}em}}{{{segment_align}}},
                 ]{segment_position}:#2}},
             }}""",
