@@ -91,7 +91,7 @@ def get_tikz_definitions(params: DrawParams):
                 draw={{#1}}, fill={{host background color!50!white}},
                 font={{\\color{{#1}}}},
                 outer sep=0pt, inner xsep=0pt, inner ysep=2pt,
-                limit width={{{params.event_label_width}em}}{{\\centering}},
+                limit width={{{params.event_label_width}em}}{{\\narrowragged}},
                 line width={{{params.branch_thickness}}},
             }}""",
             "event/.default={black}",
@@ -114,8 +114,9 @@ def get_tikz_definitions(params: DrawParams):
                 minimum size={{{params.extant_gene_diameter}}},
                 label={{
                     [font={{\\color{{#1}}}},
+                        label distance=4pt,
                         text depth=0pt,
-                        inner xsep=0pt, inner ysep=4pt,
+                        inner xsep=0pt, inner ysep=0pt,
                         outer xsep=0pt, outer ysep=0pt,
                         limit width={{{params.event_label_width}em}}{{{
                             extant_label_align}}}]
@@ -167,7 +168,10 @@ def get_tikz_definitions(params: DrawParams):
                 shape border rotate={{{unary_rotate}}},
                 label={{[%
                     font={{\\scriptsize}},
+                    label distance=2pt,
                     text depth=0pt,
+                    inner xsep=0pt, inner ysep=0pt,
+                    outer xsep=0pt, outer ysep=0pt,
                     limit width={{{params.event_label_width}em}}{{{segment_align}}},
                 ]{segment_position}:#2}},
             }}""",
@@ -178,7 +182,10 @@ def get_tikz_definitions(params: DrawParams):
                 shape border rotate={{180+{unary_rotate}}},
                 label={{[%
                     font={{\\scriptsize}},
+                    label distance=2pt,
                     text depth=0pt,
+                    inner xsep=0pt, inner ysep=0pt,
+                    outer xsep=0pt, outer ysep=0pt,
                     limit width={{{params.event_label_width}em}}{{{segment_align}}},
                 ]{segment_position}:#2}},
             }}""",

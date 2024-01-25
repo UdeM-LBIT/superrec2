@@ -214,24 +214,24 @@ def _layout_hosts(
                 child_position += child_size.w + params.min_subtree_spacing
 
             # Compute overall area
-            host_layout.fork_events_area = Rect.fit(
-                chain(
-                    (
-                        Rect(
-                            position=Position(
-                                params.events_host_padding,
-                                params.events_host_padding,
-                            ),
-                            size=Size.zero(),
-                        ),
+            forking_events = [
+                event.area for event in host_layout.events.values() if event.forking
+            ]
+
+            if forking_events:
+                forking_span = Rect.fit(forking_events).grow(params.events_host_padding)
+                host_layout.fork_events_area = Rect(
+                    Position(
+                        host_layout.events_area.position.x,
+                        forking_span.position.y,
                     ),
-                    (
-                        event.area
-                        for event in host_layout.events.values()
-                        if event.forking
+                    Size(
+                        host_layout.events_area.size.w,
+                        forking_span.size.h,
                     ),
                 )
-            ).grow(params.events_host_padding)
+            else:
+                host_layout.fork_events_area = host_layout.events_area
 
             host_layout.area = Rect.fit(
                 chain(
