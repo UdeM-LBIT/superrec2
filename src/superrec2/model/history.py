@@ -446,7 +446,7 @@ class Event(Associate, ABC):
                 return Loss.from_mapping(data)
 
             case _:
-                raise ValueError("unknown event kind {kind!r}")
+                raise ValueError(f"unknown event kind {kind!r}")
 
 
 @dataclass(frozen=True, slots=True, repr=False)

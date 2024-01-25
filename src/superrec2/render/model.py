@@ -102,6 +102,9 @@ class DrawParams:
     # Rounding radius of branches in the associate tree
     branch_border_radius: str = "1.5pt"
 
+    # Draw rectangles around computed areas to aid in debugging
+    debug: bool = False
+
     ## Layout parameters
 
     # Layout orientation (direction in which the tree grows)

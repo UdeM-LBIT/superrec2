@@ -424,6 +424,7 @@ def render(
         "branches": [],
         "gene transfers": [],
         "events": [],
+        "debug": [],
     }
     colors: list[str] = []
     color_prefix = "reccolor"
@@ -445,6 +446,20 @@ def render(
             )
         )
 
+        layers["debug"].append(
+            f"\\draw[line width=1pt] ({host_layout.area.top_left()}) "
+            f"rectangle ({host_layout.area.bottom_right()});",
+        )
+        layers["debug"].append(
+            f"\\draw[red, line width=.66pt] ({host_layout.events_area.top_left()}) "
+            f"rectangle ({host_layout.events_area.bottom_right()});",
+        )
+        layers["debug"].append(
+            "\\draw[green, dashed, line width=.66pt] "
+            f"({host_layout.fork_events_area.top_left()}) rectangle "
+            f"({host_layout.fork_events_area.bottom_right()});",
+        )
+
         for event_node, event_layout in host_layout.events.items():
             event = event_node.data
 
@@ -461,6 +476,11 @@ def render(
             layers["events"].append(
                 render_event(event_node.data, event_layout.area.center(), params)
             )
+            layers["debug"].append(
+                f"\\draw[blue, densely dotted, line width=.66pt] "
+                f"({event_layout.area.top_left()}) rectangle "
+                f"({event_layout.area.bottom_right()});"
+            )
 
     result = [get_tikz_definitions(params)]
 
@@ -469,6 +489,9 @@ def render(
         result.append(rf"\definecolor{{{color_prefix}{i}}}{{HTML}}{{{html}}}")
 
     # Append layers in order
+    if not params.debug:
+        del layers["debug"]
+
     result.append(r"\begin{tikzpicture}")
 
     for name, layer in layers.items():

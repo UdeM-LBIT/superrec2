@@ -20,7 +20,10 @@ def generate_tikz(args):
     else:
         raise RuntimeError("No valid history found in input")
 
-    params = DrawParams(orientation=Orientation[args.orientation.title()])
+    params = DrawParams(
+        debug=args.debug,
+        orientation=Orientation[args.orientation.title()],
+    )
     result = layout.compute(history, tikz.measure_events, params)
     return tikz.render(result, params)
 
@@ -36,8 +39,8 @@ def output(args, tikz_code):
             output_type = "pdf"
         else:
             print(
-                "Error: Unknown file extension, please specify output \
-type explicitly",
+                "Error: Unknown file extension, please specify output "
+                "type explicitly",
                 file=sys.stderr,
             )
             return 1
@@ -89,8 +92,10 @@ def draw(args):
 def add_args(parser):
     """Add the drawing subcommand to a command-line argument parser."""
     subparser = parser.add_parser("draw", description=__doc__)
+
     add_arg_input(subparser, "file defining the history to draw")
     add_arg_output(subparser, "file where the resulting drawing will be stored", "wb")
+
     subparser.add_argument(
         "output_type",
         metavar="TYPE",
@@ -99,10 +104,18 @@ def add_args(parser):
         help="kind of output to generate (default: guess based on output file \
 extension, or 'tikz' for output to stdout)",
     )
+
     subparser.add_argument(
         "--orientation",
         choices=("vertical", "horizontal"),
         default="horizontal",
         help="growing direction of the tree (default: %(default)s)",
     )
+
+    subparser.add_argument(
+        "--debug",
+        action="store_true",
+        help="draw rectangles around computed areas to aid in debugging",
+    )
+
     subparser.set_defaults(func=draw)
