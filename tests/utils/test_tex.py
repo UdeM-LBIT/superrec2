@@ -1,15 +1,15 @@
-from superrec2.utils.tex import measure, MeasureBox
+from superrec2.utils.tex import measure_tikz
+from superrec2.utils.geometry import Rect, Position, Size
 
 
-def test_measure():
-    assert measure(
+def test_measure_tikz():
+    assert measure_tikz(
         [
-            "abcdef",
-            r"\(abcdef\)",
-            r"\(a_1b_2c_3d_4e_5f_5\)",
-        ]
+            r"\node {abcdef};",
+            r"\node[label={right:uvwxyz}] {abcdef};",
+        ],
+        preamble=r"\usepackage{tikz}",
     ) == [
-        MeasureBox(28.34, 7.05, 0.10999),
-        MeasureBox(29.7385, 6.94444, 1.94444),
-        MeasureBox(55.57887, 6.94444, 1.94444),
+        Rect(Position(x=-17.50298, y=-6.91296), Size(w=35.00596, h=13.82592)),
+        Rect(Position(x=-17.50298, y=-6.91296), Size(w=75.1319, h=13.82592)),
     ]

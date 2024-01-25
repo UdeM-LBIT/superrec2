@@ -1,7 +1,7 @@
 """Structures used for holding history layout information."""
 from enum import Enum, auto
 from dataclasses import dataclass, field
-from typing import Mapping
+from typing import Mapping, Self
 from sowing.node import Node
 from ..model.history import Host, Event
 from ..utils.geometry import Position, Rect
@@ -20,8 +20,22 @@ class EventLayout:
     # Children of this event in a different host
     out_children: list[Node[Event, None]]
 
-    # Area spanned by this event
+    # Area spanned by this event’s node
     area: Rect = Rect.zero()
+
+    # Position of the event anchor point
+    anchor: Position = Position.zero()
+
+    def __iadd__(self, shift: Position) -> Self:
+        """Shift the event position by adding the given vector."""
+        self.area += shift
+        self.anchor += shift
+        return self
+
+    def __isub__(self, shift: Position) -> Self:
+        """Shift the event position by subtracting the given vector."""
+        self += -shift
+        return self
 
 
 @dataclass
@@ -34,7 +48,7 @@ class HostLayout:
                            events
                             area
                            ╭─────╮
-                              ╱──── anchors
+                              <──── anchors
                            ║  │  ║
                            ║ ┌d┐ ║
               ╭ ╔══════════╝ │ │ ╚══════════╗

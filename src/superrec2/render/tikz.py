@@ -7,8 +7,8 @@ import re
 from .model import DrawParams, Orientation, HostLayout, Layout
 from ..model.history import Event, Extant, Codiverge, Diverge, Gain, Loss
 from ..utils import tex
-from ..utils.tex import measure
-from ..utils.geometry import Position, Size
+from ..utils.tex import measure_tikz
+from ..utils.geometry import Position, Rect
 
 
 # Regex to match digit groups in a string
@@ -263,7 +263,7 @@ def render_event(event: Event, position: Position, params: DrawParams) -> str:
     return rf"\node at ({position}) {{{label}{segment}}};"
 
 
-def measure_events(events: Sequence[Event], params: DrawParams) -> dict[Event, Size]:
+def measure_events(events: Sequence[Event], params: DrawParams) -> dict[Event, Rect]:
     """
     Measure the overall space occupied by each node in a set of nodes.
 
@@ -272,10 +272,8 @@ def measure_events(events: Sequence[Event], params: DrawParams) -> dict[Event, S
     :returns: list of measurements, in the same order as the node sequence
     """
     events = list(events)
-    results = measure(
-        texts=(
-            r"\tikz" + render_event(event, Position(0, 0), params) for event in events
-        ),
+    results = measure_tikz(
+        nodes=(render_event(event, Position(0, 0), params) for event in events),
         preamble=(
             r"\usepackage{varwidth}"
             r"\usepackage{tikz}"
@@ -284,7 +282,7 @@ def measure_events(events: Sequence[Event], params: DrawParams) -> dict[Event, S
             r"\usetikzlibrary{shapes}" + get_tikz_definitions(params)
         ),
     )
-    return {event: result.overall_size() for event, result in zip(events, results)}
+    return {event: result for event, result in zip(events, results)}
 
 
 @dataclass(frozen=True)
@@ -453,11 +451,11 @@ def render(
             f"rectangle ({host_layout.area.bottom_right()});",
         )
         layers["debug"].append(
-            f"\\draw[red, line width=.66pt] ({host_layout.events_area.top_left()}) "
+            rf"\draw[red, line width=.66pt] ({host_layout.events_area.top_left()}) "
             f"rectangle ({host_layout.events_area.bottom_right()});",
         )
         layers["debug"].append(
-            "\\draw[green, dashed, line width=.66pt] "
+            r"\draw[green, dashed, line width=.66pt] "
             f"({host_layout.fork_events_area.top_left()}) rectangle "
             f"({host_layout.fork_events_area.bottom_right()});",
         )
@@ -468,18 +466,18 @@ def render(
             for child in event_layout.in_children + event_layout.out_children:
                 layers["branches"].append(
                     _render_branch(
-                        event_layout.area.center(),
-                        layout[child.data.host].events[child].area.center(),
+                        event_layout.anchor,
+                        layout[child.data.host].events[child].anchor,
                         transfer=(isinstance(event, Diverge) and event.transfer),
                         params=params,
                     )
                 )
 
             layers["events"].append(
-                render_event(event_node.data, event_layout.area.center(), params)
+                render_event(event_node.data, event_layout.anchor, params)
             )
             layers["debug"].append(
-                f"\\draw[blue, densely dotted, line width=.66pt] "
+                rf"\draw[blue, densely dotted, line width=.66pt] "
                 f"({event_layout.area.top_left()}) rectangle "
                 f"({event_layout.area.bottom_right()});"
             )

@@ -28,7 +28,7 @@ def _process_events(
         for host_name, host_cursor in history.host_index.items()
     }
 
-    sizes = measure_events(
+    rects = measure_events(
         events=(cursor.node.data for cursor in traversal.depth(history.event_tree)),
         params=params,
     )
@@ -46,17 +46,21 @@ def _process_events(
             else:
                 out_children.append(child)
 
-        size = sizes[event]
+        rect = rects[event]
 
         if params.orientation == Orientation.Horizontal:
-            size = Size(size.h, size.w)
+            rect = Rect(
+                Position(rect.position.y, rect.position.x),
+                Size(rect.size.h, rect.size.w),
+            )
 
         host_layout = layout[event.host]
         host_layout.events[cursor.node] = EventLayout(
             forking=bool(out_children) and not in_children,
             in_children=in_children,
             out_children=out_children,
-            area=Rect(Position(0, 0), size),
+            area=rect - rect.top_left(),
+            anchor=-rect.top_left(),
         )
 
     return layout
@@ -75,21 +79,26 @@ def _layout_events(layout: Layout, params: DrawParams) -> Layout:
         next_pos_cross = 0
 
         for node, event_layout in host_layout.events.items():
+            anchor = event_layout.anchor
             size = event_layout.area.size
 
             if event_layout.forking:
-                # Align forking nodes to the same diagonal
+                # Align forking nodes on the same diagonal
                 next_pos_main -= size.w
                 pos = Position(next_pos_main, next_pos_cross)
                 next_pos_main -= params.gene_branch_spacing
                 next_pos_cross += size.h + params.gene_branch_spacing
             elif event_layout.in_children:
-                # Align internal nodes above the center of their children
+                # Align internal nodes above the anchors of their children
                 children_area = Rect.fit(
-                    host_layout.events[child].area for child in event_layout.in_children
+                    Position(
+                        host_layout.events[child].anchor.x,
+                        host_layout.events[child].area.top().y,
+                    )
+                    for child in event_layout.in_children
                 )
                 pos = children_area.top() + Position(
-                    -size.w / 2,
+                    -anchor.x,
                     -params.species_branch_padding - size.h,
                 )
             else:
@@ -98,7 +107,7 @@ def _layout_events(layout: Layout, params: DrawParams) -> Layout:
                 pos = Position(next_pos_main, -size.h)
                 next_pos_main -= params.events_spacing
 
-            event_layout.area = Rect(pos, size)
+            event_layout += pos
 
         # Compute overall events area
         host_layout.events_area = Rect.fit(
@@ -113,7 +122,7 @@ def _layout_events(layout: Layout, params: DrawParams) -> Layout:
         host_layout.events_area -= delta
 
         for event_layout in host_layout.events.values():
-            event_layout.area -= delta
+            event_layout -= delta
 
     return layout
 
@@ -158,7 +167,7 @@ def _layout_hosts(
             )
 
             for event_layout in host_layout.events.values():
-                event_layout.area += Position(0, grow)
+                event_layout += Position(0, grow)
 
             # Balance children hosts around the left and right of the fork
             children_widths = []
@@ -238,7 +247,7 @@ def _layout_hosts(
             host_layout.fork_events_area -= delta_vec
 
             for event in host_layout.events.values():
-                event.area -= delta_vec
+                event -= delta_vec
 
             for child_host in host_layout.children:
                 layout[child_host].area -= delta_vec
@@ -265,7 +274,7 @@ def _layout_absolute(layout: Layout, epochs: dict[int, list[str]]) -> Layout:
             host_layout.fork_events_area += delta
 
             for event_layout in host_layout.events.values():
-                event_layout.area += delta
+                event_layout += delta
 
             # Make child host positions absolute
             for child_host in host_layout.children:

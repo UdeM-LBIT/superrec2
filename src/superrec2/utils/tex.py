@@ -3,8 +3,8 @@ import os
 import subprocess
 import shutil
 import tempfile
-from typing import Iterable, IO, List, NamedTuple
-from .geometry import Size
+from typing import Iterable, IO, List
+from .geometry import Rect, Position, Size
 
 
 class TeXError(Exception):
@@ -103,70 +103,54 @@ def tex_compile(source: str, dest: IO = None) -> str:
     raise TeXError("No xelatex or tectonic binary found")
 
 
-class MeasureBox(NamedTuple):
-    """
-    Dimensions of a TeX box.
-
-    :attr width: total width of the box in points
-    :attr height: height of the box above its baseline in points
-    :attr depth: height of the box below its baseline in points
-    """
-
-    width: float
-    height: float
-    depth: float
-
-    def overall_size(self) -> Size:
-        """Get the overall dimensions of the box."""
-        return Size(w=self.width, h=self.height + self.depth)
-
-
 def escape(text: str) -> str:
     """Escape a string for inclusion in a TeX document."""
     return text.replace("\\", "\\\\").replace(r"_", r"\_")
 
 
-def measure(texts: Iterable[str], preamble="") -> List[MeasureBox]:
+def measure_tikz(nodes: Iterable[str], preamble="") -> List[Rect]:
     """
-    Measure dimensions of TeX boxes.
+    Measure dimensions of TikZ nodes.
 
-    :param texts: list of text strings to measure
+    :param nodes: list of TikZ nodes to measure
     :param preamble: modules to load and macro definitions
     :raises TeXError: if a TeX error occurs
     :returns: list of measurements for each input string
     """
+    log_prefix = ">>>"
     src = (
-        r"\documentclass{standalone}"
-        "\n" + preamble + "\n"
-        r"\newsavebox{\measurebox}"
-        "\n"
-        r"\scrollmode"
-        "\n"
+        r"\documentclass{standalone}",
+        preamble,
+        r"\newcommand{\tikzmeasure}[1]{\tikz{"
+        "#1"
+        r"\path (current bounding box.north west);"
+        r"\pgfgetlastxy{\boxleft}{\boxtop}"
+        r"\path (current bounding box.south east);"
+        r"\pgfgetlastxy{\boxright}{\boxbottom}"
+        rf"\typeout{{{log_prefix}\boxleft,\boxtop,\boxright,\boxbottom}}"
+        "}}",
+        r"\begin{document}",
     )
 
-    for text in texts:
-        src += (
-            rf"\savebox{{\measurebox}}{{{text}}}"
-            "\n"
-            r"\typeout{$$$"
-            r"\the\wd\measurebox,\the\ht\measurebox,\the\dp\measurebox}"
-            "\n"
-        )
+    for node in nodes:
+        src += (rf"\tikzmeasure{{{node}}}",)
 
-    src += r"\scrollmode" "\n" r"\begin{document}\end{document}" "\n"
+    src += (r"\end{document}",)
 
-    out = tex_compile(src)
-    boxes = []
+    out = tex_compile("\n".join(src))
+    rects = []
 
     for line in out.splitlines():
-        if line.startswith("$$$"):
-            boxes.append(
-                MeasureBox(
-                    *map(
-                        lambda value: float(value.removesuffix("pt")),
-                        line[3:].split(","),
-                    )
+        if line.startswith(log_prefix):
+            left, top, right, bottom = map(
+                lambda value: float(value.removesuffix("pt")),
+                line.removeprefix(log_prefix).split(","),
+            )
+            rects.append(
+                Rect(
+                    Position(left, -top),
+                    Size(right - left, top - bottom),
                 )
             )
 
-    return boxes
+    return rects
