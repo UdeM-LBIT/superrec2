@@ -113,9 +113,8 @@ def get_tikz_definitions(params: DrawParams):
                 outer sep=0pt, inner sep=0pt,
                 minimum size={{{params.extant_gene_diameter}}},
                 label={{
-                    [font={{\\color{{#1}}}},
+                    [font={{\\color{{#1}}\\vphantom{{gb}}}},
                         label distance=4pt,
-                        text depth=0pt,
                         inner xsep=0pt, inner ysep=0pt,
                         outer xsep=0pt, outer ysep=0pt,
                         limit width={{{params.event_label_width}em}}{{{
@@ -167,9 +166,8 @@ def get_tikz_definitions(params: DrawParams):
                 semicircle, inner sep=1pt,
                 shape border rotate={{{unary_rotate}}},
                 label={{[%
-                    font={{\\scriptsize}},
+                    font={{\\scriptsize\\vphantom{{gb}}}},
                     label distance=2pt,
-                    text depth=0pt,
                     inner xsep=0pt, inner ysep=0pt,
                     outer xsep=0pt, outer ysep=0pt,
                     limit width={{{params.event_label_width}em}}{{{segment_align}}},
@@ -181,9 +179,8 @@ def get_tikz_definitions(params: DrawParams):
                 semicircle, inner sep=1pt,
                 shape border rotate={{180+{unary_rotate}}},
                 label={{[%
-                    font={{\\scriptsize}},
+                    font={{\\scriptsize\\vphantom{{gb}}}},
                     label distance=2pt,
-                    text depth=0pt,
                     inner xsep=0pt, inner ysep=0pt,
                     outer xsep=0pt, outer ysep=0pt,
                     limit width={{{params.event_label_width}em}}{{{segment_align}}},
