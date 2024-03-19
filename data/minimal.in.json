@@ -1,4 +1,4 @@
 {
-    "host_tree": "(X,Y);",
+    "host_tree": "(X,Y)XY;",
     "associate_tree": "(('x_1'[&host=X,contents='{''g1'',''g2'',''g3''}'],'x_2'[&host=X,contents='{''g1'',''g3'',''g4''}']),'y_1'[&host=Y,contents='{''g1'',''g2'',''g3'',''g4''}']);"
 }
