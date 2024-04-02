@@ -212,6 +212,17 @@ def test_event_extant():
     assert unordered.anon_associate() == Assoc(host="3", contents=frozenset("abc"))
     unordered.validate(host_index1, ())
 
+    empty = Extant(name="x", host="3", contents=frozenset())
+    empty_mapping = {
+        "kind": "extant",
+        "name": "x",
+        "host": "3",
+        "contents": "set()",
+    }
+    assert empty == Event.from_mapping(empty_mapping)
+    assert empty.to_mapping() == empty_mapping
+    assert empty.contents == frozenset()
+
     apparent = Extant(name="x", host="3", contents=tuple("abc"), apparent=True)
     apparent_mapping = {
         "kind": "extant",

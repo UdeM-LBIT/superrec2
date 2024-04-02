@@ -61,6 +61,9 @@ def _contents_from_str(data: str) -> Contents:
 
 def _contents_to_str(contents: Contents) -> str:
     if isinstance(contents, frozenset):
+        if not contents:
+            return "set()"
+
         return f"{{{str(sorted(contents))[1:-1]}}}"
 
     return str(contents)
