@@ -138,6 +138,7 @@ def join_binary_event(
         results += (
             structure.make(
                 Diverge(
+                    apparent=True,
                     host=host,
                     contents=contents,
                     segment=left_contents,
@@ -153,6 +154,7 @@ def join_binary_event(
         results += (
             structure.make(
                 Diverge(
+                    apparent=True,
                     host=host,
                     contents=contents,
                     segment=right_contents,
@@ -169,6 +171,7 @@ def join_binary_event(
     results += (
         structure.make(
             Diverge(
+                apparent=True,
                 host=host,
                 contents=contents,
                 segment=left_contents,
@@ -185,6 +188,7 @@ def join_binary_event(
     results += (
         structure.make(
             Diverge(
+                apparent=True,
                 host=host,
                 contents=contents,
                 segment=right_contents,
@@ -205,6 +209,7 @@ def join_binary_event(
         results += (
             structure.make(
                 Diverge(
+                    apparent=True,
                     host=host,
                     contents=contents,
                     segment=left_contents,
@@ -221,6 +226,7 @@ def join_binary_event(
         results += (
             structure.make(
                 Diverge(
+                    apparent=True,
                     host=host,
                     contents=contents,
                     segment=left_contents,
@@ -237,6 +243,7 @@ def join_binary_event(
         results += (
             structure.make(
                 Diverge(
+                    apparent=True,
                     host=host,
                     contents=contents,
                     segment=right_contents,
@@ -265,7 +272,7 @@ def reconcile(setting: Reconciliation, structure: type[Semiring[T]]) -> Semiring
             name = node.data.name
             host = node.data.host
             contents = node.data.contents
-            value = structure.make(Extant(name=name, host=host, contents=contents))
+            value = structure.make(Extant(name=name, host=host, contents=contents, apparent=True))
             results[(node, host, contents)] += value
         else:
             for host, contents in product(

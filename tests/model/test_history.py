@@ -212,6 +212,18 @@ def test_event_extant():
     assert unordered.anon_associate() == Assoc(host="3", contents=frozenset("abc"))
     unordered.validate(host_index1, ())
 
+    apparent = Extant(name="x", host="3", contents=tuple("abc"), apparent=True)
+    apparent_mapping = {
+        "kind": "extant",
+        "name": "x",
+        "host": "3",
+        "contents": "('a', 'b', 'c')",
+        "apparent": "True",
+    }
+    assert apparent == Event.from_mapping(apparent_mapping)
+    assert apparent.to_mapping() == apparent_mapping
+    assert apparent.apparent
+
     with pytest.raises(InvalidEvent) as err:
         ordered.validate(host_index2, ())
 
@@ -737,14 +749,14 @@ def test_history_compress():
         event_tree=parse_tree(
             Event,
             """(
-                ((x[&host=1,contents=\'{"a","c"}\'])
+                ((x[&host=1,contents=\'{"a","c"}\',apparent=True])
                     [&kind=loss,host=1,contents=\'{"a","b","c"}\',segment=\'{"b"}\'])
                     [&kind=gain,host=1,contents=\'{"a","b"}\',gained=\'{"c"}\'],
-                ((y[&host=4,contents=\'{"b"}\'])
+                ((y[&host=4,contents=\'{"b"}\',apparent=True])
                     [&kind=loss,host=4,contents=\'{"a","b"}\',segment=\'{"a"}\'])
                     [&kind=diverge,host=2,contents=\'{"a","b"}\',segment=\'{"a","b"}\',
                         transfer=true,cut=true]
-            )[&kind=codiverge,host=3,contents=\'{"a","b"}\'];""",
+            )[&kind=codiverge,host=3,contents=\'{"a","b"}\',apparent=True];""",
         ),
     )
 
@@ -763,7 +775,7 @@ def test_history_compress():
         event_tree=parse_tree(
             Event,
             """(
-                x[&host=1,contents=\'{"a","b"}\'],
+                x[&host=1,contents=\'{"a","b"}\',apparent=True],
                 [&kind=loss,host=2,contents=\'{"a","b"}\',segment=\'{"a","b"}\']
             )[&kind=codiverge,host=3,contents=\'{"a","b"}\'];""",
         ),
@@ -783,11 +795,11 @@ def test_history_compress():
         event_tree=parse_tree(
             Event,
             """(
-                a[&host=1,contents=\'{"a","b"}\'],
+                a[&host=1,contents=\'{"a","b"}\',apparent=True],
                 (
-                    b[&host=2,contents=\'{"a","b"}\'],
+                    b[&host=2,contents=\'{"a","b"}\',apparent=True],
                     (
-                        c[&host=4,contents=\'{"b"}\'],
+                        c[&host=4,contents=\'{"b"}\',apparent=True],
                         [&host=2U,contents=\'{"a","b"}\']
                     )
                     [&
@@ -798,8 +810,8 @@ def test_history_compress():
                         transfer=true,
                         segment=\'{"b"}\'
                     ]
-                )[&kind=codiverge,host=2P,contents=\'{"a","b"}\']
-            )[&kind=codiverge,host=3,contents=\'{"a","b"}\'];""",
+                )[&kind=codiverge,host=2P,contents=\'{"a","b"}\',apparent=True]
+            )[&kind=codiverge,host=3,contents=\'{"a","b"}\',apparent=True];""",
         ),
     )
 

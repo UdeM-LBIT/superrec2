@@ -383,6 +383,10 @@ class InvalidEvent(Exception):
 class Event(Associate, ABC):
     """Event in a cophylogeny history."""
 
+    # Whether this event node will be visible as a node of the associate tree
+    # after compressing the history
+    apparent: bool = False
+
     def associate(self) -> Associate:
         """Get the associate corresponding to this event."""
         return Associate(name=self.name, host=self.host, contents=self.contents)
@@ -451,6 +455,10 @@ class Event(Associate, ABC):
     @staticmethod
     def _decode_mapping(data: Mapping) -> dict:
         data = dict(data)
+
+        if "apparent" in data:
+            data["apparent"] = _bool_from_str(data["apparent"])
+
         associate_data = {}
 
         for attr in ("name", "host", "contents"):
@@ -462,7 +470,12 @@ class Event(Associate, ABC):
 
     @staticmethod
     def to_mapping(self) -> dict[str, str]:
-        return super(Event, self).to_mapping()
+        result = super(Event, self).to_mapping()
+
+        if self.apparent:
+            result["apparent"] = "True"
+
+        return result
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -879,6 +892,9 @@ class History:
         """
         Reduce this history to a binary associate phylogeny mapped onto
         its host phylogeny.
+
+        :raises InvalidReconciliation: if apparent nodes are compressed
+            or non-apparent nodes are not compressed
         """
 
         def compress_event(cursor: Zipper[Event, None]) -> Zipper[Associate, None]:
@@ -891,15 +907,33 @@ class History:
             match len(node.edges):
                 case 0:
                     if sampled and isinstance(event, Extant):
+                        if not event.apparent:
+                            raise InvalidEvent(
+                                "sampled extant leaf should be apparent",
+                                event,
+                            )
+
                         return cursor.replace(node=new_node)
+
+                    if event.apparent:
+                        raise InvalidEvent(
+                            "empty or unsampled leaf should not be apparent",
+                            event,
+                        )
 
                     return cursor.replace(node=None)
 
                 case 1:
+                    if event.apparent:
+                        raise InvalidEvent("unary event should not be apparent", event)
+
                     child = node.edges[0].node
                     return cursor.replace(node=child)
 
                 case 2:
+                    if not event.apparent:
+                        raise InvalidEvent("binary event should be apparent", event)
+
                     return cursor.replace(node=new_node)
 
         return Reconciliation(
