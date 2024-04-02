@@ -448,6 +448,22 @@ class Event(Associate, ABC):
             case _:
                 raise ValueError(f"unknown event kind {kind!r}")
 
+    @staticmethod
+    def _decode_mapping(data: Mapping) -> dict:
+        data = dict(data)
+        associate_data = {}
+
+        for attr in ("name", "host", "contents"):
+            if attr in data:
+                associate_data[attr] = data.pop(attr)
+
+        data.update(asdict(Associate.from_mapping(associate_data)))
+        return data
+
+    @staticmethod
+    def to_mapping(self) -> dict[str, str]:
+        return super(Event, self).to_mapping()
+
 
 @dataclass(frozen=True, slots=True, repr=False)
 class Extant(Event):
@@ -472,10 +488,10 @@ class Extant(Event):
 
     @staticmethod
     def from_mapping(data: Mapping) -> Self:
-        return Extant(**asdict(Associate.from_mapping(data)))
+        return Extant(**Event._decode_mapping(data))
 
     def to_mapping(self) -> dict[str, str]:
-        result = super(Event, self).to_mapping()
+        result = super(Extant, self).to_mapping(self)
         result["kind"] = "extant"
         return result
 
@@ -511,10 +527,10 @@ class Codiverge(Event):
 
     @staticmethod
     def from_mapping(data: Mapping) -> Self:
-        return Codiverge(**asdict(Associate.from_mapping(data)))
+        return Codiverge(**Event._decode_mapping(data))
 
     def to_mapping(self) -> dict[str, str]:
-        result = super(Event, self).to_mapping()
+        result = super(Codiverge, self).to_mapping(self)
         result["kind"] = "codiverge"
         return result
 
@@ -600,26 +616,24 @@ class Diverge(Event):
 
     @staticmethod
     def from_mapping(data: Mapping) -> Self:
-        data = dict(data)
-        attrs = {}
+        data = Event._decode_mapping(data)
 
         if "segment" in data:
-            attrs["segment"] = _contents_from_str(data.pop("segment"))
+            data["segment"] = _contents_from_str(data["segment"])
 
         if "cut" in data:
-            attrs["cut"] = _bool_from_str(data.pop("cut"))
+            data["cut"] = _bool_from_str(data["cut"])
 
         if "transfer" in data:
-            attrs["transfer"] = _bool_from_str(data.pop("transfer"))
+            data["transfer"] = _bool_from_str(data["transfer"])
 
         if "result" in data:
-            attrs["result"] = int(data.pop("result"))
+            data["result"] = int(data["result"])
 
-        associate = asdict(Associate.from_mapping(data))
-        return Diverge(**associate, **attrs)
+        return Diverge(**data)
 
     def to_mapping(self) -> dict[str, str]:
-        result = super(Event, self).to_mapping()
+        result = super(Diverge, self).to_mapping(self)
         result["kind"] = "diverge"
 
         if self.segment != ():
@@ -665,17 +679,15 @@ class Gain(Event):
 
     @staticmethod
     def from_mapping(data: Mapping) -> Self:
-        data = dict(data)
-        attrs = {}
+        data = Event._decode_mapping(data)
 
         if "gained" in data:
-            attrs["gained"] = _contents_from_str(data.pop("gained"))
+            data["gained"] = _contents_from_str(data["gained"])
 
-        associate = asdict(Associate.from_mapping(data))
-        return Gain(**associate, **attrs)
+        return Gain(**data)
 
     def to_mapping(self) -> dict[str, str]:
-        result = super(Event, self).to_mapping()
+        result = super(Gain, self).to_mapping(self)
         result["kind"] = "gain"
 
         if self.gained != ():
@@ -715,17 +727,15 @@ class Loss(Event):
 
     @staticmethod
     def from_mapping(data: Mapping) -> Self:
-        data = dict(data)
-        attrs = {}
+        data = Event._decode_mapping(data)
 
         if "segment" in data:
-            attrs["segment"] = _contents_from_str(data.pop("segment"))
+            data["segment"] = _contents_from_str(data["segment"])
 
-        associate = asdict(Associate.from_mapping(data))
-        return Loss(**associate, **attrs)
+        return Loss(**data)
 
     def to_mapping(self) -> dict[str, str]:
-        result = super(Event, self).to_mapping()
+        result = super(Loss, self).to_mapping(self)
         result["kind"] = "loss"
 
         if self.segment != ():

@@ -185,22 +185,28 @@ def test_event_extant():
     host_index2 = IndexedTree(parse_tree(Host, "(1,2)3;"))
 
     ordered = Extant(name="x", host="3", contents=tuple("abc"))
-    assert ordered == Extant.from_mapping(
-        {
-            "name": "x",
-            "host": "3",
-            "contents": "('a', 'b', 'c')",
-        }
-    )
+    ordered_mapping = {
+        "kind": "extant",
+        "name": "x",
+        "host": "3",
+        "contents": "('a', 'b', 'c')",
+    }
+    assert ordered == Event.from_mapping(ordered_mapping)
+    assert ordered.to_mapping() == ordered_mapping
     assert ordered.arity == 0
     assert ordered.associate() == Assoc(name="x", host="3", contents=tuple("abc"))
     assert ordered.anon_associate() == Assoc(host="3", contents=tuple("abc"))
     ordered.validate(host_index1, ())
 
     unordered = Extant(name="x", host="3", contents=frozenset("abc"))
-    assert unordered == Extant.from_mapping(
-        {"name": "x", "host": "3", "contents": "{'a', 'b', 'c'}"}
-    )
+    unordered_mapping = {
+        "kind": "extant",
+        "name": "x",
+        "host": "3",
+        "contents": "{'a', 'b', 'c'}",
+    }
+    assert unordered == Event.from_mapping(unordered_mapping)
+    assert unordered.to_mapping() == unordered_mapping
     assert unordered.arity == 0
     assert unordered.associate() == Assoc(name="x", host="3", contents=frozenset("abc"))
     assert unordered.anon_associate() == Assoc(host="3", contents=frozenset("abc"))
@@ -223,13 +229,14 @@ def test_event_codiverge():
     host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
 
     spe = Codiverge(name="x", host="1", contents=tuple("abc"))
-    assert spe == Codiverge.from_mapping(
-        {
-            "name": "x",
-            "host": "1",
-            "contents": "('a', 'b', 'c')",
-        }
-    )
+    spe_mapping = {
+        "kind": "codiverge",
+        "name": "x",
+        "host": "1",
+        "contents": "('a', 'b', 'c')",
+    }
+    assert spe == Event.from_mapping(spe_mapping)
+    assert spe.to_mapping() == spe_mapping
     assert spe.arity == 2
     spe.validate(
         host_index,
@@ -290,18 +297,17 @@ def test_event_duplicate():
         contents=tuple("abc"),
         result=1,
         segment=(0, 2),
-        cut=False,
     )
-    assert dup == Diverge.from_mapping(
-        {
-            "name": "x",
-            "host": "3",
-            "contents": "('a', 'b', 'c')",
-            "result": "1",
-            "segment": "(0, 2)",
-            "cut": "false",
-        }
-    )
+    dup_mapping = {
+        "kind": "diverge",
+        "name": "x",
+        "host": "3",
+        "contents": "('a', 'b', 'c')",
+        "result": "1",
+        "segment": "(0, 2)",
+    }
+    assert dup == Event.from_mapping(dup_mapping)
+    assert dup.to_mapping() == dup_mapping
     assert dup.arity == 2
 
     dup.validate(
@@ -363,16 +369,17 @@ def test_event_duplicate():
         segment=(0, 2),
         cut=True,
     )
-    assert cut == Diverge.from_mapping(
-        {
-            "name": "x",
-            "host": "3",
-            "contents": "('a', 'b', 'c')",
-            "result": "1",
-            "segment": "(0, 2)",
-            "cut": "true",
-        }
-    )
+    cut_mapping = {
+        "kind": "diverge",
+        "name": "x",
+        "host": "3",
+        "contents": "('a', 'b', 'c')",
+        "result": "1",
+        "segment": "(0, 2)",
+        "cut": "True",
+    }
+    assert cut == Event.from_mapping(cut_mapping)
+    assert cut.to_mapping() == cut_mapping
     assert cut.arity == 2
 
     cut.validate(
@@ -390,15 +397,16 @@ def test_event_duplicate():
         segment=frozenset("ab"),
         cut=True,
     )
-    assert ucut == Diverge.from_mapping(
-        {
-            "host": "3",
-            "contents": "{'a', 'b', 'c'}",
-            "result": "1",
-            "segment": "{'a', 'b'}",
-            "cut": "true",
-        }
-    )
+    ucut_mapping = {
+        "kind": "diverge",
+        "host": "3",
+        "contents": "{'a', 'b', 'c'}",
+        "result": "1",
+        "segment": "{'a', 'b'}",
+        "cut": "True",
+    }
+    assert ucut == Event.from_mapping(ucut_mapping)
+    assert ucut.to_mapping() == ucut_mapping
     assert ucut.arity == 2
 
     ucut.validate(
@@ -413,20 +421,19 @@ def test_event_duplicate():
         name="x",
         host="3",
         contents=tuple("abc"),
-        result=0,
         segment=(0, 3),
         cut=True,
     )
-    assert fcut == Diverge.from_mapping(
-        {
-            "name": "x",
-            "host": "3",
-            "contents": "('a', 'b', 'c')",
-            "result": "0",
-            "segment": "(0, 3)",
-            "cut": "true",
-        }
-    )
+    fcut_mapping = {
+        "kind": "diverge",
+        "name": "x",
+        "host": "3",
+        "contents": "('a', 'b', 'c')",
+        "segment": "(0, 3)",
+        "cut": "True",
+    }
+    assert fcut == Event.from_mapping(fcut_mapping)
+    assert fcut.to_mapping() == fcut_mapping
     assert fcut.arity == 1
     fcut.validate(host_index, (Assoc(host="3", contents=tuple("abc")),))
 
@@ -480,20 +487,19 @@ def test_event_transfer():
         contents=tuple("abc"),
         result=1,
         segment=(0, 2),
-        cut=False,
         transfer=True,
     )
-    assert tra == Diverge.from_mapping(
-        {
-            "name": "x",
-            "host": "3",
-            "contents": "('a', 'b', 'c')",
-            "result": "1",
-            "segment": "(0, 2)",
-            "cut": "false",
-            "transfer": "true",
-        }
-    )
+    tra_mapping = {
+        "kind": "diverge",
+        "name": "x",
+        "host": "3",
+        "contents": "('a', 'b', 'c')",
+        "result": "1",
+        "segment": "(0, 2)",
+        "transfer": "True",
+    }
+    assert tra == Event.from_mapping(tra_mapping)
+    assert tra.to_mapping() == tra_mapping
     assert tra.arity == 2
 
     tra.validate(
@@ -526,17 +532,17 @@ def test_event_transfer():
         cut=True,
         transfer=True,
     )
-    assert ftra == Diverge.from_mapping(
-        {
-            "name": "x",
-            "host": "3",
-            "contents": "('a', 'b', 'c')",
-            "result": "0",
-            "segment": "(0, 3)",
-            "cut": "true",
-            "transfer": "true",
-        }
-    )
+    ftra_mapping = {
+        "kind": "diverge",
+        "name": "x",
+        "host": "3",
+        "contents": "('a', 'b', 'c')",
+        "segment": "(0, 3)",
+        "cut": "True",
+        "transfer": "True",
+    }
+    assert ftra == Event.from_mapping(ftra_mapping)
+    assert ftra.to_mapping() == ftra_mapping
     assert ftra.arity == 1
 
     ftra.validate(host_index, (Assoc(host="2", contents=tuple("abc")),))
@@ -546,14 +552,15 @@ def test_event_gain():
     host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
 
     gain = Gain(name="x", host="1", contents=tuple("ab"), gained=(1, tuple("bc")))
-    assert gain == Gain.from_mapping(
-        {
-            "name": "x",
-            "host": "1",
-            "contents": "('a', 'b')",
-            "gained": "(1, ('b', 'c'))",
-        }
-    )
+    gain_mapping = {
+        "kind": "gain",
+        "name": "x",
+        "host": "1",
+        "contents": "('a', 'b')",
+        "gained": "(1, ('b', 'c'))",
+    }
+    assert gain == Event.from_mapping(gain_mapping)
+    assert gain.to_mapping() == gain_mapping
     assert gain.arity == 1
     gain.validate(host_index, (Assoc(host="1", contents=tuple("abcb")),))
 
@@ -574,14 +581,15 @@ def test_event_gain():
     ) in str(err.value)
 
     ugain = Gain(name="x", host="1", contents=frozenset("ab"), gained=frozenset("c"))
-    assert ugain == Gain.from_mapping(
-        {
-            "name": "x",
-            "host": "1",
-            "contents": "{'a', 'b'}",
-            "gained": "{'c'}",
-        }
-    )
+    ugain_mapping = {
+        "kind": "gain",
+        "name": "x",
+        "host": "1",
+        "contents": "{'a', 'b'}",
+        "gained": "{'c'}",
+    }
+    assert ugain == Event.from_mapping(ugain_mapping)
+    assert ugain.to_mapping() == ugain_mapping
     assert ugain.arity == 1
     ugain.validate(host_index, (Assoc(host="1", contents=frozenset("abc")),))
 
@@ -606,14 +614,15 @@ def test_event_loss():
     host_index = IndexedTree(parse_tree(Host, "(2,3)1;"))
 
     loss = Loss(name="x", host="1", contents=tuple("abc"), segment=(1, 2))
-    assert loss == Loss.from_mapping(
-        {
-            "name": "x",
-            "host": "1",
-            "contents": "('a', 'b', 'c')",
-            "segment": "(1, 2)",
-        }
-    )
+    loss_mapping = {
+        "kind": "loss",
+        "name": "x",
+        "host": "1",
+        "contents": "('a', 'b', 'c')",
+        "segment": "(1, 2)",
+    }
+    assert loss == Event.from_mapping(loss_mapping)
+    assert loss.to_mapping() == loss_mapping
     assert loss.arity == 1
     loss.validate(host_index, (Assoc(host="1", contents=tuple("ac")),))
 
@@ -634,26 +643,28 @@ def test_event_loss():
     ) in str(err.value)
 
     floss = Loss(name="x", host="1", contents=tuple("abc"), segment=(0, 3))
-    assert floss == Loss.from_mapping(
-        {
-            "name": "x",
-            "host": "1",
-            "contents": "('a', 'b', 'c')",
-            "segment": "(0, 3)",
-        }
-    )
+    floss_mapping = {
+        "kind": "loss",
+        "name": "x",
+        "host": "1",
+        "contents": "('a', 'b', 'c')",
+        "segment": "(0, 3)",
+    }
+    assert floss == Event.from_mapping(floss_mapping)
+    assert floss.to_mapping() == floss_mapping
     assert floss.arity == 0
     floss.validate(host_index, ())
 
     uloss = Loss(name="x", host="1", contents=frozenset("abc"), segment=frozenset("ab"))
-    assert uloss == Loss.from_mapping(
-        {
-            "name": "x",
-            "host": "1",
-            "contents": "{'a', 'b', 'c'}",
-            "segment": "{'a', 'b'}",
-        }
-    )
+    uloss_mapping = {
+        "kind": "loss",
+        "name": "x",
+        "host": "1",
+        "contents": "{'a', 'b', 'c'}",
+        "segment": "{'a', 'b'}",
+    }
+    assert uloss == Event.from_mapping(uloss_mapping)
+    assert uloss.to_mapping() == uloss_mapping
     assert uloss.arity == 1
     uloss.validate(host_index, (Assoc(host="1", contents=frozenset("c")),))
 
