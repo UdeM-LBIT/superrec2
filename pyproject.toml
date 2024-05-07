@@ -47,5 +47,5 @@ format = "black ."
 format-check = "black --check ."
 lint = "ruff check ."
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
