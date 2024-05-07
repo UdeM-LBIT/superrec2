@@ -71,9 +71,9 @@ def test_reconcile_simple():
         """
         (
           (
-            1[&host=a,contents='{"x"}'],
-            2[&host=b,contents='{"x"}']
-          )[&kind=codiverge,host=c,contents='{"x"}']
+            1[&host=a,contents='{"x"}',apparent=True],
+            2[&host=b,contents='{"x"}',apparent=True]
+          )[&kind=codiverge,host=c,contents='{"x"}',apparent=True]
         )[&kind=gain,host=c,contents='set()',gained='{"x"}'];
         """
     )
@@ -91,10 +91,10 @@ def test_reconcile_simple():
         """
         (
           (
-            (1[&host=a,contents='{"x","y"}'])
+            (1[&host=a,contents='{"x","y"}',apparent=True])
             [&kind=gain,host=a,contents='{"x"}',gained='{"y"}'],
-            2[&host=b,contents='{"x"}']
-          )[&kind=codiverge,host=c,contents='{"x"}']
+            2[&host=b,contents='{"x"}',apparent=True]
+          )[&kind=codiverge,host=c,contents='{"x"}',apparent=True]
         )[&kind=gain,host=c,contents='set()',gained='{"x"}'];
         """
     )
@@ -111,11 +111,11 @@ def test_reconcile_simple():
     assert results == _tree_set(
         """
         (
-          (1[&host=a,contents='{"x"}'])
+          (1[&host=a,contents='{"x"}',apparent=True])
           [&kind=gain,host=a,contents='set()',gained='{"x"}'],
-          (2[&host=b,contents='{"y"}'])
+          (2[&host=b,contents='{"y"}',apparent=True])
           [&kind=gain,host=b,contents='set()',gained='{"y"}']
-        )[&kind=codiverge,host=c,contents='set()'];
+        )[&kind=codiverge,host=c,contents='set()',apparent=True];
         """
     )
     assert all(_history_match_input(setting, history) for history in results)
@@ -152,16 +152,16 @@ def test_reconcile_extra_contents():
             (
               (
                 (
-                  1[&host=a,contents='{"x","y"}']
+                  1[&host=a,contents='{"x","y"}',apparent=True]
                 )[&kind=loss,host=a,contents='{"x","y","__extra__"}',segment='{"__extra__"}'],
                 (
-                  2[&host=b,contents='{"y","z"}']
+                  2[&host=b,contents='{"y","z"}',apparent=True]
                 )[&kind=loss,host=b,contents='{"y","z","__extra__"}',segment='{"__extra__"}']
-              )[&kind=codiverge,host=c,contents='{"x","y","z","__extra__"}'],
-              3[&host=d,contents='{"w","x","y","z"}']
-            )[&kind=codiverge,host=e,contents='{"w","x","y","z"}'],
-            4[&host=f,contents='{"w","x","y","z"}']
-          )[&kind=codiverge,host=g,contents='{"w","x","y","z"}']
+              )[&kind=codiverge,host=c,contents='{"x","y","z","__extra__"}',apparent=True],
+              3[&host=d,contents='{"w","x","y","z"}',apparent=True]
+            )[&kind=codiverge,host=e,contents='{"w","x","y","z"}',apparent=True],
+            4[&host=f,contents='{"w","x","y","z"}',apparent=True]
+          )[&kind=codiverge,host=g,contents='{"w","x","y","z"}',apparent=True]
         )[&kind=gain,host=g,contents='set()',gained='{"w","x","y","z"}'];
         """
     )
@@ -189,11 +189,11 @@ def test_reconcile_dup_cut():
         (
           (
             (
-              1[&host=a,contents='{"x","y"}'],
-              2[&host=a,contents='{"x","y","z"}']
-            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y"}'],
-            3[&host=a,contents='{"x","y","z"}']
-          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}']
+              1[&host=a,contents='{"x","y"}',apparent=True],
+              2[&host=a,contents='{"x","y","z"}',apparent=True]
+            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y"}',apparent=True],
+            3[&host=a,contents='{"x","y","z"}',apparent=True]
+          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}',apparent=True]
         )[&kind=gain,host=a,contents='set()',gained='{"x","y","z"}'];
         """
     )
@@ -220,12 +220,12 @@ def test_reconcile_dup_cut():
           (
             (
               (
-                1[&host=a,contents='{"x","y"}']
+                1[&host=a,contents='{"x","y"}',apparent=True]
               )[&kind=loss,host=a,contents='{"x","y","z"}',segment='{"z"}'],
-              2[&host=a,contents='{"x","z"}']
-            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","z"}',result=1],
-            3[&host=a,contents='{"x","y","z"}']
-          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}']
+              2[&host=a,contents='{"x","z"}',apparent=True]
+            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","z"}',result=1,apparent=True],
+            3[&host=a,contents='{"x","y","z"}',apparent=True]
+          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}',apparent=True]
         )[&kind=gain,host=a,contents='set()',gained='{"x","y","z"}'];
         """,
         """
@@ -233,12 +233,12 @@ def test_reconcile_dup_cut():
           (
             (
               (
-                1[&host=a,contents='{"x","y"}']
+                1[&host=a,contents='{"x","y"}',apparent=True]
               )[&kind=loss,host=a,contents='{"x","y","__extra__"}',segment='{"__extra__"}'],
-              2[&host=a,contents='{"x","z"}']
-            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","z"}',result=1],
-            3[&host=a,contents='{"x","y","z"}']
-          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}']
+              2[&host=a,contents='{"x","z"}',apparent=True]
+            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","z"}',result=1,apparent=True],
+            3[&host=a,contents='{"x","y","z"}',apparent=True]
+          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}',apparent=True]
         )[&kind=gain,host=a,contents='set()',gained='{"x","y","z"}'];
         """,
     )
@@ -263,11 +263,11 @@ def test_reconcile_dup_cut():
         (
           (
             (
-              1[&host=a,contents='{"x","y"}'],
-              2[&host=a,contents='{"z"}']
-            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y"}',cut=True],
-            3[&host=a,contents='{"x","y","z"}']
-          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}']
+              1[&host=a,contents='{"x","y"}',apparent=True],
+              2[&host=a,contents='{"z"}',apparent=True]
+            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y"}',cut=True,apparent=True],
+            3[&host=a,contents='{"x","y","z"}',apparent=True]
+          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}',apparent=True]
         )[&kind=gain,host=a,contents='set()',gained='{"x","y","z"}'];
         """
     )
@@ -293,16 +293,16 @@ def test_reconcile_dup_cut():
           (
             (
               (
-                1[&host=a,contents='{"x","y","l"}']
+                1[&host=a,contents='{"x","y","l"}',apparent=True]
               )[&kind=gain,host=a,contents='{"x","y"}',gained='{"l"}'],
               (
-                2[&host=a,contents='{"z","r"}']
+                2[&host=a,contents='{"z","r"}',apparent=True]
               )[&kind=gain,host=a,contents='{"z"}',gained='{"r"}']
-            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y"}',cut=True],
+            )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y"}',cut=True,apparent=True],
             (
-              3[&host=a,contents='{"x","y","z","t"}']
+              3[&host=a,contents='{"x","y","z","t"}',apparent=True]
             )[&kind=gain,host=a,contents='{"x","y","z"}',gained='{"t"}']
-          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}']
+          )[&kind=diverge,host=a,contents='{"x","y","z"}',segment='{"x","y","z"}',apparent=True]
         )[&kind=gain,host=a,contents='set()',gained='{"x","y","z"}'];
         """
     )
@@ -331,18 +331,19 @@ def test_reconcile_transfer():
         (
           (
             (
-              1[&host=a,contents='{"x","y","z"}'],
-              2[&host=d,contents='{"x"}']
+              1[&host=a,contents='{"x","y","z"}',apparent=True],
+              2[&host=d,contents='{"x"}',apparent=True]
             )[&
               kind=diverge,
               host=a,
               contents='{"x","y","z"}',
               segment='{"x"}',
               transfer=True,
-              result=1
+              result=1,
+              apparent=True
             ],
-            3[&host=b,contents='{"x","y","z"}']
-          )[&kind=codiverge,host=c,contents='{"x","y","z"}']
+            3[&host=b,contents='{"x","y","z"}',apparent=True]
+          )[&kind=codiverge,host=c,contents='{"x","y","z"}',apparent=True]
         )[&kind=gain,host=c,contents='set()',gained='{"x","y","z"}'];
         """
     )
@@ -367,8 +368,8 @@ def test_reconcile_transfer():
         (
           (
             (
-              1[&host=a,contents='{"y","z"}'],
-              2[&host=d,contents='{"x"}']
+              1[&host=a,contents='{"y","z"}',apparent=True],
+              2[&host=d,contents='{"x"}',apparent=True]
             )[&
               kind=diverge,
               host=a,
@@ -376,10 +377,11 @@ def test_reconcile_transfer():
               segment='{"x"}',
               transfer=True,
               cut=True,
-              result=1
+              result=1,
+              apparent=True
             ],
-            3[&host=b,contents='{"x","y","z"}']
-          )[&kind=codiverge,host=c,contents='{"x","y","z"}']
+            3[&host=b,contents='{"x","y","z"}',apparent=True]
+          )[&kind=codiverge,host=c,contents='{"x","y","z"}',apparent=True]
         )[&kind=gain,host=c,contents='set()',gained='{"x","y","z"}'];
         """
     )
@@ -421,28 +423,28 @@ def test_reconcile_unsampled():
                 [&kind=loss,host=C,contents='{"a"}',segment='{"a"}'],
                 (
                   [&kind=loss,host=B,contents='{"a"}',segment='{"a"}'],
-                  1[&contents='{"a"}',host=A]
+                  1[&contents='{"a"}',host=A,apparent=True]
                 )[&kind=codiverge,host=ab,contents='{"a"}']
               )[&kind=codiverge,host=abc,contents='{"a"}'],
               (
-                2[&contents='{"a"}',host=X],
+                2[&contents='{"a"}',host=X,apparent=True],
                 (
-                  3[&contents='{"a"}',host=Y],
-                  4[&contents='{"a"}',host=Z]
-                )[&kind=codiverge,host=yz,contents='{"a"}']
-              )[&kind=codiverge,host=xyz,contents='{"a"}']
-            )[&kind=codiverge,host=root,contents='{"a"}'],
+                  3[&contents='{"a"}',host=Y,apparent=True],
+                  4[&contents='{"a"}',host=Z,apparent=True]
+                )[&kind=codiverge,host=yz,contents='{"a"}',apparent=True]
+              )[&kind=codiverge,host=xyz,contents='{"a"}',apparent=True]
+            )[&kind=codiverge,host=root,contents='{"a"}',apparent=True],
             (
               [&kind=loss,host=abc,contents='{"a"}',segment='{"a"}'],
               (
                 [&kind=loss,host=X,contents='{"a"}',segment='{"a"}'],
                 (
                   [&kind=loss,host=Y,contents='{"a"}',segment='{"a"}'],
-                  5[&contents='{"a"}',host=Z]
+                  5[&contents='{"a"}',host=Z,apparent=True]
                 )[&kind=codiverge,host=yz,contents='{"a"}']
               )[&kind=codiverge,host=xyz,contents='{"a"}']
             )[&kind=codiverge,host=root,contents='{"a"}']
-          )[&kind=diverge,host=root,contents='{"a"}',segment='{"a"}']
+          )[&kind=diverge,host=root,contents='{"a"}',segment='{"a"}',apparent=True]
         )[&kind=gain,host=root,contents='set()',gained='{"a"}'];
         """
     )
@@ -467,7 +469,7 @@ def test_reconcile_unsampled():
                       [&kind=loss,contents='{"a"}',segment='{"a"}',host='B[P]'],
                       (
                         [&contents='{"a"}',host='A[U]'],
-                        1[&contents='{"a"}',host=A]
+                        1[&contents='{"a"}',host=A,apparent=True]
                       )[&kind=codiverge,host='A[P]',contents='{"a"}']
                     )[&kind=codiverge,host=ab,contents='{"a"}']
                   )[&kind=codiverge,host='ab[P]',contents='{"a"}']
@@ -478,29 +480,29 @@ def test_reconcile_unsampled():
                 (
                   (
                     [&contents='{"a"}',host='X[U]'],
-                    2[&contents='{"a"}',host=X]
+                    2[&contents='{"a"}',host=X,apparent=True]
                   )[&kind=codiverge,host='X[P]',contents='{"a"}'],
                   (
                     [&contents='{"a"}',host='yz[U]'],
                     (
                       (
                         [&contents='{"a"}',host='Y[U]'],
-                        3[&contents='{"a"}',host=Y]
+                        3[&contents='{"a"}',host=Y,apparent=True]
                       )[&kind=codiverge,host='Y[P]',contents='{"a"}'],
                       (
                         [&contents='{"a"}',host='Z[U]'],
-                        4[&contents='{"a"}',host=Z]
+                        4[&contents='{"a"}',host=Z,apparent=True]
                       )[&kind=codiverge,host='Z[P]',contents='{"a"}']
-                    )[&kind=codiverge,host=yz,contents='{"a"}']
+                    )[&kind=codiverge,host=yz,contents='{"a"}',apparent=True]
                   )[&kind=codiverge,host='yz[P]',contents='{"a"}']
-                )[&kind=codiverge,host=xyz,contents='{"a"}']
+                )[&kind=codiverge,host=xyz,contents='{"a"}',apparent=True]
               )[&kind=codiverge,host='xyz[P]',contents='{"a"}']
-            )[&kind=codiverge,host=root,contents='{"a"}'],
+            )[&kind=codiverge,host=root,contents='{"a"}',apparent=True],
             (
               [&contents='{"a"}',host='root[U]'],
-              5[&contents='{"a"}',host=Z]
+              5[&contents='{"a"}',host=Z,apparent=True]
             )[&kind=diverge,host='root[U]',contents='{"a"}',segment='{"a"}',transfer=True,result=1]
-          )[&kind=codiverge,host='root[P]',contents='{"a"}']
+          )[&kind=codiverge,host='root[P]',contents='{"a"}',apparent=True]
         )[&kind=gain,host='root[P]',contents='set()',gained='{"a"}'];
         """
     )
