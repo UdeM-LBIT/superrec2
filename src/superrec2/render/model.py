@@ -1,4 +1,5 @@
 """Structures used for holding history layout information."""
+
 from enum import Enum, auto
 from dataclasses import dataclass, field
 from typing import Mapping, Self

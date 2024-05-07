@@ -1,4 +1,5 @@
 """Text wrapping utilities."""
+
 import textwrap
 from typing import List
 

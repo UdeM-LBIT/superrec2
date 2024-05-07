@@ -1,4 +1,5 @@
 """Generate a TikZ drawing from a reconciliation layout."""
+
 from typing import Callable, Sequence
 from dataclasses import dataclass
 from textwrap import indent, dedent

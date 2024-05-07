@@ -1,4 +1,5 @@
 """Fast disjoint-set structure implementing the union-find strategy."""
+
 from typing import List, Optional
 from copy import deepcopy
 

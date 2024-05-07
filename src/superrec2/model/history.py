@@ -1,4 +1,5 @@
 """Reconciliation and evolution model."""
+
 from typing import Iterable, Self, TypeVar
 from abc import ABC, abstractmethod
 from ast import literal_eval

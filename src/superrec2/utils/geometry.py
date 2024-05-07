@@ -1,4 +1,5 @@
 """2D geometry primitives."""
+
 from typing import Self, Sequence
 from math import inf
 from dataclasses import dataclass

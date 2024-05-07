@@ -1,4 +1,5 @@
 """Compute layouts for reconciliations."""
+
 from typing import Callable
 from itertools import chain
 from sowing import traversal

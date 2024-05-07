@@ -1,4 +1,5 @@
 """Preprocessing to answer minimum-in-range queries in constant time."""
+
 from typing import Any, Generic, List, Optional, Protocol, Sequence, TypeVar
 
 

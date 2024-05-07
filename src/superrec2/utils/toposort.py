@@ -1,4 +1,5 @@
 """Compute a topological ordering or all possible such orderings."""
+
 from collections import deque
 from typing import (
     Deque,

@@ -1,4 +1,5 @@
 """Compute a minimum-cost (super-)reconciliation of two trees."""
+
 import argparse
 import json
 import inspect

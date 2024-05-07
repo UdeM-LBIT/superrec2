@@ -1,4 +1,5 @@
 """Bridge with the XeLaTeX compiler."""
+
 import os
 import subprocess
 import shutil

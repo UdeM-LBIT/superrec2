@@ -1,4 +1,5 @@
 """Handle and compare sequences and subsequences."""
+
 from typing import List, Sequence, TypeVar
 
 
