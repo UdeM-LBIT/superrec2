@@ -62,7 +62,6 @@ def reconciliation_algorithm(algo):
 
 
 class EventCosts(NamedTuple):
-    speciation: float = 0
     duplication: float = 1
     transfer_duplication: float = 1
     cut: float = 1
@@ -71,14 +70,8 @@ class EventCosts(NamedTuple):
 
     def event_cost_morphism(self, event: Event):
         match event:
-            case Extant():
+            case Extant() | Gain() | Codiverge():
                 return 0
-
-            case Gain():
-                return 0
-
-            case Codiverge():
-                return self.speciation
 
             case Diverge():
                 if not event.cut and not event.transfer:
@@ -102,7 +95,6 @@ class EventCosts(NamedTuple):
 
 @vector
 class EventVector(NamedTuple):
-    speciation: int = 0
     duplication: int = 0
     transfer_duplication: int = 0
     cut: int = 0
@@ -112,11 +104,8 @@ class EventVector(NamedTuple):
 
 def event_vector_morphism(event: Event):
     match event:
-        case Extant() | Gain():
+        case Extant() | Gain() | Codiverge():
             return frozenset({EventVector()})
-
-        case Codiverge():
-            return frozenset({EventVector(speciation=1)})
 
         case Diverge():
             if not event.cut and not event.transfer:
