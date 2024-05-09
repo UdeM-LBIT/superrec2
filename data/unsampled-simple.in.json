@@ -1,0 +1,4 @@
+{
+    "host_tree": "((A,B)AB,C)ABC;",
+    "associate_tree": "(((('a_1'[&host=A,contents='{''1'',''3''}'],('b_1'[&host=B,contents='{''1'',''2''}'],'c_2'[&host=C,contents='{''3''}'])),('a_2'[&host=A,contents='{''2'',''3''}'],'b_2'[&host=B,contents='{''2'',''3''}'])),'c_1'[&host=C,contents='{''1'',''2''}']),'a_3'[&host=A,contents='{''1'',''2''}']);"
+}
