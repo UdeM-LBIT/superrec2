@@ -12,8 +12,7 @@ def _ilog2(value: int):
 class SupportsLessThan(Protocol):  # pylint:disable=too-few-public-methods
     """Types that support the less-than operator."""
 
-    def __lt__(self, other: Any) -> bool:
-        ...
+    def __lt__(self, other: Any) -> bool: ...
 
 
 Element = TypeVar("Element", bound=SupportsLessThan)

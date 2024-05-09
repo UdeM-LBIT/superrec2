@@ -9,14 +9,17 @@ from functools import partial
 from pathos.multiprocessing import Pool
 from .util import add_arg_input, add_arg_output
 from ..model.history import Reconciliation, History, graft_unsampled_hosts
-from ..utils.algebras import make_single_selector, make_multiple_selector, make_product
+from ..utils.algebras import Structure, MinPlus
 from ..compute.util import (
+    DummyProgress,
+    DummyPool,
     EventCosts,
-    make_cost_algebra,
     event_vector_pareto,
     history_counter,
-    history_unit_generator,
+    history_projector,
     history_generator,
+    partial_history_projector,
+    partial_history_generator,
 )
 from ..compute import superdtlx
 
@@ -30,55 +33,44 @@ def register_method(method):
 
 
 @register_method
-def single_solution(run, cost_algebra, output):
+def single_solution(run, costs, output):
     """
     Report a single arbitrary minimum-cost solution
     along with the total number of optimal solutions.
     """
-    single_solution_algebra = make_single_selector(
-        "single_solution_algebra",
-        cost_algebra,
-        make_product("history_count_unit_gen", history_counter, history_unit_generator),
-    )
+    min_cost = Structure(MinPlus, costs.event_cost_morphism)
+    result = run(structure=min_cost * (history_counter + history_projector))
+    cost, (count, history) = result
 
-    result = run(structure=single_solution_algebra)
-    print(f"cost={result.key.value}", file=output)
-    print(f"count={result.value.value[0].value}", file=output)
-    yield result.value.value[1].value.value
+    print(f"cost={cost}", file=output)
+    print(f"count={count}", file=output)
+    yield history.value
 
 
 @register_method
-def all_solutions(run, cost_algebra, output):
+def all_solutions(run, costs, output):
     """Report all minimum-cost solutions."""
-    all_solutions_algebra = make_single_selector(
-        "all_solutions_algebra",
-        cost_algebra,
-        history_generator,
-    )
+    min_cost = Structure(MinPlus, costs.event_cost_morphism)
+    result = run(structure=min_cost * history_generator)
+    cost, histories = result
 
-    result = run(structure=all_solutions_algebra)
-    print(f"cost={result.key.value}", file=output)
-    print(f"count={len(result.value.value)}", file=output)
+    print(f"cost={cost}", file=output)
+    print(f"count={len(histories)}", file=output)
 
-    for solution in result.value.value:
+    for solution in histories:
         yield solution.value
 
 
 @register_method
-def pareto(run, cost_algebra, output):
+def pareto(run, _, output):
     """
     Compute all Pareto-optimal event count vectors and
     the number of corresponding solutions for each vector.
     """
-    event_vector_selector = make_multiple_selector(
-        "event_vector_selector",
-        event_vector_pareto,
-        history_counter,
-    )
-    result = run(structure=event_vector_selector)
+    result = run(structure=event_vector_pareto @ history_counter)
 
     for key in sorted(result.keys(), key=tuple):
-        print(f"{key}: {result[key].value}")
+        print(f"{key}: {result[key]}")
 
     return
     yield
@@ -95,7 +87,6 @@ def reconcile(args):
                 costs_dict[kind.replace("-", "_")] = literal_eval(value)
 
     costs = EventCosts(**costs_dict)
-    cost_algebra = make_cost_algebra("cost_algebra", costs)
     setting = Reconciliation.from_mapping(json.load(args.input))
 
     if args.allow_unsampled:
@@ -110,14 +101,19 @@ def reconcile(args):
         partial(
             superdtlx.reconcile,
             setting=setting,
-            progress=tqdm,
-            pool=Pool(args.processes),
+            progress=DummyProgress,
+            pool=DummyPool(),
+            # FIXME: Restore multiprocess support
+            # progress=tqdm,
+            # pool=Pool(args.processes),
         ),
-        cost_algebra,
+        costs,
         args.output,
     ):
         history = History(setting.host_tree, event_tree)
-        json.dump(superdtlx.finalize_history(history).to_mapping(), args.output)
+        history = superdtlx.finalize_history(history)
+        history.validate()
+        json.dump(history.to_mapping(), args.output)
         print(file=args.output)
 
 

@@ -1,4 +1,5 @@
 from math import inf
+from sowing.node import Node
 from sowing.indexed import IndexedTree
 from superrec2.model.history import parse_tree, Host, Event, Extant
 from superrec2.compute.superdtlx.contents import EXTRA_CONTENTS
@@ -7,15 +8,16 @@ from superrec2.compute.superdtlx.paths import (
     make_transfer_path,
     make_path,
 )
+from superrec2.utils.algebras import Structure, MinPlus
 from superrec2.compute.util import (
     EventCosts,
-    make_cost_algebra,
-    history_builder,
+    HistoryBuilder,
     history_generator,
 )
 
 
-unit_cost = make_cost_algebra("unit_cost", costs=EventCosts())
+min_unit_cost = Structure(MinPlus, EventCosts().event_cost_morphism)
+
 host_tree = parse_tree(
     Host,
     """
@@ -34,11 +36,12 @@ host_tree = parse_tree(
         )1;
     """,
 )
+
 host_index = IndexedTree(host_tree)
 
 
 def _build_event_tree(source):
-    return history_builder(parse_tree(Event, source))
+    return HistoryBuilder(parse_tree(Event, source))
 
 
 def _tree_set(*trees):
@@ -56,7 +59,7 @@ def test_make_codiv_path():
     }
 
     assert (
-        make_codiv_path(**args, structure=unit_cost, path=unit_cost.make(leaf)).value
+        make_codiv_path(**args, structure=min_unit_cost, path=min_unit_cost(leaf)).value
         == inf
     )
 
@@ -64,7 +67,7 @@ def test_make_codiv_path():
         make_codiv_path(
             **args,
             structure=history_generator,
-            path=history_generator.make(leaf),
+            path=history_generator(leaf),
         ).value
         == frozenset()
     )
@@ -81,8 +84,8 @@ def test_make_codiv_path():
     assert (
         make_codiv_path(
             **args,
-            structure=unit_cost,
-            path=unit_cost.make(leaf),
+            structure=min_unit_cost,
+            path=min_unit_cost(leaf),
         ).value
         == inf
     )
@@ -91,7 +94,7 @@ def test_make_codiv_path():
         make_codiv_path(
             **args,
             structure=history_generator,
-            path=history_generator.make(leaf),
+            path=history_generator(leaf),
         ).value
         == frozenset()
     )
@@ -108,8 +111,8 @@ def test_make_codiv_path():
     assert (
         make_codiv_path(
             **args,
-            structure=unit_cost,
-            path=unit_cost.make(leaf),
+            structure=min_unit_cost,
+            path=min_unit_cost(leaf),
         ).value
         == 0
     )
@@ -117,8 +120,8 @@ def test_make_codiv_path():
     assert make_codiv_path(
         **args,
         structure=history_generator,
-        path=history_generator.make(leaf),
-    ).value == frozenset({history_builder.make(leaf)})
+        path=history_generator(leaf),
+    ).value == frozenset({HistoryBuilder(Node(leaf))})
 
     # Different hosts: Codivergence path
     leaf = Extant(name="x", host="6", contents=frozenset("abc"))
@@ -132,8 +135,8 @@ def test_make_codiv_path():
     assert (
         make_codiv_path(
             **args,
-            structure=unit_cost,
-            path=unit_cost.make(leaf),
+            structure=min_unit_cost,
+            path=min_unit_cost(leaf),
         ).value
         == 3
     )
@@ -141,7 +144,7 @@ def test_make_codiv_path():
     assert make_codiv_path(
         **args,
         structure=history_generator,
-        path=history_generator.make(leaf),
+        path=history_generator(leaf),
     ).value == _tree_set(
         """
         (
@@ -191,8 +194,8 @@ def test_make_transfer_path():
     assert (
         make_transfer_path(
             **args,
-            structure=unit_cost,
-            path=unit_cost.make(leaf),
+            structure=min_unit_cost,
+            path=min_unit_cost(leaf),
         ).value
         == inf
     )
@@ -201,7 +204,7 @@ def test_make_transfer_path():
         make_transfer_path(
             **args,
             structure=history_generator,
-            path=history_generator.make(leaf),
+            path=history_generator(leaf),
         ).value
         == frozenset()
     )
@@ -219,8 +222,8 @@ def test_make_transfer_path():
     assert (
         make_transfer_path(
             **args,
-            structure=unit_cost,
-            path=unit_cost.make(leaf),
+            structure=min_unit_cost,
+            path=min_unit_cost(leaf),
         ).value
         == 1
     )
@@ -228,7 +231,7 @@ def test_make_transfer_path():
     assert make_transfer_path(
         **args,
         structure=history_generator,
-        path=history_generator.make(leaf),
+        path=history_generator(leaf),
     ).value == _tree_set(
         """
         (x[&kind=extant,host=7,contents='{"a","b","c"}'])
@@ -267,13 +270,13 @@ def test_make_transfer_path():
         "host_index": host_index,
     }
 
-    cost = make_transfer_path(**args, structure=unit_cost, path=unit_cost.make(leaf))
+    cost = make_transfer_path(**args, structure=min_unit_cost, path=min_unit_cost(leaf))
     assert cost.value == 2
 
     assert make_transfer_path(
         **args,
         structure=history_generator,
-        path=history_generator.make(leaf),
+        path=history_generator(leaf),
     ).value == _tree_set(
         """
         (
@@ -319,8 +322,8 @@ def test_make_transfer_path():
     assert (
         make_transfer_path(
             **args,
-            structure=unit_cost,
-            path=unit_cost.make(leaf),
+            structure=min_unit_cost,
+            path=min_unit_cost(leaf),
         ).value
         == inf
     )
@@ -329,7 +332,7 @@ def test_make_transfer_path():
         make_transfer_path(
             **args,
             structure=history_generator,
-            path=history_generator.make(leaf),
+            path=history_generator(leaf),
         ).value
         == frozenset()
     )
@@ -347,8 +350,8 @@ def test_make_transfer_path():
     assert (
         make_transfer_path(
             **args,
-            structure=unit_cost,
-            path=unit_cost.make(leaf),
+            structure=min_unit_cost,
+            path=min_unit_cost(leaf),
         ).value
         == inf
     )
@@ -357,7 +360,7 @@ def test_make_transfer_path():
         make_transfer_path(
             **args,
             structure=history_generator,
-            path=history_generator.make(leaf),
+            path=history_generator(leaf),
         ).value
         == frozenset()
     )
@@ -375,8 +378,8 @@ def test_make_transfer_path():
     assert (
         make_transfer_path(
             **args,
-            structure=unit_cost,
-            path=unit_cost.make(leaf),
+            structure=min_unit_cost,
+            path=min_unit_cost(leaf),
         ).value
         == 3
     )
@@ -384,7 +387,7 @@ def test_make_transfer_path():
     assert make_transfer_path(
         **args,
         structure=history_generator,
-        path=history_generator.make(leaf),
+        path=history_generator(leaf),
     ).value == _tree_set(
         """
         (
@@ -436,8 +439,8 @@ def test_make_transfer_path():
     assert (
         make_transfer_path(
             **args,
-            structure=unit_cost,
-            path=unit_cost.make(leaf),
+            structure=min_unit_cost,
+            path=min_unit_cost(leaf),
         ).value
         == 2
     )
@@ -445,7 +448,7 @@ def test_make_transfer_path():
     assert make_transfer_path(
         **args,
         structure=history_generator,
-        path=history_generator.make(leaf),
+        path=history_generator(leaf),
     ).value == _tree_set(
         """
         (
@@ -497,12 +500,13 @@ def test_make_path():
     }
 
     assert (
-        make_path(**args, structure=unit_cost, path=unit_cost.make(leaf)).value == inf
+        make_path(**args, structure=min_unit_cost, path=min_unit_cost(leaf)).value
+        == inf
     )
 
     assert (
         make_path(
-            **args, structure=history_generator, path=history_generator.make(leaf)
+            **args, structure=history_generator, path=history_generator(leaf)
         ).value
         == frozenset()
     )
@@ -518,12 +522,13 @@ def test_make_path():
     }
 
     assert (
-        make_path(**args, structure=unit_cost, path=unit_cost.make(leaf)).value == inf
+        make_path(**args, structure=min_unit_cost, path=min_unit_cost(leaf)).value
+        == inf
     )
 
     assert (
         make_path(
-            **args, structure=history_generator, path=history_generator.make(leaf)
+            **args, structure=history_generator, path=history_generator(leaf)
         ).value
         == frozenset()
     )
@@ -538,11 +543,13 @@ def test_make_path():
         "host_index": host_index,
     }
 
-    assert make_path(**args, structure=unit_cost, path=unit_cost.make(leaf)).value == 0
+    assert (
+        make_path(**args, structure=min_unit_cost, path=min_unit_cost(leaf)).value == 0
+    )
 
     assert make_path(
-        **args, structure=history_generator, path=history_generator.make(leaf)
-    ).value == frozenset({history_builder.make(leaf)})
+        **args, structure=history_generator, path=history_generator(leaf)
+    ).value == frozenset({HistoryBuilder(Node(leaf))})
 
     # Kept extra contents with contents to lose: No events needed
     leaf = Extant(name="x", host="6", contents=frozenset({"a", EXTRA_CONTENTS}))
@@ -554,11 +561,13 @@ def test_make_path():
         "host_index": host_index,
     }
 
-    assert make_path(**args, structure=unit_cost, path=unit_cost.make(leaf)).value == 0
+    assert (
+        make_path(**args, structure=min_unit_cost, path=min_unit_cost(leaf)).value == 0
+    )
 
     assert make_path(
-        **args, structure=history_generator, path=history_generator.make(leaf)
-    ).value == frozenset({history_builder.make(leaf)})
+        **args, structure=history_generator, path=history_generator(leaf)
+    ).value == frozenset({HistoryBuilder(Node(leaf))})
 
     # Gained contents in same host: Gain events
     leaf = Extant(name="x", host="6", contents=frozenset("abcd"))
@@ -570,10 +579,12 @@ def test_make_path():
         "host_index": host_index,
     }
 
-    assert make_path(**args, structure=unit_cost, path=unit_cost.make(leaf)).value == 0
+    assert (
+        make_path(**args, structure=min_unit_cost, path=min_unit_cost(leaf)).value == 0
+    )
 
     assert make_path(
-        **args, structure=history_generator, path=history_generator.make(leaf)
+        **args, structure=history_generator, path=history_generator(leaf)
     ).value == _tree_set(
         """
         (x[&kind=extant,host=6,contents='{"a","b","c","d"}'])
@@ -591,10 +602,12 @@ def test_make_path():
         "host_index": host_index,
     }
 
-    assert make_path(**args, structure=unit_cost, path=unit_cost.make(leaf)).value == 1
+    assert (
+        make_path(**args, structure=min_unit_cost, path=min_unit_cost(leaf)).value == 1
+    )
 
     assert make_path(
-        **args, structure=history_generator, path=history_generator.make(leaf)
+        **args, structure=history_generator, path=history_generator(leaf)
     ).value == _tree_set(
         """
         (x[&kind=extant,host=6,contents='{"a","b"}'])
@@ -612,10 +625,12 @@ def test_make_path():
         "host_index": host_index,
     }
 
-    assert make_path(**args, structure=unit_cost, path=unit_cost.make(leaf)).value == 1
+    assert (
+        make_path(**args, structure=min_unit_cost, path=min_unit_cost(leaf)).value == 1
+    )
 
     assert make_path(
-        **args, structure=history_generator, path=history_generator.make(leaf)
+        **args, structure=history_generator, path=history_generator(leaf)
     ).value == _tree_set(
         """
         (
@@ -636,10 +651,12 @@ def test_make_path():
         "host_index": host_index,
     }
 
-    assert make_path(**args, structure=unit_cost, path=unit_cost.make(leaf)).value == 2
+    assert (
+        make_path(**args, structure=min_unit_cost, path=min_unit_cost(leaf)).value == 2
+    )
 
     assert make_path(
-        **args, structure=history_generator, path=history_generator.make(leaf)
+        **args, structure=history_generator, path=history_generator(leaf)
     ).value == _tree_set(
         """
         (

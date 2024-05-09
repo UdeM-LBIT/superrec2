@@ -2,18 +2,15 @@ from typing import TypeVar, Sequence, NamedTuple
 from collections import defaultdict
 from immutables import Map
 from superrec2.utils.algebras import (
-    Semiring,
-    tuple_ordered_magma,
-    min_plus,
-    max_plus,
-    pareto,
-    viterbi,
-    count,
-    boolean,
-    make_unit_magma,
-    make_single_selector,
-    make_multiple_selector,
-    make_generator,
+    Structure,
+    Counter,
+    MinPlus,
+    MaxPlus,
+    Viterbi,
+    Boolean,
+    pareto_of,
+    generator_of,
+    vector,
 )
 from sowing.node import Node
 
@@ -24,10 +21,10 @@ T = TypeVar("T")
 def edit_distance(
     word1: Sequence[str],
     word2: Sequence[str],
-    structure: type[Semiring[T]],
+    structure: Structure,
 ) -> T:
-    table = defaultdict(structure.null)
-    table[(0, 0)] = structure.unit()
+    table = defaultdict(lambda: structure.zero)
+    table[(0, 0)] = structure.one
 
     n = len(word1)
     m = len(word2)
@@ -38,58 +35,55 @@ def edit_distance(
             letter2 = word2[j - 1] if j >= 1 else None
 
             if i >= 1 and j >= 1:
-                table[(i, j)] += table[(i - 1, j - 1)] * structure.make(
-                    letter1, letter2
-                )
+                table[(i, j)] += table[(i - 1, j - 1)] * structure(letter1, letter2)
 
             if i >= 1:
-                table[(i, j)] += table[(i - 1, j)] * structure.make(letter1, None)
+                table[(i, j)] += table[(i - 1, j)] * structure(letter1, None)
 
             if j >= 1:
-                table[(i, j)] += table[(i, j - 1)] * structure.make(None, letter2)
+                table[(i, j)] += table[(i, j - 1)] * structure(None, letter2)
 
     return table[(n, m)].value
 
 
-@tuple_ordered_magma
+@vector
 class EditVector(NamedTuple):
     insert: int = 0
     delete: int = 0
     change: int = 0
-
-    @classmethod
-    def make(cls, source, target):
-        if source is None:
-            return EditVector(insert=1)
-        elif target is None:
-            return EditVector(delete=1)
-        elif source != target:
-            return EditVector(change=1)
-        else:
-            return EditVector()
 
 
 def test_edit_distance():
     words = ("elephant", "relevnat")
 
     # Count the total number of possible alignments
-    alignment_count = count("alignment_count", lambda source, target: 1)
+    alignment_count = Structure(Counter, lambda source, target: 1)
     assert edit_distance(*words, alignment_count) == 265729
 
     # Compute the minimum cost of any alignment
-    edit_cost = min_plus(
-        "edit_cost", lambda source, target: 1 if source != target else 0
-    )
+    edit_cost = Structure(MinPlus, lambda source, target: 1 if source != target else 0)
     assert edit_distance(*words, edit_cost) == 4
 
     # Compute the maximum score of any alignment
-    edit_score = max_plus(
-        "edit_score", lambda source, target: -1 if source != target else 1
+    edit_score = Structure(
+        MaxPlus, lambda source, target: -1 if source != target else 1
     )
     assert edit_distance(*words, edit_score) == 1
 
     # Compute the set of Pareto-optimal costs of any alignment
-    edit_pareto = pareto("edit_pareto", EditVector)
+    def vector_morphism(source, target):
+        if source is None:
+            return frozenset({EditVector(insert=1)})
+        elif target is None:
+            return frozenset({EditVector(delete=1)})
+        elif source != target:
+            return frozenset({EditVector(change=1)})
+        else:
+            return frozenset({EditVector()})
+
+    EditPareto = pareto_of(EditVector())
+    edit_pareto = Structure(EditPareto, vector_morphism)
+
     assert edit_distance(*words, edit_pareto) == frozenset(
         {
             EditVector(insert=0, delete=0, change=7),
@@ -100,92 +94,82 @@ def test_edit_distance():
     )
 
     # Count the number of minimum-cost alignments
-    count_min_cost = make_single_selector("count_min_cost", edit_cost, alignment_count)
-    min_count = edit_distance(*words, count_min_cost)
-    assert min_count.key.value == 4
-    assert min_count.value.value == 1
+    assert edit_distance(*words, edit_cost * alignment_count) == (4, 1)
 
     # Count the number of maximum-score alignments
-    count_max_score = make_single_selector(
-        "count_max_score", edit_score, alignment_count
-    )
-    max_count = edit_distance(*words, count_max_score)
-    assert max_count.key.value == 1
-    assert max_count.value.value == 1
+    assert edit_distance(*words, edit_score * alignment_count) == (1, 1)
 
     # Count the number of each type of Pareto-optimal alignment
-    count_min_pareto = make_multiple_selector(
-        "count_min_pareto", edit_pareto, alignment_count
-    )
-    assert edit_distance(*words, count_min_pareto) == Map(
+    assert edit_distance(*words, edit_pareto @ alignment_count) == Map(
         {
-            EditVector(insert=0, delete=0, change=7): alignment_count(1),
-            EditVector(insert=1, delete=1, change=2): alignment_count(1),
-            EditVector(insert=2, delete=2, change=1): alignment_count(9),
-            EditVector(insert=3, delete=3, change=0): alignment_count(10),
+            EditVector(insert=0, delete=0, change=7): 1,
+            EditVector(insert=1, delete=1, change=2): 1,
+            EditVector(insert=2, delete=2, change=1): 9,
+            EditVector(insert=3, delete=3, change=0): 10,
         }
     )
 
     # Generate all minimum-cost alignments
-    alignment_builder = make_unit_magma(
-        "alignment_builder",
-        unit=((), ()),
-        mul=lambda align1, align2: (align1[0] + align2[0], align1[1] + align2[1]),
-        make=lambda letter1, letter2: ((letter1,), (letter2,)),
-    )
-    alignment_generator = make_generator("alignment_generator", alignment_builder)
-    min_alignment_selector = make_single_selector(
-        "min_alignment_selector",
-        edit_cost,
-        alignment_generator,
+    class AlignBuilder:
+        def __init__(self, word1, word2):
+            self.value = (word1, word2)
+
+        def __eq__(self, other):
+            return self.value == other.value
+
+        def __hash__(self):
+            return hash(self.value)
+
+        def __mul__(align1, align2):
+            return AlignBuilder(
+                align1.value[0] + align2.value[0], align1.value[1] + align2.value[1]
+            )
+
+    AlignGenerator = generator_of(AlignBuilder((), ()))
+    align_generator = Structure(
+        AlignGenerator,
+        lambda source, target: frozenset({AlignBuilder((source,), (target,))}),
     )
 
-    solutions = edit_distance(*words, min_alignment_selector)
-    assert solutions.key.value == 4
-    assert solutions.value.value == frozenset(
-        {
-            alignment_builder(
-                (
+    assert edit_distance(*words, edit_cost * align_generator) == (
+        4,
+        frozenset(
+            {
+                AlignBuilder(
                     (None, "e", "l", "e", "p", "h", "a", "n", "t"),
                     ("r", "e", "l", "e", "v", "n", "a", None, "t"),
-                )
-            ),
-        }
+                ),
+            }
+        ),
     )
 
     # Generate all maximum-score alignments
-    max_alignment_selector = make_single_selector(
-        "max_alignment_selector",
-        edit_score,
-        alignment_generator,
-    )
-    solutions = edit_distance(*words, max_alignment_selector)
-    assert solutions.key.value == 1
-    assert solutions.value.value == frozenset(
-        {
-            alignment_builder(
-                (
+    assert edit_distance(*words, edit_score * align_generator) == (
+        1,
+        frozenset(
+            {
+                AlignBuilder(
                     (None, "e", "l", "e", "p", "h", "a", "n", "t"),
                     ("r", "e", "l", "e", "v", "n", "a", None, "t"),
-                )
-            ),
-        }
+                ),
+            }
+        ),
     )
 
 
 def parse_grammar(
     grammar: tuple[tuple[str, tuple[str, str] | str, float]],
     word: Sequence[str],
-    structure: type[Semiring[T]],
+    structure: Structure,
 ) -> T:
-    table = defaultdict(structure.null)
+    table = defaultdict(lambda: structure.zero)
     n = len(word)
 
     for start in range(len(word)):
         for rule in grammar:
             head, tail, *_ = rule
             if tail == word[start]:
-                table[(start, 1, head)] = structure.make(rule)
+                table[(start, 1, head)] = structure(rule)
 
     for size in range(2, len(word) + 1):
         for start in range(len(word) - size + 1):
@@ -195,7 +179,7 @@ def parse_grammar(
                     if isinstance(tail, tuple):
                         left, right = tail
                         table[(start, size, head)] += (
-                            structure.make(rule)
+                            structure(rule)
                             * table[(start, cut, left)]
                             * table[(start + cut, size - cut, right)]
                         )
@@ -220,47 +204,52 @@ def test_parse_grammar():
     inv_word = ("chopsticks", "i", "sushi", "ate", "with")
 
     # Check whether a sentence can be generated by the grammar
-    parsable = boolean("parsable", lambda rule: True)
+    parsable = Structure(Boolean, lambda rule: True)
     assert parse_grammar(grammar, word, parsable)
     assert not parse_grammar(grammar, inv_word, parsable)
 
     # Compute the best parsing probability of a sentence
-    best_prob = viterbi("best_prob", lambda rule: rule[2])
+    best_prob = Structure(Viterbi, lambda rule: rule[2])
     assert parse_grammar(grammar, word, best_prob) == 0.24
 
     # Count the number of possible parse trees for a sentence
-    count_parses = count("count_parses", lambda rule: 1)
+    count_parses = Structure(Counter, lambda rule: 1)
     assert parse_grammar(grammar, word, count_parses) == 2
 
     # Generate all possible parse trees for a sentence
-    def join_trees(node1, node2):
-        if node1.data is None:
-            return node2
+    class ParseBuilder:
+        def __init__(self, node):
+            self.value = node
 
-        if node2.data is None:
-            return node1
+        def __eq__(self, other):
+            return self.value == other.value
 
-        return node1.add(node2)
+        def __hash__(self):
+            return hash(self.value)
 
-    def make_parse_tree(rule):
+        def __mul__(node1, node2):
+            if node1.value.data is None:
+                return node2
+
+            if node2.value.data is None:
+                return node1
+
+            return ParseBuilder(node1.value.add(node2.value))
+
+    def parse_morphism(rule):
         head, tail, *_ = rule
 
         if isinstance(tail, str):
-            return Node(head).add(Node(tail))
+            return frozenset({ParseBuilder(Node(head).add(Node(tail)))})
         else:
-            return Node(head)
+            return frozenset({ParseBuilder(Node(head))})
 
-    parse_tree_builder = make_unit_magma(
-        "parse_tree_builder",
-        unit=Node(),
-        mul=join_trees,
-        make=make_parse_tree,
-    )
-    parse_tree_generator = make_generator("parse_tree_generator", parse_tree_builder)
+    ParseGenerator = generator_of(ParseBuilder(Node()))
+    parse_generator = Structure(ParseGenerator, parse_morphism)
 
-    assert parse_grammar(grammar, word, parse_tree_generator) == frozenset(
+    assert parse_grammar(grammar, word, parse_generator) == frozenset(
         {
-            parse_tree_builder(
+            ParseBuilder(
                 Node("S")
                 .add(Node("NP").add(Node("i")))
                 .add(
@@ -277,7 +266,7 @@ def test_parse_grammar():
                     )
                 )
             ),
-            parse_tree_builder(
+            ParseBuilder(
                 Node("S")
                 .add(Node("NP").add(Node("i")))
                 .add(
@@ -298,32 +287,27 @@ def test_parse_grammar():
     )
 
     # Generate the most probable parse trees for a sentence
-    best_parse_tree_selector = make_single_selector(
-        "best_parse_tree_selector",
-        best_prob,
-        parse_tree_generator,
-    )
-
-    solutions = parse_grammar(grammar, word, best_parse_tree_selector)
-    assert solutions.key.value == 0.24
-    assert solutions.value.value == frozenset(
-        {
-            parse_tree_builder(
-                Node("S")
-                .add(Node("NP").add(Node("i")))
-                .add(
-                    Node("VP")
+    assert parse_grammar(grammar, word, best_prob * parse_generator) == (
+        0.24,
+        frozenset(
+            {
+                ParseBuilder(
+                    Node("S")
+                    .add(Node("NP").add(Node("i")))
                     .add(
                         Node("VP")
-                        .add(Node("VBD").add(Node("ate")))
-                        .add(Node("NP").add(Node("sushi")))
+                        .add(
+                            Node("VP")
+                            .add(Node("VBD").add(Node("ate")))
+                            .add(Node("NP").add(Node("sushi")))
+                        )
+                        .add(
+                            Node("PP")
+                            .add(Node("P").add(Node("with")))
+                            .add(Node("NP").add(Node("chopsticks")))
+                        )
                     )
-                    .add(
-                        Node("PP")
-                        .add(Node("P").add(Node("with")))
-                        .add(Node("NP").add(Node("chopsticks")))
-                    )
-                )
-            ),
-        }
+                ),
+            }
+        ),
     )

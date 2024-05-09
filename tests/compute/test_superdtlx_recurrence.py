@@ -7,37 +7,35 @@ from superrec2.model.history import (
     Event,
     History,
 )
+from superrec2.utils.algebras import Structure, MinPlus
 from superrec2.compute.superdtlx.recurrence import reconcile
-from superrec2.utils.algebras import make_single_selector
 from superrec2.compute.util import (
     EventCosts,
-    make_cost_algebra,
-    history_builder,
+    HistoryBuilder,
     history_generator,
 )
 
 
-unit_cost = make_cost_algebra("unit_cost", costs=EventCosts())
-best_unit_cost = make_single_selector("best_unit_cost", unit_cost, history_generator)
+_unit_cost = EventCosts()
+_scaled_cost = EventCosts(
+    speciation=0,
+    loss=1,
+    duplication=2,
+    cut=2.5,
+    transfer_duplication=4,
+    transfer_cut=4.5,
+)
 
-scaled_cost = make_cost_algebra(
-    "scaled_cost",
-    costs=EventCosts(
-        speciation=0,
-        loss=1,
-        duplication=2,
-        cut=2.5,
-        transfer_duplication=4,
-        transfer_cut=4.5,
-    ),
-)
-best_scaled_cost = make_single_selector(
-    "best_scaled_cost", scaled_cost, history_generator
-)
+
+min_unit_cost = Structure(MinPlus, _unit_cost.event_cost_morphism)
+min_scaled_cost = Structure(MinPlus, _scaled_cost.event_cost_morphism)
+
+best_unit_cost = min_unit_cost * history_generator
+best_scaled_cost = min_scaled_cost * history_generator
 
 
 def _build_event_tree(source):
-    return history_builder(parse_tree(Event, source))
+    return HistoryBuilder(parse_tree(Event, source))
 
 
 def _tree_set(*trees):
@@ -64,9 +62,10 @@ def test_reconcile_simple():
         Associate, "(1[&host=a,contents='{\"x\"}'],2[&host=b,contents='{\"x\"}']);"
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, unit_cost) == 0
+    assert reconcile(setting, min_unit_cost) == 0
 
-    results = reconcile(setting, best_unit_cost).value.value
+    cost, results = reconcile(setting, best_unit_cost)
+    assert cost == 0
     assert results == _tree_set(
         """
         (
@@ -84,9 +83,10 @@ def test_reconcile_simple():
         Associate, '(1[&host=a,contents=\'{"x","y"}\'],2[&host=b,contents=\'{"x"}\']);'
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, unit_cost) == 0
+    assert reconcile(setting, min_unit_cost) == 0
 
-    results = reconcile(setting, best_unit_cost).value.value
+    cost, results = reconcile(setting, best_unit_cost)
+    assert cost == 0
     assert results == _tree_set(
         """
         (
@@ -105,9 +105,10 @@ def test_reconcile_simple():
         Associate, "(1[&host=a,contents='{\"x\"}'],2[&host=b,contents='{\"y\"}']);"
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, unit_cost) == 0
+    assert reconcile(setting, min_unit_cost) == 0
 
-    results = reconcile(setting, best_unit_cost).value.value
+    cost, results = reconcile(setting, best_unit_cost)
+    assert cost == 0
     assert results == _tree_set(
         """
         (
@@ -142,9 +143,10 @@ def test_reconcile_extra_contents():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, scaled_cost) == 2
+    assert reconcile(setting, min_scaled_cost) == 2
 
-    results = reconcile(setting, best_unit_cost).value.value
+    cost, results = reconcile(setting, best_unit_cost)
+    assert cost == 2
     assert results == _tree_set(
         """
         (
@@ -181,9 +183,10 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, scaled_cost) == 4
+    assert reconcile(setting, min_scaled_cost) == 4
 
-    results = reconcile(setting, best_scaled_cost).value.value
+    cost, results = reconcile(setting, best_scaled_cost)
+    assert cost == 4
     assert results == _tree_set(
         """
         (
@@ -211,9 +214,10 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, scaled_cost) == 5
+    assert reconcile(setting, min_scaled_cost) == 5
 
-    results = reconcile(setting, best_scaled_cost).value.value
+    cost, results = reconcile(setting, best_scaled_cost)
+    assert cost == 5
     assert results == _tree_set(
         """
         (
@@ -255,9 +259,10 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, scaled_cost) == 4.5
+    assert reconcile(setting, min_scaled_cost) == 4.5
 
-    results = reconcile(setting, best_scaled_cost).value.value
+    cost, results = reconcile(setting, best_scaled_cost)
+    assert cost == 4.5
     assert results == _tree_set(
         """
         (
@@ -284,9 +289,10 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, scaled_cost) == 4.5
+    assert reconcile(setting, min_scaled_cost) == 4.5
 
-    results = reconcile(setting, best_scaled_cost).value.value
+    cost, results = reconcile(setting, best_scaled_cost)
+    assert cost == 4.5
     assert results == _tree_set(
         """
         (
@@ -323,9 +329,10 @@ def test_reconcile_transfer():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, scaled_cost) == 4
+    assert reconcile(setting, min_scaled_cost) == 4
 
-    results = reconcile(setting, best_scaled_cost).value.value
+    cost, results = reconcile(setting, best_scaled_cost)
+    assert cost == 4
     assert results == _tree_set(
         """
         (
@@ -360,9 +367,10 @@ def test_reconcile_transfer():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, scaled_cost) == 4.5
+    assert reconcile(setting, min_scaled_cost) == 4.5
 
-    results = reconcile(setting, best_scaled_cost).value.value
+    cost, results = reconcile(setting, best_scaled_cost)
+    assert cost == 4.5
     assert results == _tree_set(
         """
         (
@@ -411,9 +419,10 @@ def test_reconcile_unsampled():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, scaled_cost) == 7
+    assert reconcile(setting, min_scaled_cost) == 7
 
-    results = reconcile(setting, best_scaled_cost).value.value
+    cost, results = reconcile(setting, best_scaled_cost)
+    assert cost == 7
     assert results == _tree_set(
         """
         (
@@ -451,9 +460,10 @@ def test_reconcile_unsampled():
     assert all(_history_match_input(setting, history) for history in results)
 
     setting = Reconciliation(unsampled_host_tree, associate_tree)
-    assert reconcile(setting, scaled_cost) == 6
+    assert reconcile(setting, min_scaled_cost) == 6
 
-    results = reconcile(setting, best_scaled_cost).value.value
+    cost, results = reconcile(setting, best_scaled_cost)
+    assert cost == 6
     assert results == _tree_set(
         """
         (

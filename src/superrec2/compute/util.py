@@ -1,13 +1,13 @@
 from sowing.node import Node
 from typing import NamedTuple, Self
+from dataclasses import dataclass
 from superrec2.utils.algebras import (
-    tuple_ordered_magma,
-    pareto,
-    make_unit_magma,
-    make_unit_generator,
-    make_generator,
-    min_plus,
-    count,
+    vector,
+    Structure,
+    Counter,
+    pareto_of,
+    generator_of,
+    projector_of,
 )
 from superrec2.model.history import Event, Codiverge, Diverge, Gain, Loss, Extant
 
@@ -47,13 +47,13 @@ def reconciliation_algorithm(algo):
         pool=DummyPool(),
     ):
         bar = progress(total=sum(1 for _ in setting.binarize()))
-        result = structure.null()
+        result = structure.zero
 
         for item in pool.map(
             lambda binary_setting: algo(binary_setting, structure),
             setting.binarize(),
         ):
-            result += structure.cast(item)
+            result += item
             bar.update()
 
         return result.value
@@ -69,11 +69,7 @@ class EventCosts(NamedTuple):
     transfer_cut: float = 1
     loss: float = 1
 
-
-def make_cost_algebra(typename: str, costs: EventCosts):
-    """Create a structure that computes reconciliation costs."""
-
-    def make(event: Event):
+    def event_cost_morphism(self, event: Event):
         match event:
             case Extant():
                 return 0
@@ -82,30 +78,29 @@ def make_cost_algebra(typename: str, costs: EventCosts):
                 return 0
 
             case Codiverge():
-                return costs.speciation
+                return self.speciation
 
             case Diverge():
                 if not event.cut and not event.transfer:
-                    return costs.duplication
+                    return self.duplication
 
                 if not event.cut and event.transfer:
-                    return costs.transfer_duplication
+                    return self.transfer_duplication
 
                 if event.cut and not event.transfer:
-                    return costs.cut
+                    return self.cut
 
                 if event.cut and event.transfer:
-                    return costs.transfer_cut
+                    return self.transfer_cut
 
             case Loss():
-                return costs.loss
+                return self.loss
 
-        raise ValueError
+            case _:
+                raise ValueError(f"unknown event type {type(event)}")
 
-    return min_plus(typename, make)
 
-
-@tuple_ordered_magma
+@vector
 class EventVector(NamedTuple):
     speciation: int = 0
     duplication: int = 0
@@ -114,56 +109,96 @@ class EventVector(NamedTuple):
     transfer_cut: int = 0
     loss: int = 0
 
-    @classmethod
-    def make(cls, event: Event) -> Self:
-        match event:
-            case Extant() | Gain():
-                return EventVector()
 
-            case Codiverge():
-                return EventVector(speciation=1)
+def event_vector_morphism(event: Event):
+    match event:
+        case Extant() | Gain():
+            return frozenset({EventVector()})
 
-            case Diverge():
-                if not event.cut and not event.transfer:
-                    return EventVector(duplication=1)
+        case Codiverge():
+            return frozenset({EventVector(speciation=1)})
 
-                if not event.cut and event.transfer:
-                    return EventVector(transfer_duplication=1)
+        case Diverge():
+            if not event.cut and not event.transfer:
+                return frozenset({EventVector(duplication=1)})
 
-                if event.cut and not event.transfer:
-                    return EventVector(cut=1)
+            if not event.cut and event.transfer:
+                return frozenset({EventVector(transfer_duplication=1)})
 
-                if event.cut and event.transfer:
-                    return EventVector(transfer_cut=1)
+            if event.cut and not event.transfer:
+                return frozenset({EventVector(cut=1)})
 
-            case Loss():
-                return EventVector(loss=1)
+            if event.cut and event.transfer:
+                return frozenset({EventVector(transfer_cut=1)})
 
-            case _:
-                raise ValueError(f"unknown event type {type(event)}")
+        case Loss():
+            return frozenset({EventVector(loss=1)})
 
-
-event_vector_pareto = pareto("event_vector_pareto", EventVector)
+        case _:
+            raise ValueError(f"unknown event type {type(event)}")
 
 
-def join_event_nodes(node1: Node, node2: Node) -> Node:
-    """Append an event node to another."""
-    if node1.data is None:
-        return node2
-
-    if node2.data is None:
-        return node1
-
-    return node1.add(node2)
+EventVectorPareto = pareto_of(EventVector)
+event_vector_pareto = Structure(EventVectorPareto, event_vector_morphism)
 
 
-history_builder = make_unit_magma(
-    "history_builder",
-    unit=Node(),
-    mul=join_event_nodes,
-    make=Node,
+@dataclass(frozen=True, slots=True)
+class HistoryBuilder:
+    value: Node
+
+    def __mul__(node1, node2):
+        if node1.value.data is None:
+            return node2
+
+        if node2.value.data is None:
+            return node1
+
+        return HistoryBuilder(node1.value.add(node2.value))
+
+
+HistoryGenerator = generator_of(HistoryBuilder(Node()))
+history_generator = Structure(
+    HistoryGenerator,
+    lambda event: frozenset({HistoryBuilder(Node(event))}),
 )
 
-history_counter = count("history_counter", lambda _: 1)
-history_generator = make_generator("history_generator", history_builder)
-history_unit_generator = make_unit_generator("history_unit_generator", history_builder)
+HistoryProjector = projector_of(HistoryBuilder(Node()))
+history_projector = Structure(
+    HistoryProjector,
+    lambda event: HistoryBuilder(Node(event)),
+)
+
+
+class PartialHistoryBuilder:
+    def __init__(self, value):
+        self.value = value
+
+    def __eq__(self, other):
+        return self.value == other.value
+
+    def __hash__(self):
+        return hash(self.value)
+
+    def __mul__(node1, node2):
+        if node1.value.data is None or not node1.value.data.apparent:
+            return node2
+
+        if node2.value.data is None:
+            return node1
+
+        return PartialHistoryBuilder(node1.value.add(node2.value))
+
+
+PartialHistoryGenerator = generator_of(PartialHistoryBuilder(Node()))
+partial_history_generator = Structure(
+    PartialHistoryGenerator,
+    lambda event: frozenset({PartialHistoryBuilder(Node(event))}),
+)
+
+PartialHistoryProjector = projector_of(PartialHistoryBuilder(Node()))
+partial_history_projector = Structure(
+    PartialHistoryProjector,
+    lambda event: PartialHistoryBuilder(Node(event)),
+)
+
+history_counter = Structure(Counter, lambda event: 1)

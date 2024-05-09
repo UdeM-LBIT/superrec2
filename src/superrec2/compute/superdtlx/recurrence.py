@@ -4,10 +4,11 @@ from itertools import product
 from enum import Enum, auto
 from collections import defaultdict
 from typing import TypeVar
-from ...utils.algebras import Semiring
+from ...utils.algebras import SemiRing, Structure
 from ...model.history import (
     Host,
     Reconciliation,
+    Event,
     Extant,
     Codiverge,
     Diverge,
@@ -48,10 +49,10 @@ def compute_choices_at(
     incoming_contents: Contents,
     min_contents: Contents,
     host_index: IndexedTree[Host, None],
-    structure: type[Semiring[T]],
-    table: dict[tuple[AssociateNode, str, Contents], Semiring[T]],
-) -> dict[tuple[HostChoice, ContentsChoice], Semiring[T]]:
-    choices = defaultdict(structure.null)
+    structure: Structure[T, [Event]],
+    table: dict[tuple[AssociateNode, str, Contents], SemiRing[T]],
+) -> dict[tuple[HostChoice, ContentsChoice], SemiRing[T]]:
+    choices = defaultdict(lambda: structure.zero)
     try_start_hosts = []
 
     host_cursor = host_index[incoming_host]
@@ -115,20 +116,20 @@ def join_binary_event(
     contents: Contents,
     left_contents: Contents,
     right_contents: Contents,
-    structure: type[Semiring[T]],
-    left_choices: dict[tuple[HostChoice, ContentsChoice], Semiring[T]],
-    right_choices: dict[tuple[HostChoice, ContentsChoice], Semiring[T]],
-) -> Semiring[T]:
+    structure: Structure[T, [Event]],
+    left_choices: dict[tuple[HostChoice, ContentsChoice], SemiRing[T]],
+    right_choices: dict[tuple[HostChoice, ContentsChoice], SemiRing[T]],
+) -> SemiRing[T]:
     # Speciation with matching host-children order
     results = (
-        structure.make(Codiverge(host=host, contents=contents))
+        structure(Codiverge(apparent=True, host=host, contents=contents))
         * left_choices[(HostChoice.Left, ContentsChoice.Incoming)]
         * right_choices[(HostChoice.Right, ContentsChoice.Incoming)]
     )
 
     # Speciation with reverse host-children order
     results += (
-        structure.make(Codiverge(host=host, contents=contents))
+        structure(Codiverge(apparent=True, host=host, contents=contents))
         * left_choices[(HostChoice.Right, ContentsChoice.Incoming)]
         * right_choices[(HostChoice.Left, ContentsChoice.Incoming)]
     )
@@ -136,7 +137,7 @@ def join_binary_event(
     # Duplication
     if right_contents == contents:
         results += (
-            structure.make(
+            structure(
                 Diverge(
                     apparent=True,
                     host=host,
@@ -152,7 +153,7 @@ def join_binary_event(
         )
     else:
         results += (
-            structure.make(
+            structure(
                 Diverge(
                     apparent=True,
                     host=host,
@@ -169,7 +170,7 @@ def join_binary_event(
 
     # Duplication-transfer to the left
     results += (
-        structure.make(
+        structure(
             Diverge(
                 apparent=True,
                 host=host,
@@ -186,7 +187,7 @@ def join_binary_event(
 
     # Duplication-transfer to the right
     results += (
-        structure.make(
+        structure(
             Diverge(
                 apparent=True,
                 host=host,
@@ -207,7 +208,7 @@ def join_binary_event(
     ):
         # Cut (symmetric)
         results += (
-            structure.make(
+            structure(
                 Diverge(
                     apparent=True,
                     host=host,
@@ -224,7 +225,7 @@ def join_binary_event(
 
         # Cut-transfer to the left
         results += (
-            structure.make(
+            structure(
                 Diverge(
                     apparent=True,
                     host=host,
@@ -241,7 +242,7 @@ def join_binary_event(
 
         # Cut-transfer to the right
         results += (
-            structure.make(
+            structure(
                 Diverge(
                     apparent=True,
                     host=host,
@@ -260,8 +261,8 @@ def join_binary_event(
 
 
 @reconciliation_algorithm
-def reconcile(setting: Reconciliation, structure: type[Semiring[T]]) -> Semiring[T]:
-    results = defaultdict(structure.null)
+def reconcile(setting: Reconciliation, structure: Structure[T, [Event]]) -> SemiRing[T]:
+    results = defaultdict(lambda: structure.zero)
     root = setting.associate_tree
     min_contents = compute_min_contents(root)
 
@@ -272,7 +273,9 @@ def reconcile(setting: Reconciliation, structure: type[Semiring[T]]) -> Semiring
             name = node.data.name
             host = node.data.host
             contents = node.data.contents
-            value = structure.make(Extant(name=name, host=host, contents=contents, apparent=True))
+            value = structure(
+                Extant(name=name, host=host, contents=contents, apparent=True)
+            )
             results[(node, host, contents)] += value
         else:
             for host, contents in product(
@@ -320,5 +323,5 @@ def reconcile(setting: Reconciliation, structure: type[Semiring[T]]) -> Semiring
             )
             for host in setting.host_index.keys()
         ),
-        start=structure.null(),
+        start=structure.zero,
     )

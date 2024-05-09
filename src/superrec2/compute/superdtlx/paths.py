@@ -1,7 +1,7 @@
 from typing import TypeVar
 from sowing.indexed import IndexedTree
-from ...utils.algebras import Semiring
-from ...model.history import Host, Codiverge, Diverge, Gain, Loss, Extant
+from ...utils.algebras import SemiRing, Structure
+from ...model.history import Host, Event, Codiverge, Diverge, Gain, Loss, Extant
 from .contents import Contents, EXTRA_CONTENTS
 
 
@@ -13,9 +13,9 @@ def make_codiv_path(
     end_host: str,
     contents: Contents,
     host_index: IndexedTree[Host, None],
-    structure: type[Semiring[T]],
-    path: Semiring[T],
-) -> Semiring[T]:
+    structure: Structure[T, [Event]],
+    path: SemiRing[T],
+) -> SemiRing[T]:
     """
     Try to link two hosts using codivergence and loss events.
 
@@ -28,7 +28,7 @@ def make_codiv_path(
     :returns: possible paths, if any
     """
     if not host_index.is_ancestor_of(start_host, end_host):
-        return structure.null()
+        return structure.zero
 
     host = host_index[end_host]
     target = host_index[start_host]
@@ -42,7 +42,7 @@ def make_codiv_path(
         other = last.sibling()
         other_data = other.node.data
 
-        subpath = structure.make(Codiverge(host=host_data.name, contents=contents))
+        subpath = structure(Codiverge(host=host_data.name, contents=contents))
 
         if other_data.sampled:
             # Add loss of associate in sampled host
@@ -51,7 +51,7 @@ def make_codiv_path(
             # Add extant associate in unsampled host
             event = Extant(host=other_data.name, contents=contents)
 
-        path = subpath * structure.make(event) * path
+        path = subpath * structure(event) * path
 
     return path
 
@@ -62,9 +62,9 @@ def make_transfer_path(
     start_contents: Contents,
     end_contents: Contents,
     host_index: IndexedTree[Host, None],
-    structure: type[Semiring[T]],
-    path: Semiring[T],
-) -> Semiring[T]:
+    structure: Structure[T, [Event]],
+    path: SemiRing[T],
+) -> SemiRing[T]:
     """
     Try to link two hosts using codivergences, losses,
     and exactly one transfer event.
@@ -78,10 +78,10 @@ def make_transfer_path(
     :returns: possible paths, if any
     """
     if host_index.is_ancestor_of(end_host, start_host):
-        return structure.null()
+        return structure.zero
 
     if not (end_contents <= start_contents):
-        return structure.null()
+        return structure.zero
 
     host = host_index[start_host]
 
@@ -111,7 +111,7 @@ def make_transfer_path(
             subpath,
         )
 
-    copy = structure.make(
+    copy = structure(
         Diverge(
             host=start_host,
             contents=start_contents,
@@ -124,7 +124,7 @@ def make_transfer_path(
 
     if start_contents == end_contents:
         # Complete cut transfer
-        cut = structure.make(
+        cut = structure(
             Diverge(
                 host=start_host,
                 contents=start_contents,
@@ -135,7 +135,7 @@ def make_transfer_path(
             )
         )
     else:
-        cut = structure.make(
+        cut = structure(
             Diverge(
                 host=start_host,
                 contents=start_contents,
@@ -150,7 +150,7 @@ def make_transfer_path(
 
     if sampled:
         # Lose remaining contents
-        copy *= structure.make(
+        copy *= structure(
             Loss(
                 host=start_host,
                 contents=start_contents,
@@ -159,7 +159,7 @@ def make_transfer_path(
         )
 
         if start_contents != end_contents:
-            cut *= structure.make(
+            cut *= structure(
                 Loss(
                     host=start_host,
                     contents=start_contents - end_contents,
@@ -168,7 +168,7 @@ def make_transfer_path(
             )
     else:
         # Keep as extant in unsampled host
-        copy *= structure.make(
+        copy *= structure(
             Extant(
                 host=start_host,
                 contents=start_contents,
@@ -176,7 +176,7 @@ def make_transfer_path(
         )
 
         if start_contents != end_contents:
-            cut *= structure.make(
+            cut *= structure(
                 Extant(
                     host=start_host,
                     contents=start_contents - end_contents,
@@ -190,9 +190,9 @@ def make_gain_path(
     host: str,
     start_contents: Contents,
     end_contents: Contents,
-    structure: type[Semiring[T]],
-    path: Semiring[T],
-) -> Semiring[T]:
+    structure: Structure[T, [Event]],
+    path: SemiRing[T],
+) -> SemiRing[T]:
     """
     Add a gain event, if required, to transition between two gene contents sets.
 
@@ -207,7 +207,7 @@ def make_gain_path(
 
     if to_gain:
         path = (
-            structure.make(
+            structure(
                 Gain(
                     host=host,
                     contents=start_contents,
@@ -226,9 +226,9 @@ def make_path(
     start_contents: Contents,
     end_contents: Contents,
     host_index: IndexedTree[Host, None],
-    structure: type[Semiring[T]],
-    path: Semiring[T],
-) -> Semiring[T]:
+    structure: Structure[T, [Event]],
+    path: SemiRing[T],
+) -> SemiRing[T]:
     """
     Link two hosts and contents using a compressible path.
 
@@ -249,7 +249,7 @@ def make_path(
         and EXTRA_CONTENTS in contents
     ):
         # No extra contents can be sent towards the child
-        return structure.null()
+        return structure.zero
 
     # Add gain events at the end, if needed
     without_gains = contents & (start_contents | {EXTRA_CONTENTS})
@@ -270,7 +270,7 @@ def make_path(
         ## TODO: Loss using duplication or cut in unsampled species ##
         ##############################################################
         codiv_path = (
-            structure.make(
+            structure(
                 Loss(
                     host=end_host,
                     contents=start_contents,
