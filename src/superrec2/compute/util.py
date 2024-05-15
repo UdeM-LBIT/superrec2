@@ -1,5 +1,5 @@
 from sowing.node import Node
-from typing import NamedTuple, Self
+from typing import NamedTuple
 from dataclasses import dataclass
 from superrec2.utils.algebras import (
     vector,
@@ -68,7 +68,7 @@ class EventCosts(NamedTuple):
     transfer_cut: float = 1
     loss: float = 1
 
-    def event_cost_morphism(self, event: Event):
+    def event_cost_morphism(self, event: Event) -> float:
         match event:
             case Extant() | Gain() | Codiverge():
                 return 0

@@ -4,9 +4,7 @@ import argparse
 import json
 import inspect
 from ast import literal_eval
-from tqdm import tqdm
 from functools import partial
-from pathos.multiprocessing import Pool
 from .util import add_arg_input, add_arg_output
 from ..model.history import Reconciliation, History, graft_unsampled_hosts
 from ..utils.algebras import Structure, MinPlus
@@ -18,8 +16,6 @@ from ..compute.util import (
     history_counter,
     history_projector,
     history_generator,
-    partial_history_projector,
-    partial_history_generator,
 )
 from ..compute import superdtlx
 
@@ -32,48 +28,56 @@ def register_method(method):
     methods[pretty_name] = method
 
 
+def display_history(event_tree, setting, output):
+    history = History(setting.host_tree, event_tree)
+    history = superdtlx.finalize_history(history)
+    history.validate()
+    json.dump(history.to_mapping(), output)
+
+
 @register_method
-def single_solution(run, costs, output):
+def single_solution(setting, costs, run, output):
     """
     Report a single arbitrary minimum-cost solution
     along with the total number of optimal solutions.
     """
     min_cost = Structure(MinPlus, costs.event_cost_morphism)
-    result = run(structure=min_cost * (history_counter + history_projector))
-    cost, (count, history) = result
+    structure = min_cost * (history_counter + history_projector)
+    result = run(setting=setting, structure=structure)
+    cost, (count, solution) = result
 
     print(f"cost={cost}", file=output)
     print(f"count={count}", file=output)
-    yield history.value
+    display_history(solution.value, setting, output)
 
 
 @register_method
-def all_solutions(run, costs, output):
+def all_solutions(setting, costs, run, output):
     """Report all minimum-cost solutions."""
     min_cost = Structure(MinPlus, costs.event_cost_morphism)
-    result = run(structure=min_cost * history_generator)
-    cost, histories = result
+    structure = min_cost * history_generator
+    result = run(setting=setting, structure=structure)
+    cost, solutions = result
 
     print(f"cost={cost}", file=output)
-    print(f"count={len(histories)}", file=output)
+    print(f"count={len(solutions)}", file=output)
 
-    for solution in histories:
-        yield solution.value
+    for solution in solutions:
+        display_history(solution.value, setting, output)
+        print(file=output)
 
 
 @register_method
-def pareto(run, _, output):
+def pareto(setting, _, run, output):
     """
     Compute all Pareto-optimal event count vectors and
     the number of corresponding solutions for each vector.
     """
-    result = run(structure=event_vector_pareto @ history_counter)
+    structure = event_vector_pareto @ history_counter
+    result = run(setting=setting, structure=structure)
 
     for key in sorted(result.keys(), key=tuple):
         print(f"{key}: {result[key]}")
-
-    return
-    yield
 
 
 def reconcile(args):
@@ -97,24 +101,19 @@ def reconcile(args):
 
     setting.validate()
 
-    for event_tree in methods[args.method](
+    methods[args.method](
+        setting,
+        costs,
         partial(
             superdtlx.reconcile,
-            setting=setting,
             progress=DummyProgress,
             pool=DummyPool(),
             # FIXME: Restore multiprocess support
             # progress=tqdm,
             # pool=Pool(args.processes),
         ),
-        costs,
         args.output,
-    ):
-        history = History(setting.host_tree, event_tree)
-        history = superdtlx.finalize_history(history)
-        history.validate()
-        json.dump(history.to_mapping(), args.output)
-        print(file=args.output)
+    )
 
 
 def add_args(parser):
