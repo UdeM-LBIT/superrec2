@@ -18,7 +18,6 @@ from superrec2.compute.util import (
 
 _unit_cost = EventCosts()
 _scaled_cost = EventCosts(
-    speciation=0,
     loss=1,
     duplication=2,
     cut=2.5,
