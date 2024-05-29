@@ -63,31 +63,7 @@ def all_solutions(run, costs, output):
         yield solution.value
 
 @register_method
-def general_solution(run, a, output):
-    """Report a representative solution in each class."""
-
-    list_result = []
-    while True :
-        a,b,c = general_solution_copy(run, a, output)
-        print(len(list_result), c)
-        for i in list_result:
-            if i[0] != a:
-                print(i)
-                print("\n\n\n")
-                print(a,b)
-                print(len(list_result))
-                return
-                yield
-            if i[1] !=b:
-                print("numA",i[1],"-",b)
-            else:
-                print("numB",i[1],"-",b)
-        list_result.append([a,b])
-
-    return
-    yield
-
-def general_solution_copy(run, _, output):
+def general_solution(run, _, output):
     """Report a representative solution in each class."""
     def get_sub_history(hist) :
         data, edge = get_data_edges(hist)
@@ -175,65 +151,47 @@ def general_solution_copy(run, _, output):
     t0 = time.time()
     result_number = run(structure=partial_history_generator @ (event_vector_pareto @ history_generator))
     t1 = time.time()
-    #print(f"time run : {t1-t0}")
+    print(f"time run : {t1-t0}")
     nbClass = []
     nbClassOrigin = []
-    result_number_new = {}
 
-    for clas in result_number:
-        t = superdtlx.propagate_contents(History(run.keywords['setting'].host_tree, clas.value).prune_unsampled())
-        if t not in result_number_new :
-            result_number_new[t] = {}
-        for vector in result_number[clas]:
-            if vector not in result_number_new[t]:
-                result_number_new[t][vector] = set()
-            result_number_new[t][vector] = result_number_new[t][vector] | result_number[clas][vector]
-
-
-    print("aa",len(result_number), len(result_number_new))
-
-    for clas in result_number_new:
+    for h in result_number:
         t = time.time()
-        #print(f"Classe :\n{h.value}")
+        print(f"Classe :\n{h.value}")
         frequence = {}
         list_pareto = set()
 
         s = 0
-        for vector in result_number_new[clas]:
-            s += len(result_number_new[clas][vector])
-            for hist in result_number_new[clas][vector]:
-                #breakpoint()
-                #list_pareto.add(History(run.keywords['setting'].host_tree, hist.value))
-                list_pareto.add(superdtlx.propagate_contents(History(run.keywords['setting'].host_tree, hist.value).prune_unsampled()))
+        for h2 in result_number[h]:
+            s += len(result_number[h][h2])
+            for h3 in result_number[h][h2]:
+                list_pareto.add(superdtlx.propagate_contents(History(run.keywords['setting'].host_tree, h3.value).prune_unsampled()))
 
         nbClassOrigin.append(s)
         nbClass.append(len(list_pareto))
 
-        #for h3 in list_pareto:
+        for h3 in list_pareto:
             # print(f"Contient :\n{h3.event_tree}")
-        #    frequence = calc_freq(h3.event_tree, frequence)
+            frequence = calc_freq(h3.event_tree, frequence)
 
-        #general = before_construct_representative(h, frequence)
+        general = before_construct_representative(h, frequence)
 
-        #print(f"La fréquence est {frequence}")
-        #print(f"La classe a {nbClass[-1]} histoires")
-        #print(f"L'histoire générale :\n{general.value}")
-        #print(f"time calcul : {time.time()-t}\n\n")
+        print(f"La fréquence est {frequence}")
+        print(f"La classe a {nbClass[-1]} histoires")
+        print(f"L'histoire générale :\n{general.value}")
+        print(f"time calcul : {time.time()-t}\n\n")
 
-    #print(f"""On a un total de {len(nbClass)} classes, pour {sum(nbClass)}, {sorted(nbClass)} histoires et pour {sum(nbClassOrigin)} histoires à l'origine :
-#En moyenne {round(sum(nbClass)/len(nbClass),1)} histoires.
-#Les extrêmes : {min(nbClass)} et {max(nbClass)}.
-#Plus précisément : {"".join(f"\n- on a {y} classes qui ont {i} histoires" for i,y in dict(Counter(nb for nb in nbClass)).items())}""")
+    print(f"""On a un total de {len(nbClass)} classes, pour {sum(nbClass)}, {nbClass} histoires et pour {sum(nbClassOrigin)} histoires à l'origine :
+En moyenne {round(sum(nbClass)/len(nbClass),1)} histoires.
+Les extrêmes : {min(nbClass)} et {max(nbClass)}.
+Plus précisément : {"".join(f"\n- on a {y} classes qui ont {i} histoires" for i,y in dict(Counter(nb for nb in nbClass)).items())}""")
 
-    #t2 = time.time()
-    #print(f"time run all general : {t2-t1}")
-    #print(f"time global : {t2-t0}")
+    t2 = time.time()
+    print(f"time run all general : {t2-t1}")
+    print(f"time global : {t2-t0}")
 
-    #import hashlib
-    #print(hashlib.sha256(str(result_number).encode()).hexdigest())
-
-    return result_number, sum(nbClass), sum(nbClassOrigin)
-    #yield
+    return
+    yield
 
 @register_method
 def general_event_solution(run, _, output):
