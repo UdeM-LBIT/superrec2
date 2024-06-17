@@ -1,8 +1,8 @@
 from sowing.node import Node
 from typing import NamedTuple
-from dataclasses import dataclass
 from superrec2.utils.algebras import (
     vector,
+    UnitMagma,
     Structure,
     Counter,
     pareto_of,
@@ -127,64 +127,56 @@ def event_vector_morphism(event: Event):
             raise ValueError(f"unknown event type {type(event)}")
 
 
-EventVectorPareto = pareto_of(EventVector)
+EventVectorPareto = pareto_of(EventVector())
 event_vector_pareto = Structure(EventVectorPareto, event_vector_morphism)
 
 
-@dataclass(frozen=True, slots=True)
-class HistoryBuilder:
-    value: Node
+class HistoryBuilder(UnitMagma[Node[Event, None]]):
+    _one = Node()
 
-    def __mul__(node1, node2):
-        if node1.value.data is None:
+    def _mul(node1, node2):
+        if node1.data is None:
             return node2
 
-        if node2.value.data is None:
+        if node2.data is None:
             return node1
 
-        return HistoryBuilder(node1.value.add(node2.value))
+        return node1.add(node2)
 
 
-HistoryGenerator = generator_of(HistoryBuilder(Node()))
+HistoryGenerator = generator_of(HistoryBuilder.one)
 history_generator = Structure(
     HistoryGenerator,
     lambda event: frozenset({HistoryBuilder(Node(event))}),
 )
 
-HistoryProjector = projector_of(HistoryBuilder(Node()))
+HistoryProjector = projector_of(HistoryBuilder.one)
 history_projector = Structure(
     HistoryProjector,
     lambda event: HistoryBuilder(Node(event)),
 )
 
 
-class PartialHistoryBuilder:
-    def __init__(self, value):
-        self.value = value
+class PartialHistoryBuilder(UnitMagma[Node[Event, None]]):
+    _one = Node()
 
-    def __eq__(self, other):
-        return self.value == other.value
-
-    def __hash__(self):
-        return hash(self.value)
-
-    def __mul__(node1, node2):
-        if node1.value.data is None or not node1.value.data.apparent:
+    def _mul(node1, node2):
+        if node1.data is None or not node1.data.apparent:
             return node2
 
-        if node2.value.data is None:
+        if node2.data is None:
             return node1
 
-        return PartialHistoryBuilder(node1.value.add(node2.value))
+        return node1.add(node2)
 
 
-PartialHistoryGenerator = generator_of(PartialHistoryBuilder(Node()))
+PartialHistoryGenerator = generator_of(PartialHistoryBuilder.one)
 partial_history_generator = Structure(
     PartialHistoryGenerator,
     lambda event: frozenset({PartialHistoryBuilder(Node(event))}),
 )
 
-PartialHistoryProjector = projector_of(PartialHistoryBuilder(Node()))
+PartialHistoryProjector = projector_of(PartialHistoryBuilder.one)
 partial_history_projector = Structure(
     PartialHistoryProjector,
     lambda event: PartialHistoryBuilder(Node(event)),
