@@ -2,8 +2,8 @@ from math import inf
 from sowing.node import Node
 from sowing.indexed import IndexedTree
 from superrec2.model.history import parse_tree, Host, Event, Extant
-from superrec2.compute.superdtlx.contents import EXTRA_CONTENTS
-from superrec2.compute.superdtlx.paths import (
+from superrec2.compute.synesth.contents import EXTRA_CONTENTS
+from superrec2.compute.synesth.paths import (
     make_codiv_path,
     make_transfer_path,
     make_path,

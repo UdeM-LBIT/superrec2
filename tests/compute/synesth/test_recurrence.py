@@ -8,7 +8,7 @@ from superrec2.model.history import (
     History,
 )
 from superrec2.utils.algebras import Structure, MinPlus
-from superrec2.compute.superdtlx.recurrence import reconcile
+from superrec2.compute.synesth.recurrence import reconcile
 from superrec2.compute.util import (
     EventCosts,
     HistoryBuilder,

@@ -17,7 +17,7 @@ from ..compute.util import (
     history_projector,
     history_generator,
 )
-from ..compute import superdtlx
+from ..compute import synesth
 
 
 methods = {}
@@ -30,7 +30,7 @@ def register_method(method):
 
 def display_history(event_tree, setting, output):
     history = History(setting.host_tree, event_tree)
-    history = superdtlx.finalize_history(history)
+    history = synesth.finalize_history(history)
     history.validate()
     json.dump(history.to_mapping(), output)
 
@@ -105,7 +105,7 @@ def reconcile(args):
         setting,
         costs,
         partial(
-            superdtlx.reconcile,
+            synesth.reconcile,
             progress=DummyProgress,
             pool=DummyPool(),
             # FIXME: Restore multiprocess support

@@ -1,5 +1,5 @@
 from sowing.indexed import IndexedTree
-from superrec2.compute.superdtlx.contents import compute_min_contents
+from superrec2.compute.synesth.contents import compute_min_contents
 from superrec2.model.history import Associate, parse_tree
 
 
