@@ -8,8 +8,8 @@ from superrec2.model.history import (
     History,
 )
 from superrec2.utils.algebras import Structure, MinPlus
-from superrec2.compute.synesth.recurrence import reconcile
-from superrec2.compute.util import (
+from superrec2.compute.synesth import (
+    solve_binary,
     EventCosts,
     HistoryBuilder,
     history_generator,
@@ -26,8 +26,8 @@ _scaled_cost = EventCosts(
 )
 
 
-min_unit_cost = Structure(MinPlus, _unit_cost.event_cost_morphism)
-min_scaled_cost = Structure(MinPlus, _scaled_cost.event_cost_morphism)
+min_unit_cost = Structure(MinPlus, _unit_cost.morphism)
+min_scaled_cost = Structure(MinPlus, _scaled_cost.morphism)
 
 best_unit_cost = min_unit_cost * history_generator
 best_scaled_cost = min_scaled_cost * history_generator
@@ -61,9 +61,9 @@ def test_reconcile_simple():
         Associate, "(1[&host=a,contents='{\"x\"}'],2[&host=b,contents='{\"x\"}']);"
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_unit_cost) == 0
+    assert solve_binary(setting, min_unit_cost).value == 0
 
-    cost, results = reconcile(setting, best_unit_cost)
+    cost, results = solve_binary(setting, best_unit_cost).value
     assert cost == 0
     assert results == _tree_set(
         """
@@ -82,9 +82,9 @@ def test_reconcile_simple():
         Associate, '(1[&host=a,contents=\'{"x","y"}\'],2[&host=b,contents=\'{"x"}\']);'
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_unit_cost) == 0
+    assert solve_binary(setting, min_unit_cost).value == 0
 
-    cost, results = reconcile(setting, best_unit_cost)
+    cost, results = solve_binary(setting, best_unit_cost).value
     assert cost == 0
     assert results == _tree_set(
         """
@@ -104,9 +104,9 @@ def test_reconcile_simple():
         Associate, "(1[&host=a,contents='{\"x\"}'],2[&host=b,contents='{\"y\"}']);"
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_unit_cost) == 0
+    assert solve_binary(setting, min_unit_cost).value == 0
 
-    cost, results = reconcile(setting, best_unit_cost)
+    cost, results = solve_binary(setting, best_unit_cost).value
     assert cost == 0
     assert results == _tree_set(
         """
@@ -142,9 +142,9 @@ def test_reconcile_extra_contents():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 2
+    assert solve_binary(setting, min_scaled_cost).value == 2
 
-    cost, results = reconcile(setting, best_unit_cost)
+    cost, results = solve_binary(setting, best_unit_cost).value
     assert cost == 2
     assert results == _tree_set(
         """
@@ -182,9 +182,9 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 4
+    assert solve_binary(setting, min_scaled_cost).value == 4
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 4
     assert results == _tree_set(
         """
@@ -213,9 +213,9 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 5
+    assert solve_binary(setting, min_scaled_cost).value == 5
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 5
     assert results == _tree_set(
         """
@@ -258,9 +258,9 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 4.5
+    assert solve_binary(setting, min_scaled_cost).value == 4.5
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 4.5
     assert results == _tree_set(
         """
@@ -288,9 +288,9 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 4.5
+    assert solve_binary(setting, min_scaled_cost).value == 4.5
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 4.5
     assert results == _tree_set(
         """
@@ -328,9 +328,9 @@ def test_reconcile_transfer():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 4
+    assert solve_binary(setting, min_scaled_cost).value == 4
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 4
     assert results == _tree_set(
         """
@@ -366,9 +366,9 @@ def test_reconcile_transfer():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 4.5
+    assert solve_binary(setting, min_scaled_cost).value == 4.5
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 4.5
     assert results == _tree_set(
         """
@@ -418,9 +418,9 @@ def test_reconcile_unsampled():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 7
+    assert solve_binary(setting, min_scaled_cost).value == 7
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 7
     assert results == _tree_set(
         """
@@ -459,9 +459,9 @@ def test_reconcile_unsampled():
     assert all(_history_match_input(setting, history) for history in results)
 
     setting = Reconciliation(unsampled_host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 6
+    assert solve_binary(setting, min_scaled_cost).value == 6
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 6
     assert results == _tree_set(
         """

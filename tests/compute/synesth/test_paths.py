@@ -9,14 +9,14 @@ from superrec2.compute.synesth.paths import (
     make_path,
 )
 from superrec2.utils.algebras import Structure, MinPlus
-from superrec2.compute.util import (
+from superrec2.compute.synesth import (
     EventCosts,
     HistoryBuilder,
     history_generator,
 )
 
 
-min_unit_cost = Structure(MinPlus, EventCosts().event_cost_morphism)
+min_unit_cost = Structure(MinPlus, EventCosts().morphism)
 
 host_tree = parse_tree(
     Host,

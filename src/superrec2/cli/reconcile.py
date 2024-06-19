@@ -4,19 +4,8 @@ import argparse
 import json
 import inspect
 from ast import literal_eval
-from functools import partial
 from .util import add_arg_input, add_arg_output
-from ..model.history import Reconciliation, History, graft_unsampled_hosts
-from ..utils.algebras import Structure, MinPlus
-from ..compute.util import (
-    DummyProgress,
-    DummyPool,
-    EventCosts,
-    event_vector_pareto,
-    history_counter,
-    history_projector,
-    history_generator,
-)
+from ..model.history import Reconciliation, graft_unsampled_hosts
 from ..compute import synesth
 
 
@@ -28,56 +17,65 @@ def register_method(method):
     methods[pretty_name] = method
 
 
-def display_history(event_tree, setting, output):
-    history = History(setting.host_tree, event_tree)
-    history = synesth.finalize_history(history)
-    history.validate()
+@register_method
+def min_cost_single(setting, costs, output):
+    """
+    Report a single arbitrary minimum-cost history along with the total number
+    of co-optimal solutions.
+    """
+    cost, count, history = synesth.min_cost_single(setting, costs)
+    print(f"cost={cost}", file=output)
+    print(f"count={count}", file=output)
     json.dump(history.to_mapping(), output)
 
 
 @register_method
-def single_solution(setting, costs, run, output):
-    """
-    Report a single arbitrary minimum-cost solution
-    along with the total number of optimal solutions.
-    """
-    min_cost = Structure(MinPlus, costs.event_cost_morphism)
-    structure = min_cost * (history_counter + history_projector)
-    result = run(setting=setting, structure=structure)
-    cost, (count, solution) = result
-
+def min_cost_all(setting, costs, output):
+    """Report all minimum-cost histories (may be exponentially slow!)."""
+    cost, histories = synesth.min_cost_all(setting, costs)
     print(f"cost={cost}", file=output)
-    print(f"count={count}", file=output)
-    display_history(solution.value, setting, output)
+    print(f"count={len(histories)}", file=output)
 
-
-@register_method
-def all_solutions(setting, costs, run, output):
-    """Report all minimum-cost solutions."""
-    min_cost = Structure(MinPlus, costs.event_cost_morphism)
-    structure = min_cost * history_generator
-    result = run(setting=setting, structure=structure)
-    cost, solutions = result
-
-    print(f"cost={cost}", file=output)
-    print(f"count={len(solutions)}", file=output)
-
-    for solution in solutions:
-        display_history(solution.value, setting, output)
+    for history in histories:
+        json.dump(history.to_mapping(), output)
         print(file=output)
 
 
 @register_method
-def pareto(setting, _, run, output):
+def pareto_single(setting, _, output):
     """
-    Compute all Pareto-optimal event count vectors and
-    the number of corresponding solutions for each vector.
+    Report Pareto-optimal event count vectors along with the number of
+    histories having that event count and an arbitrarily-selected history
+    for each event count vector.
     """
-    structure = event_vector_pareto @ history_counter
-    result = run(setting=setting, structure=structure)
+    result = synesth.pareto_single(setting)
 
     for key in sorted(result.keys(), key=tuple):
-        print(f"{key}: {result[key]}")
+        count, history = result[key]
+        print(f"events={key}", file=output)
+        print(f"count={count}", file=output)
+        json.dump(history.to_mapping(), output)
+        print("\n", file=output)
+
+
+@register_method
+def pareto_all(setting, _, output):
+    """
+    Report Pareto-optimal event count vectors along with all histories
+    having that event count vector (may be exponentially slow!).
+    """
+    result = synesth.pareto_all(setting)
+
+    for key in sorted(result.keys(), key=tuple):
+        histories = result[key]
+        print(f"events={key}", file=output)
+        print(f"count={len(histories)}", file=output)
+
+        for history in histories:
+            json.dump(history.to_mapping(), output)
+            print(file=output)
+
+        print(file=output)
 
 
 def reconcile(args):
@@ -90,7 +88,7 @@ def reconcile(args):
                 kind, value = cost_entry.split("=", maxsplit=1)
                 costs_dict[kind.replace("-", "_")] = literal_eval(value)
 
-    costs = EventCosts(**costs_dict)
+    costs = synesth.EventCosts(**costs_dict)
     setting = Reconciliation.from_mapping(json.load(args.input))
 
     if args.allow_unsampled:
@@ -100,20 +98,7 @@ def reconcile(args):
         )
 
     setting.validate()
-
-    methods[args.method](
-        setting,
-        costs,
-        partial(
-            synesth.reconcile,
-            progress=DummyProgress,
-            pool=DummyPool(),
-            # FIXME: Restore multiprocess support
-            # progress=tqdm,
-            # pool=Pool(args.processes),
-        ),
-        args.output,
-    )
+    methods[args.method](setting, costs, args.output)
 
 
 def add_args(parser):
@@ -136,7 +121,7 @@ def add_args(parser):
         help="augment the host tree with candidate unsampled species",
     )
 
-    event_types = [field.replace("_", "-") for field in EventCosts._fields]
+    event_types = [field.replace("_", "-") for field in synesth.EventCosts._fields]
     subparser.add_argument(
         "--cost",
         "-c",
@@ -153,14 +138,21 @@ def add_args(parser):
     methods_help = []
 
     for name, method in methods.items():
-        doc = inspect.getdoc(method).replace("\n", " ")[:-1].lower()
+        raw_doc = inspect.getdoc(method)
+
+        if raw_doc is None:
+            doc = "no documentation"
+        else:
+            doc = inspect.getdoc(method).replace("\n", " ")[:-1].lower()
+
         methods_help.append(name + " (" + doc + ")")
 
     subparser.add_argument(
         "--method",
         "-m",
         metavar="METHOD",
-        default="single-solution",
+        default="min-cost-single",
+        choices=list(methods.keys()),
         help=(
             "select what to compute (default: %(default)s). "
             "available methods: " + ", ".join(methods_help)
