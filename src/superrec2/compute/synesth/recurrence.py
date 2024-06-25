@@ -13,7 +13,6 @@ from ...model.history import (
     Codiverge,
     Diverge,
 )
-from ..util import reconciliation_algorithm
 from .paths import make_path
 from .contents import AssociateNode, Contents, EXTRA_CONTENTS, compute_min_contents
 
@@ -260,8 +259,17 @@ def join_binary_event(
     return results
 
 
-@reconciliation_algorithm
-def reconcile(setting: Reconciliation, structure: Structure[T, [Event]]) -> SemiRing[T]:
+def solve_binary(
+    setting: Reconciliation, structure: Structure[T, [Event]]
+) -> SemiRing[T]:
+    """
+    Solve a reconciliation problem over a given algebraic structure.
+
+    :param setting: setting containing a host tree and an associate tree to reconcile;
+        both trees must be binary trees
+    :param structure: semiring structure with a morphism from events to the semiring
+    :return: resulting semiring value
+    """
     results = defaultdict(lambda: structure.zero)
     root = setting.associate_tree
     min_contents = compute_min_contents(root)

@@ -3,6 +3,7 @@ from collections import defaultdict
 from immutables import Map
 from superrec2.utils.algebras import (
     Structure,
+    UnitMagma,
     Counter,
     MinPlus,
     MaxPlus,
@@ -217,24 +218,17 @@ def test_parse_grammar():
     assert parse_grammar(grammar, word, count_parses) == 2
 
     # Generate all possible parse trees for a sentence
-    class ParseBuilder:
-        def __init__(self, node):
-            self.value = node
+    class ParseBuilder(UnitMagma[Node[str, None]]):
+        _one = Node()
 
-        def __eq__(self, other):
-            return self.value == other.value
-
-        def __hash__(self):
-            return hash(self.value)
-
-        def __mul__(node1, node2):
-            if node1.value.data is None:
+        def _mul(node1, node2):
+            if node1.data is None:
                 return node2
 
-            if node2.value.data is None:
+            if node2.data is None:
                 return node1
 
-            return ParseBuilder(node1.value.add(node2.value))
+            return node1.add(node2)
 
     def parse_morphism(rule):
         head, tail, *_ = rule

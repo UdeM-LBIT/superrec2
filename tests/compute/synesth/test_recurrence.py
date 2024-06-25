@@ -1,3 +1,5 @@
+from functools import reduce
+import operator
 from superrec2.model.history import (
     parse_tree,
     graft_unsampled_hosts,
@@ -8,17 +10,18 @@ from superrec2.model.history import (
     History,
 )
 from superrec2.utils.algebras import Structure, MinPlus
-from superrec2.compute.superdtlx.recurrence import reconcile
-from superrec2.compute.util import (
+from superrec2.compute.synesth import (
+    solve_binary,
     EventCosts,
     HistoryBuilder,
+    PartialHistoryBuilder,
     history_generator,
+    partial_history_generator,
 )
 
 
 _unit_cost = EventCosts()
 _scaled_cost = EventCosts(
-    speciation=0,
     loss=1,
     duplication=2,
     cut=2.5,
@@ -27,19 +30,21 @@ _scaled_cost = EventCosts(
 )
 
 
-min_unit_cost = Structure(MinPlus, _unit_cost.event_cost_morphism)
-min_scaled_cost = Structure(MinPlus, _scaled_cost.event_cost_morphism)
+min_unit_cost = Structure(MinPlus, _unit_cost.morphism)
+min_scaled_cost = Structure(MinPlus, _scaled_cost.morphism)
 
 best_unit_cost = min_unit_cost * history_generator
 best_scaled_cost = min_scaled_cost * history_generator
 
 
-def _build_event_tree(source):
-    return HistoryBuilder(parse_tree(Event, source))
+def _build_event_tree(source, BoxingClass=HistoryBuilder):
+    return BoxingClass(parse_tree(Event, source))
 
 
-def _tree_set(*trees):
-    return frozenset(map(_build_event_tree, trees))
+def _tree_set(*trees, BoxingClass=HistoryBuilder):
+    return frozenset(
+        {_build_event_tree(tree, BoxingClass=BoxingClass) for tree in trees}
+    )
 
 
 def _history_match_input(setting, event_tree):
@@ -62,9 +67,9 @@ def test_reconcile_simple():
         Associate, "(1[&host=a,contents='{\"x\"}'],2[&host=b,contents='{\"x\"}']);"
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_unit_cost) == 0
+    assert solve_binary(setting, min_unit_cost).value == 0
 
-    cost, results = reconcile(setting, best_unit_cost)
+    cost, results = solve_binary(setting, best_unit_cost).value
     assert cost == 0
     assert results == _tree_set(
         """
@@ -83,9 +88,9 @@ def test_reconcile_simple():
         Associate, '(1[&host=a,contents=\'{"x","y"}\'],2[&host=b,contents=\'{"x"}\']);'
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_unit_cost) == 0
+    assert solve_binary(setting, min_unit_cost).value == 0
 
-    cost, results = reconcile(setting, best_unit_cost)
+    cost, results = solve_binary(setting, best_unit_cost).value
     assert cost == 0
     assert results == _tree_set(
         """
@@ -105,9 +110,9 @@ def test_reconcile_simple():
         Associate, "(1[&host=a,contents='{\"x\"}'],2[&host=b,contents='{\"y\"}']);"
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_unit_cost) == 0
+    assert solve_binary(setting, min_unit_cost).value == 0
 
-    cost, results = reconcile(setting, best_unit_cost)
+    cost, results = solve_binary(setting, best_unit_cost).value
     assert cost == 0
     assert results == _tree_set(
         """
@@ -143,9 +148,9 @@ def test_reconcile_extra_contents():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 2
+    assert solve_binary(setting, min_scaled_cost).value == 2
 
-    cost, results = reconcile(setting, best_unit_cost)
+    cost, results = solve_binary(setting, best_unit_cost).value
     assert cost == 2
     assert results == _tree_set(
         """
@@ -183,9 +188,9 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 4
+    assert solve_binary(setting, min_scaled_cost).value == 4
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 4
     assert results == _tree_set(
         """
@@ -214,9 +219,9 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 5
+    assert solve_binary(setting, min_scaled_cost).value == 5
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 5
     assert results == _tree_set(
         """
@@ -259,9 +264,9 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 4.5
+    assert solve_binary(setting, min_scaled_cost).value == 4.5
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 4.5
     assert results == _tree_set(
         """
@@ -289,9 +294,9 @@ def test_reconcile_dup_cut():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 4.5
+    assert solve_binary(setting, min_scaled_cost).value == 4.5
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 4.5
     assert results == _tree_set(
         """
@@ -329,9 +334,9 @@ def test_reconcile_transfer():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 4
+    assert solve_binary(setting, min_scaled_cost).value == 4
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 4
     assert results == _tree_set(
         """
@@ -367,9 +372,9 @@ def test_reconcile_transfer():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 4.5
+    assert solve_binary(setting, min_scaled_cost).value == 4.5
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 4.5
     assert results == _tree_set(
         """
@@ -419,9 +424,9 @@ def test_reconcile_unsampled():
         """,
     )
     setting = Reconciliation(host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 7
+    assert solve_binary(setting, min_scaled_cost).value == 7
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 7
     assert results == _tree_set(
         """
@@ -460,9 +465,9 @@ def test_reconcile_unsampled():
     assert all(_history_match_input(setting, history) for history in results)
 
     setting = Reconciliation(unsampled_host_tree, associate_tree)
-    assert reconcile(setting, min_scaled_cost) == 6
+    assert solve_binary(setting, min_scaled_cost).value == 6
 
-    cost, results = reconcile(setting, best_scaled_cost)
+    cost, results = solve_binary(setting, best_scaled_cost).value
     assert cost == 6
     assert results == _tree_set(
         """
@@ -517,3 +522,97 @@ def test_reconcile_unsampled():
         """
     )
     assert all(_history_match_input(setting, history) for history in results)
+
+
+def test_reconcile_partial():
+    host_tree = parse_tree(Host, "((a,b)c,d)e;")
+    associate_tree = parse_tree(
+        Associate, "(1[&host=a,contents='{\"x\"}'],2[&host=d,contents='{\"x\"}']);"
+    )
+    setting = Reconciliation(host_tree, associate_tree)
+
+    results = solve_binary(setting, partial_history_generator).value
+    tree_set = _tree_set(
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=codiverge,host=e,contents='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=e,contents='{"x"}',segment='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=codiverge,host=c,contents='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=c,contents='{"x"}',segment='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=c,contents='{"x"}',segment='{"x"}',apparent=True,transfer=True,result=1];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=d,contents='{"x"}',segment='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=d,contents='{"x"}',segment='{"x"}',apparent=True,transfer=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=a,contents='{"x"}',segment='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=a,contents='{"x"}',segment='{"x"}',apparent=True,transfer=True,result=1];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=b,contents='{"x"}',segment='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=b,contents='{"x"}',segment='{"x"}',apparent=True,transfer=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=b,contents='{"x"}',segment='{"x"}',apparent=True,transfer=True,result=1];
+        """,
+        BoxingClass=PartialHistoryBuilder,
+    )
+    assert tree_set == results
+
+    all_histories = solve_binary(setting, history_generator).value
+    classified = solve_binary(
+        setting, partial_history_generator @ history_generator
+    ).value
+
+    assert frozenset(classified.keys()) == tree_set
+    assert reduce(operator.or_, classified.values(), frozenset()) == all_histories

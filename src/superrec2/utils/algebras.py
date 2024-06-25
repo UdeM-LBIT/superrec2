@@ -9,6 +9,71 @@ U = TypeVar("U")
 P = ParamSpec("P")
 
 
+class Box(Generic[T]):
+    _pool: dict[T, Self]
+    value: T
+
+    def __init_subclass__(cls) -> None:
+        cls._pool = {}
+
+    def __new__(cls, value: T) -> Self:
+        # Return its argument unchanged to prevent nested boxing
+        if isinstance(value, cls):
+            return value
+
+        # Only instantiate if no instance with the same value exists
+        if value not in cls._pool:
+            cls._pool[value] = super().__new__(cls)
+
+        return cls._pool[value]
+
+    def __init__(self, value: T):
+        if not hasattr(self, "value"):
+            self.value = value
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.value})"
+
+    def __hash__(self) -> int:
+        return hash(self.value)
+
+    def __eq__(self, other: Any) -> bool:
+        if not hasattr(other, "value"):
+            return NotImplemented
+
+        return self.value == other.value
+
+
+class UnitMagma(Box[T]):
+    """
+    Immutable structure with an operation and a neutral element.
+
+    Values of the unit magma are wrapped inside objects for which the multiplication
+    operation is overloaded to map to the corresponding magma operation.
+
+    The operation and neutral element are to be defined on the ground type with an
+    underscore prefix, a wrapped version will automatically be generated and
+    exposed without the underscore prefix.
+    """
+
+    one: Self
+    _one: T
+
+    _mul: Callable[[T, T], T]
+
+    def __init_subclass__(cls) -> None:
+        cls._pool = {}
+        cls.one = cls(cls._one)
+
+    def __mul__(self, other: Any) -> Self:
+        if isinstance(other, self.__class__):
+            value = other.value
+        else:
+            value = other
+
+        return self.__class__(self.__class__._mul(self.value, value))
+
+
 class SemiRingType(type):
     """Semiring metaclass defining class-level composition operations."""
 
@@ -133,7 +198,7 @@ class SemiRingType(type):
         )
 
 
-class SemiRing(Generic[T], metaclass=SemiRingType):
+class SemiRing(Box[T], metaclass=SemiRingType):
     """
     Semiring type on immutable values.
 
@@ -153,15 +218,11 @@ class SemiRing(Generic[T], metaclass=SemiRingType):
     multiple semirings together.
     """
 
-    _pool: dict[T, Self] = {}
-
     zero: Self
     _zero: T
 
     one: Self
     _one: T
-
-    value: T
 
     _add: Callable[[T, T], T]
     _mul: Callable[[T, T], T]
@@ -170,33 +231,6 @@ class SemiRing(Generic[T], metaclass=SemiRingType):
         cls._pool = {}
         cls.zero = cls(cls._zero)
         cls.one = cls(cls._one)
-
-    def __new__(cls, value: T) -> "SemiRing[T]":
-        # Return its argument unchanged to prevent nested wrapping
-        if isinstance(value, cls):
-            return value
-
-        # Only instantiate if no instance with the same value exists
-        if value not in cls._pool:
-            cls._pool[value] = super().__new__(cls)
-
-        return cls._pool[value]
-
-    def __init__(self, value: T):
-        if not hasattr(self, "value"):
-            self.value = value
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.value})"
-
-    def __eq__(self, other: Any) -> bool:
-        if not hasattr(other, "value"):
-            return NotImplemented
-
-        return self.value == other.value
-
-    def __hash__(self) -> int:
-        return hash(self.value)
 
     def __add__(self, other: Any) -> Self:
         if isinstance(other, self.__class__):

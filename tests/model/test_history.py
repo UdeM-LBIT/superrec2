@@ -543,7 +543,7 @@ def test_event_transfer():
         )
 
     assert (
-        "transfer-divergence target host '1' is comparable " "to its origin host '3'"
+        "transfer-divergence target host '1' is comparable to its origin host '3'"
     ) in str(err.value)
 
     ftra = Diverge(
