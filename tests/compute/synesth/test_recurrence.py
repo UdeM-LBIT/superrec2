@@ -1,3 +1,5 @@
+from functools import reduce
+import operator
 from superrec2.model.history import (
     parse_tree,
     graft_unsampled_hosts,
@@ -12,7 +14,9 @@ from superrec2.compute.synesth import (
     solve_binary,
     EventCosts,
     HistoryBuilder,
+    PartialHistoryBuilder,
     history_generator,
+    partial_history_generator,
 )
 
 
@@ -33,12 +37,14 @@ best_unit_cost = min_unit_cost * history_generator
 best_scaled_cost = min_scaled_cost * history_generator
 
 
-def _build_event_tree(source):
-    return HistoryBuilder(parse_tree(Event, source))
+def _build_event_tree(source, BoxingClass=HistoryBuilder):
+    return BoxingClass(parse_tree(Event, source))
 
 
-def _tree_set(*trees):
-    return frozenset(map(_build_event_tree, trees))
+def _tree_set(*trees, BoxingClass=HistoryBuilder):
+    return frozenset(
+        {_build_event_tree(tree, BoxingClass=BoxingClass) for tree in trees}
+    )
 
 
 def _history_match_input(setting, event_tree):
@@ -516,3 +522,97 @@ def test_reconcile_unsampled():
         """
     )
     assert all(_history_match_input(setting, history) for history in results)
+
+
+def test_reconcile_partial():
+    host_tree = parse_tree(Host, "((a,b)c,d)e;")
+    associate_tree = parse_tree(
+        Associate, "(1[&host=a,contents='{\"x\"}'],2[&host=d,contents='{\"x\"}']);"
+    )
+    setting = Reconciliation(host_tree, associate_tree)
+
+    results = solve_binary(setting, partial_history_generator).value
+    tree_set = _tree_set(
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=codiverge,host=e,contents='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=e,contents='{"x"}',segment='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=codiverge,host=c,contents='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=c,contents='{"x"}',segment='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=c,contents='{"x"}',segment='{"x"}',apparent=True,transfer=True,result=1];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=d,contents='{"x"}',segment='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=d,contents='{"x"}',segment='{"x"}',apparent=True,transfer=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=a,contents='{"x"}',segment='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=a,contents='{"x"}',segment='{"x"}',apparent=True,transfer=True,result=1];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=b,contents='{"x"}',segment='{"x"}',apparent=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=b,contents='{"x"}',segment='{"x"}',apparent=True,transfer=True];
+        """,
+        """
+        (
+          1[&host=a,contents='{"x"}',apparent=True],
+          2[&host=d,contents='{"x"}',apparent=True]
+        )[&kind=diverge,host=b,contents='{"x"}',segment='{"x"}',apparent=True,transfer=True,result=1];
+        """,
+        BoxingClass=PartialHistoryBuilder,
+    )
+    assert tree_set == results
+
+    all_histories = solve_binary(setting, history_generator).value
+    classified = solve_binary(
+        setting, partial_history_generator @ history_generator
+    ).value
+
+    assert frozenset(classified.keys()) == tree_set
+    assert reduce(operator.or_, classified.values(), frozenset()) == all_histories
