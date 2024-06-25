@@ -129,25 +129,40 @@ class PartialHistoryBuilder(UnitMagma[Node[Event, None]]):
     _one = Node()
 
     def _mul(node1, node2):
-        if node1.data is None or not node1.data.apparent:
+        def apparent(node: Node[Event, None]) -> bool:
+            return node.data is not None and node.data.apparent
+
+        if not apparent(node1) and not apparent(node2):
+            return PartialHistoryBuilder._one
+
+        if not apparent(node1):
             return node2
 
-        if node2.data is None or not node2.data.apparent:
+        if not apparent(node2):
             return node1
 
         return node1.add(node2)
 
 
+def hom_partial_history(event: Event) -> PartialHistoryBuilder:
+    if event.apparent:
+        node = Node(event)
+    else:
+        node = Node()
+
+    return PartialHistoryBuilder(node)
+
+
 PartialHistoryGenerator = generator_of(PartialHistoryBuilder.one)
 partial_history_generator = Structure(
     PartialHistoryGenerator,
-    lambda event: frozenset({PartialHistoryBuilder(Node(event))}),
+    lambda event: frozenset({hom_partial_history(event)}),
 )
 
 PartialHistoryProjector = projector_of(PartialHistoryBuilder.one)
 partial_history_projector = Structure(
     PartialHistoryProjector,
-    lambda event: PartialHistoryBuilder(Node(event)),
+    lambda event: hom_partial_history(event),
 )
 
 
