@@ -167,9 +167,52 @@ def general_solution(setting, _, output):
             s *= find_general_class_proba(number["right"], edges[1])
         return proba * s
 
-    import time
+    import time, os, json
 
-    result_number = synesth.solve(setting, (synesth.event_counts_pareto @ synesth.history_generator)).value
+    name_result_file = "result.json"
+    whatEvent = ["cut", "duplication", "loss", "transfer_cut", "transfer_duplication"]
+
+    if name_result_file in os.listdir():
+        f = open(name_result_file)
+        r = f.read()
+        f.close()
+        j = json.loads(r)
+        result_number = {}
+        for i in j:
+            ecount = synesth.EventCounts(**i["event"])
+
+            result_number[ecount] = []
+            for y in i["hist"]:
+                result_number[ecount].append(History.from_mapping(y))
+    else:
+        result_number = synesth.solve(setting, (synesth.event_counts_pareto @ synesth.history_generator)).value
+        f = open(name_result_file, "a+")
+        f.write("[\n")
+        index1 = 0
+        for h2 in result_number:
+            f.write('{\n"event":{')
+            for i in whatEvent :
+                nH = getattr(h2, i)
+                f.write('"'+i+'" : '+str(nH))
+                if i != whatEvent[-1]:
+                    f.write(',')
+                f.write('\n')
+            f.write('},\n"hist":[\n')
+            index2 = 0
+            for h3 in result_number[h2]:
+                f.write(json.dumps(History(setting.host_tree, h3.value).to_mapping()))
+                if index2 < len(result_number[h2])-1:
+                    f.write(',')
+                f.write('\n')
+                index2 += 1
+            f.write(']\n}\n')
+            if index1 < len(result_number) -1:
+                f.write(',')
+            f.write('\n')
+            index1 += 1
+        
+        f.write(']\n')
+        f.close()
 
 
     general_event_solution(setting, result_number)
@@ -187,7 +230,10 @@ def general_solution(setting, _, output):
 
 
         for h3 in result_number[h2]:
-            v = synesth.propagate_contents(History(setting.host_tree, h3.value).prune_unsampled())
+            r = h3
+            if isinstance(h3, synesth.HistoryBuilder):
+                r = History(setting.host_tree, h3.value)
+            v = synesth.propagate_contents(r.prune_unsampled())
             k = v.compress(True).associate_tree
             if k not in result_class :
                 result_class[k] = set()
@@ -270,7 +316,10 @@ def general_event_solution(setting, result_number):
         list_pareto = set()
 
         for h2 in result_number[h]:
-            list_pareto.add(synesth.propagate_contents(History(setting.host_tree, h2.value).prune_unsampled()))
+            r = h2
+            if isinstance(h2, synesth.HistoryBuilder):
+                r = History(setting.host_tree, h2.value)
+            list_pareto.add(synesth.propagate_contents(r.prune_unsampled()))
         nbClassOrigin.append(len(result_number[h]))
         nbClass.append(len(list_pareto))
 
