@@ -114,7 +114,7 @@ def general_solution(setting, _, output):
 
     def before_construct_representative(hist, frequence):
         n, h = get_most_freq(hist, frequence)
-        edge = hist.node.edges if 'node' in dir(hist) else hist.value.edges
+        _, edge = get_data_edges(hist)
         return construct_representative(h, n, edge, frequence)
 
     def get_data_edges(hist):
@@ -123,53 +123,118 @@ def general_solution(setting, _, output):
             return hist.node.data, hist.node.edges
         elif 'value' in d :
             return hist.value.data, hist.value.edges
-        else :
+        elif 'data' in d :
             return hist.data, hist.edges
+        else :
+            print(d)
 
+
+    def find_general_class_frequence(number, hist):
+        if len(number.keys()) == 0:
+            number = {
+                "left": {},
+                "right": {},
+                "number": {},
+            }
+        data, edges = get_data_edges(hist)
+        name = data.__class__.__qualname__
+        if name == "Diverge":
+            name += str(data.cut)
+            name += str(data.transfer)
+        
+        if name not in number["number"]:
+            number["number"][name] = 0
+        number["number"][name] += 1
+        
+        if len(edges) > 0:
+            number["left"] = find_general_class_frequence(number["left"], edges[0])
+        if len(edges) > 1:
+            number["right"] = find_general_class_frequence(number["right"], edges[1])
+        return number
+
+    def find_general_class_proba(number, hist):
+        data, edges = get_data_edges(hist)
+        name = data.__class__.__qualname__
+        if name == "Diverge":
+            name += str(data.cut)
+            name += str(data.transfer)
+        proba = number["number"][name] / sum(number["number"].values())
+
+        s = 1
+        if len(edges) > 0:
+            s *= find_general_class_proba(number["left"], edges[0])
+        if len(edges) > 1:
+            s *= find_general_class_proba(number["right"], edges[1])
+        return proba * s
 
     import time
 
-    t0 = time.time()
-    result_number = synesth.solve(setting, synesth.partial_history_generator @ (synesth.event_counts_pareto @ synesth.history_generator)).value
-    t1 = time.time()
-    print(f"time run : {t1-t0}")
+    result_number = synesth.solve(setting, (synesth.event_counts_pareto @ synesth.history_generator)).value
+
+
+    general_event_solution(setting, result_number)
+    print("\n\n\n\n")
+
+    #print(f"time run : {t1-t0}")
     nbClass = []
     nbClassOrigin = []
 
-    for h in result_number:
-        t = time.time()
-        print(f"Classe :\n{h.value}")
-        frequence = {}
-        list_pareto = set()
+    result_class = {}
 
-        s = 0
-        for h2 in result_number[h]:
-            s += len(result_number[h][h2])
-            for h3 in result_number[h][h2]:
-                list_pareto.add(synesth.propagate_contents(History(setting.host_tree, h3.value).prune_unsampled()))
+    for h2 in result_number:
+        
+        nbClassOrigin.append(len(result_number[h2]))
 
-        nbClassOrigin.append(s)
-        nbClass.append(len(list_pareto))
 
-        for h3 in list_pareto:
-            # print(f"Contient :\n{h3.event_tree}")
-            frequence = calc_freq(h3.event_tree, frequence)
+        for h3 in result_number[h2]:
+            v = synesth.propagate_contents(History(setting.host_tree, h3.value).prune_unsampled())
+            k = v.compress(True).associate_tree
+            if k not in result_class :
+                result_class[k] = set()
+            result_class[k].add(v)
 
-        general = before_construct_representative(h, frequence)
 
-        print(f"La fréquence est {frequence}")
-        print(f"La classe a {nbClass[-1]} histoires")
-        print(f"L'histoire générale :\n{general.value}")
-        print(f"time calcul : {time.time()-t}\n\n")
+    frequence_class = {}
+    for h in result_class:
+        nbClass.append(len(result_class[h]))
+        frequence_class = find_general_class_frequence(frequence_class, h)
+    #print(frequence_class)
+    generalClass = [None, 0]
+    listProba = []
+    for h in result_class:
+        r = find_general_class_proba(frequence_class, h)
+        listProba.append(r)
+        if r >= generalClass[1]:
+            generalClass = [h, r]
+    #print(generalClass[0])
+    
 
-    print(f"""On a un total de {len(nbClass)} classes, pour {sum(nbClass)}, {nbClass} histoires et pour {sum(nbClassOrigin)} histoires à l'origine :
+    #for h, list_pareto in result_class.items():
+    h = generalClass[0]
+    if h == None:
+        h = list(result_class.keys())[0]
+    list_pareto = result_class[h]
+    frequence = {}
+    for h3 in list_pareto:
+        # print(f"Contient :\n{h3.event_tree}")
+        frequence = calc_freq(h3.event_tree, frequence)
+
+    general = before_construct_representative(h, frequence)
+
+    #print(f"La fréquence est {frequence}")
+    #print(f"La classe a {nbClass[-1]} histoires")
+    #print(f"L'histoire générale :\n{general.value}")
+    #print(f"time calcul : {time.time()-t}\n\n")
+
+    print(f"""On a un total de {len(nbClass)} classes, pour {sum(nbClass)} histoires et pour {sum(nbClassOrigin)} histoires à l'origine :
 En moyenne {round(sum(nbClass)/len(nbClass),1)} histoires.
 Les extrêmes : {min(nbClass)} et {max(nbClass)}.
-Plus précisément : {"".join(f"\n- on a {y} classes qui ont {i} histoires" for i,y in dict(Counter(nb for nb in nbClass)).items())}""")
+Plus précisément : {"".join(f"\n- on a {y} classes qui ont {i} histoires" for i,y in dict(Counter(nb for nb in nbClass)).items())}
 
-    t2 = time.time()
-    print(f"time run all general : {t2-t1}")
-    print(f"time global : {t2-t0}")
+Pour les probas :
+En moyenne {sum(listProba)/len(listProba)}.
+Les extrêmes : {min(listProba)} et {max(listProba)}.""")
+
 
 
 @register_method
@@ -178,30 +243,59 @@ def general_event_solution(setting, _, output):
     import time
 
     t0 = time.time()
-    result_number = synesth.solve(setting, event_vector_pareto @ history_generator)
+    result_number = synesth.solve(setting, synesth.event_counts_pareto @ synesth.history_generator).value
     t1 = time.time()
-    print(f"time run : {t1-t0}")
+    general_event_solution(setting, result_number)
+
+
+def general_event_solution(setting, result_number):
+    """Report a representative solution in each class."""
+
+    frequence = {}
+    t = ["cut", "duplication", "loss", "transfer_cut", "transfer_duplication"]
+    for i in t :
+        frequence[i] = {}
+
+    #print(f"time run : {t1-t0}")
     nbClass = []
     nbClassOrigin = []
     for h in result_number:
-        t = time.time()
-        print(f"Classe :\n{h}")
+
+        for i in t :
+            nH = getattr(h, i)
+            if nH not in frequence[i]:
+                frequence[i][nH] = 0
+            frequence[i][nH] += 1
+
         list_pareto = set()
 
         for h2 in result_number[h]:
-            list_pareto.add(superdtlx.propagate_contents(History(setting.host_tree, h2.value).prune_unsampled()))
+            list_pareto.add(synesth.propagate_contents(History(setting.host_tree, h2.value).prune_unsampled()))
         nbClassOrigin.append(len(result_number[h]))
         nbClass.append(len(list_pareto))
 
-        print(f"La classe a {nbClass[-1]} histoires")
-        print(f"time calcul : {time.time()-t}\n\n")
+        #print(f"La classe a {nbClass[-1]} histoires")
+        #print(f"time calcul : {time.time()-t}\n\n"))
+    
+    listProba = []
+    for h in result_number:
+        proba = 1
+        for i in t :
+            nH = getattr(h, i)
+            proba *= (frequence[i][nH] / sum(frequence[i].values()))
+        listProba.append(proba)
+
     print(f"""On a un total de {len(nbClass)} classes, pour {sum(nbClass)} histoires et pour {sum(nbClassOrigin)} histoires à l'origine :
 En moyenne {round(sum(nbClass)/len(nbClass),1)} histoires.
 Les extrêmes : {min(nbClass)} et {max(nbClass)}.
-Plus précisément : {"".join(f"\n- on a {y} classes qui ont {i} histoires" for i,y in dict(Counter(nb for nb in nbClass)).items())}""")
-    t2 = time.time()
-    print(f"time run all general : {t2-t1}")
-    print(f"time global : {t2-t0}")
+Plus précisément : {"".join(f"\n- on a {y} classes qui ont {i} histoires" for i,y in dict(Counter(nb for nb in nbClass)).items())}
+
+
+Pour les probas :
+En moyenne {sum(listProba)/len(listProba)}.
+Les extrêmes : {min(listProba)} et {max(listProba)}.""")
+    #print(f"time run all general : {t2-t1}")
+    #print(f"time global : {t2-t0}")
 
 
 @register_method

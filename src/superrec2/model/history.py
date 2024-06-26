@@ -892,7 +892,7 @@ class History:
         )
         return History(host_tree=host_tree, event_tree=event_tree)
 
-    def compress(self) -> Reconciliation:
+    def compress(self, keep_event = False) -> Reconciliation:
         """
         Reduce this history to a binary associate phylogeny mapped onto
         its host phylogeny.
@@ -906,7 +906,9 @@ class History:
             event = node.data
 
             sampled = self.host_index[event.host].node.data.sampled
-            new_node = node.replace(data=event.associate())
+            new_node = node
+            if not keep_event:
+                new_node = node.replace(data=event.associate())
 
             match len(node.edges):
                 case 0:
