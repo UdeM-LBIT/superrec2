@@ -43,13 +43,12 @@ class ContentsChoice(Enum):
 
 
 def compute_choices_at(
-    node: AssociateNode,
     incoming_host: str,
     incoming_contents: Contents,
     min_contents: Contents,
     host_index: IndexedTree[Host, None],
     structure: Structure[T, [Event]],
-    table: dict[tuple[AssociateNode, str, Contents], SemiRing[T]],
+    table: dict[tuple[str, Contents], SemiRing[T]],
 ) -> dict[tuple[HostChoice, ContentsChoice], SemiRing[T]]:
     choices = defaultdict(lambda: structure.zero)
     try_start_hosts = []
@@ -104,7 +103,7 @@ def compute_choices_at(
                 end_contents=end_contents,
                 host_index=host_index,
                 structure=structure,
-                path=table[(node, end_host, end_contents)],
+                path=table[(end_host, end_contents)],
             )
 
     return choices
@@ -270,12 +269,13 @@ def solve_binary(
     :param structure: semiring structure with a morphism from events to the semiring
     :return: resulting semiring value
     """
-    results = defaultdict(lambda: structure.zero)
+    results: dict[AssociateNode, dict[tuple[str, Contents], SemiRing[T]]] = {}
     root = setting.associate_tree
     min_contents = compute_min_contents(root)
 
     for cursor in traversal.depth(root, preorder=False):
         node = cursor.node
+        table = defaultdict(lambda: structure.zero)
 
         if cursor.is_leaf():
             name = node.data.name
@@ -284,30 +284,33 @@ def solve_binary(
             value = structure(
                 Extant(name=name, host=host, contents=contents, apparent=True)
             )
-            results[(node, host, contents)] += value
+            table[(host, contents)] += value
         else:
+            left = cursor.down(0)
+            right = cursor.down(1)
+
             for host, contents in product(
                 setting.host_index.keys(),
                 (min_contents[cursor], min_contents[cursor] | {EXTRA_CONTENTS}),
             ):
-                left = cursor.down(0)
-                right = cursor.down(1)
-
                 choices_args = {
                     "incoming_host": host,
                     "incoming_contents": contents,
                     "host_index": setting.host_index,
                     "structure": structure,
-                    "table": results,
                 }
                 left_choices = compute_choices_at(
-                    node=left.node, min_contents=min_contents[left], **choices_args
+                    min_contents=min_contents[left],
+                    table=results[left.node],
+                    **choices_args,
                 )
                 right_choices = compute_choices_at(
-                    node=right.node, min_contents=min_contents[right], **choices_args
+                    min_contents=min_contents[right],
+                    table=results[right.node],
+                    **choices_args,
                 )
 
-                results[(node, host, contents)] += join_binary_event(
+                table[(host, contents)] += join_binary_event(
                     host=host,
                     contents=contents,
                     left_contents=min_contents[left] & contents,
@@ -316,6 +319,11 @@ def solve_binary(
                     left_choices=left_choices,
                     right_choices=right_choices,
                 )
+
+            del results[left.node]
+            del results[right.node]
+
+        results[node] = table
 
     root_contents = min_contents[root.unzip()]
     return sum(
@@ -327,7 +335,7 @@ def solve_binary(
                 end_contents=root_contents,
                 host_index=setting.host_index,
                 structure=structure,
-                path=results[(root, host, root_contents)],
+                path=results[root][(host, root_contents)],
             )
             for host in setting.host_index.keys()
         ),
