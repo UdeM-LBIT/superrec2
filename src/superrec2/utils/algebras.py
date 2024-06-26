@@ -22,10 +22,10 @@ class Box(Generic[T]):
             return value
 
         # Only instantiate if no instance with the same value exists
-        if value not in cls._pool:
-            cls._pool[value] = super().__new__(cls)
+        #if value not in cls._pool:
+        #    cls._pool[value] = super().__new__(cls)
 
-        return cls._pool[value]
+        return super().__new__(cls) #cls._pool[value]
 
     def __init__(self, value: T):
         if not hasattr(self, "value"):
