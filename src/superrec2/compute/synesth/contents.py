@@ -68,9 +68,9 @@ def propagate_contents(history: History) -> History:
         edges = cursor.node.edges
         new_edges = []
 
-        for edge in edges:
+        for edge, outcome in zip(edges, parent_event.outcomes(history.host_index)):
             event = edge.node.data
-            extra = parent_event.contents - event.contents
+            extra = outcome.contents - event.contents
 
             if EXTRA_CONTENTS in event.contents:
                 event = replace(
