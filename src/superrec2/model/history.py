@@ -399,10 +399,9 @@ class Event(Associate, ABC):
         """Get the unnamed associate corresponding to this event."""
         return Associate(host=self.host, contents=self.contents)
 
-    @property
     @abstractmethod
-    def arity(self) -> int:
-        """Number of expected children for this event."""
+    def outcomes(self, host_index: IndexedTree[Host, None]) -> tuple[Associate, ...]:
+        """Expected children resulting from this event."""
 
     @abstractmethod
     def validate(
@@ -422,12 +421,13 @@ class Event(Associate, ABC):
             raise InvalidEvent(f"undefined event host {self.host!r}", self)
 
         # Check that out-degree matches expected arity
-        arity = ("a leaf", "unary", "binary")[self.arity]
+        arity = len(self.outcomes(host_index))
+        arity_text = ("a leaf", "unary", "binary")[arity]
 
-        if len(children) != self.arity:
+        if len(children) != arity:
             kind = self.__class__.__name__.lower()
             raise InvalidEvent(
-                f"{kind} event must be {arity}, found"
+                f"{kind} event must be {arity_text}, found"
                 f" {len(children)} child(ren) instead",
                 self,
             )
@@ -486,9 +486,8 @@ class Event(Associate, ABC):
 class Extant(Event):
     """Terminal event in an history."""
 
-    @property
-    def arity(self) -> int:
-        return 0
+    def outcomes(self, host_index: IndexedTree[Host, None]) -> tuple[Associate, ...]:
+        return ()
 
     def validate(
         self,
@@ -517,9 +516,13 @@ class Extant(Event):
 class Codiverge(Event):
     """Event where an associate follows a divergence of its host."""
 
-    @property
-    def arity(self) -> int:
-        return 2
+    def outcomes(self, host_index: IndexedTree[Host, None]) -> tuple[Associate, ...]:
+        host_node = host_index[self.host]
+        left_host = host_node.down(0).node.data.name
+        right_host = host_node.down(1).node.data.name
+
+        assoc = self.anon_associate()
+        return assoc.switch(left_host), assoc.switch(right_host)
 
     def validate(
         self,
@@ -527,18 +530,11 @@ class Codiverge(Event):
         children: tuple[Associate, ...],
     ) -> None:
         Event.validate(self, host_index, children)
-        host_node = host_index[self.host]
+        outcomes = self.outcomes(host_index)
 
-        left_host = host_node.down(0).node.data.name
-        right_host = host_node.down(1).node.data.name
-
-        assoc = self.anon_associate()
-        expected_children = (assoc.switch(left_host), assoc.switch(right_host))
-
-        if set(children) != set(expected_children):
+        if children != outcomes and children != outcomes[::-1]:
             raise InvalidEvent(
-                f"codivergence event children are {children},"
-                f" expected {expected_children}",
+                f"codivergence event children are {children}, expected {outcomes}",
                 self,
             )
 
@@ -550,6 +546,10 @@ class Codiverge(Event):
         result = super(Codiverge, self).to_mapping(self)
         result["kind"] = "codiverge"
         return result
+
+
+# Name of the placeholder host for transfer outcome child
+TRANSFER_OUTCOME = "__X__"
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -568,15 +568,30 @@ class Diverge(Event):
     # Index of the child node that results from the divergence
     result: int = 0
 
-    @property
-    def arity(self) -> int:
-        if self.contents is None:
-            complete = True
-        else:
-            target, remainder = self.split(self.segment)
-            complete = not remainder.contents
+    def outcomes(self, host_index: IndexedTree[Host, None]) -> tuple[Associate, ...]:
+        assoc = self.anon_associate()
+        result_host = TRANSFER_OUTCOME if self.transfer else self.host
 
-        return 1 if self.cut and complete else 2
+        if self.contents is None:
+            if self.cut:
+                outcomes = (assoc.switch(result_host),)
+            else:
+                outcomes = assoc.switch(result_host), assoc
+        else:
+            target, remainder = assoc.split(self.segment)
+
+            if self.cut:
+                if not remainder.contents:
+                    outcomes = (assoc.switch(result_host),)
+                else:
+                    outcomes = target.switch(result_host), remainder
+            else:
+                outcomes = target.switch(result_host), assoc
+
+        if self.result == 0:
+            return outcomes
+        else:
+            return outcomes[::-1]
 
     def validate(
         self,
@@ -584,51 +599,43 @@ class Diverge(Event):
         children: tuple[Associate, ...],
     ) -> None:
         Event.validate(self, host_index, children)
+        outcomes = self.outcomes(host_index)
 
-        if self.result not in range(self.arity):
+        if self.result not in range(len(outcomes)):
             raise InvalidEvent(
                 f"divergence result index {self.result} is out of"
-                f" bounds (should be in range [0..{self.arity - 1}])",
+                f" bounds (should be in range [0..{len(outcomes) - 1}])",
                 self,
             )
 
         result = children[self.result]
-        assoc = self.anon_associate()
+        outcome_result = outcomes[self.result]
 
-        if self.transfer and host_index.is_comparable(result.host, assoc.host):
+        if self.transfer and host_index.is_comparable(result.host, self.host):
             raise InvalidEvent(
-                f"transfer-divergence target host {result.host!r}"
-                f" is comparable to its origin host {assoc.host!r}",
+                f"transfer target host {result.host!r}"
+                f" is comparable to its origin host {self.host!r}",
                 self,
             )
 
-        if not self.transfer and result.host != assoc.host:
+        if outcome_result.host == TRANSFER_OUTCOME:
+            outcome_result = outcome_result.switch(result.host)
+
+        if result != outcome_result:
             raise InvalidEvent(
-                f"copy-divergence result host {result.host!r}"
-                f" differs from its parent host {assoc.host!r}",
+                f"divergence result child is {result}, expected {outcome_result}",
                 self,
             )
 
-        if self.contents is None:
-            segment = remainder = Associate(host=self.host)
-        else:
-            segment, remainder = assoc.split(self.segment)
-
-        expect_result = segment.switch(result.host)
-
-        if result != expect_result:
-            raise InvalidEvent(
-                f"divergence result child is {result}, expected {expect_result}"
-            )
-
-        if self.arity == 2:
+        if len(outcomes) > 1:
             conserved = children[1 - self.result]
-            expect_conserved = remainder if self.cut else assoc
+            outcome_conserved = outcomes[1 - self.result]
 
-            if conserved != expect_conserved:
+            if conserved != outcome_conserved:
                 raise InvalidEvent(
-                    f"divergence conserved child is {result},"
-                    f" expected {expect_conserved}"
+                    f"divergence conserved child is {conserved}, "
+                    f"expected {outcome_conserved}",
+                    self,
                 )
 
     @staticmethod
@@ -675,9 +682,8 @@ class Gain(Event):
     # Added contents
     gained: GainedContents = ()
 
-    @property
-    def arity(self) -> int:
-        return 1
+    def outcomes(self, host_index: IndexedTree[Host, None]) -> tuple[Associate, ...]:
+        return (self.anon_associate().gain(self.gained),)
 
     def validate(
         self,
@@ -686,11 +692,11 @@ class Gain(Event):
     ) -> None:
         Event.validate(self, host_index, children)
         child = children[0]
-        expect_child = self.anon_associate().gain(self.gained)
+        outcome_child = self.outcomes(host_index)[0]
 
-        if child != expect_child:
+        if child != outcome_child:
             raise InvalidEvent(
-                f"gain event child is {child}, expected {expect_child}",
+                f"gain event child is {child}, expected {outcome_child}",
                 self,
             )
 
@@ -720,10 +726,13 @@ class Loss(Event):
     # Lost segment
     segment: Segment = ()
 
-    @property
-    def arity(self) -> int:
-        lost, remainder = self.split(self.segment)
-        return 1 if remainder.contents else 0
+    def outcomes(self, host_index: IndexedTree[Host, None]) -> tuple[Associate, ...]:
+        lost, remainder = self.anon_associate().split(self.segment)
+
+        if remainder.contents:
+            return (remainder,)
+        else:
+            return ()
 
     def validate(
         self,
@@ -731,14 +740,15 @@ class Loss(Event):
         children: tuple[Associate, ...],
     ) -> None:
         Event.validate(self, host_index, children)
+        outcomes = self.outcomes(host_index)
 
-        if self.arity == 1:
-            _, expect_child = self.anon_associate().split(self.segment)
+        if outcomes:
             child = children[0]
+            outcome_child = outcomes[0]
 
-            if child != expect_child:
+            if child != outcome_child:
                 raise InvalidEvent(
-                    f"loss event child is {child}, expected {expect_child}",
+                    f"loss event child is {child}, expected {outcome_child}",
                     self,
                 )
 
@@ -841,7 +851,10 @@ class History:
             if not host.sampled and all(
                 (
                     isinstance(event, Extant)
-                    or (isinstance(event, Loss) and event.arity == 0)
+                    or (
+                        isinstance(event, Loss)
+                        and len(event.outcomes(self.host_index)) == 0
+                    )
                 )
                 for event in events_by_host[host.name]
             ):
@@ -867,7 +880,7 @@ class History:
             if event.host in pruned_leaves:
                 return cursor.replace(node=None)
 
-            if actual_arity < event.arity:
+            if actual_arity < len(event.outcomes(self.host_index)):
                 if actual_arity == 0:
                     return cursor.replace(node=None)
 

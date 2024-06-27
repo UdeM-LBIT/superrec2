@@ -10,6 +10,7 @@ from superrec2.model.history import (
     Event,
     Extant,
     Codiverge,
+    TRANSFER_OUTCOME,
     Diverge,
     Gain,
     Loss,
@@ -193,7 +194,7 @@ def test_event_extant():
     }
     assert ordered == Event.from_mapping(ordered_mapping)
     assert ordered.to_mapping() == ordered_mapping
-    assert ordered.arity == 0
+    assert ordered.outcomes(host_index1) == ()
     assert ordered.associate() == Assoc(name="x", host="3", contents=tuple("abc"))
     assert ordered.anon_associate() == Assoc(host="3", contents=tuple("abc"))
     ordered.validate(host_index1, ())
@@ -207,7 +208,7 @@ def test_event_extant():
     }
     assert unordered == Event.from_mapping(unordered_mapping)
     assert unordered.to_mapping() == unordered_mapping
-    assert unordered.arity == 0
+    assert unordered.outcomes(host_index1) == ()
     assert unordered.associate() == Assoc(name="x", host="3", contents=frozenset("abc"))
     assert unordered.anon_associate() == Assoc(host="3", contents=frozenset("abc"))
     unordered.validate(host_index1, ())
@@ -221,6 +222,7 @@ def test_event_extant():
     }
     assert empty == Event.from_mapping(empty_mapping)
     assert empty.to_mapping() == empty_mapping
+    assert empty.outcomes(host_index1) == ()
     assert empty.contents == frozenset()
 
     apparent = Extant(name="x", host="3", contents=tuple("abc"), apparent=True)
@@ -233,6 +235,7 @@ def test_event_extant():
     }
     assert apparent == Event.from_mapping(apparent_mapping)
     assert apparent.to_mapping() == apparent_mapping
+    assert apparent.outcomes(host_index2) == ()
     assert apparent.apparent
 
     with pytest.raises(InvalidEvent) as err:
@@ -260,7 +263,12 @@ def test_event_codiverge():
     }
     assert spe == Event.from_mapping(spe_mapping)
     assert spe.to_mapping() == spe_mapping
-    assert spe.arity == 2
+
+    assert spe.outcomes(host_index) == (
+        Assoc(host="2", contents=tuple("abc")),
+        Assoc(host="3", contents=tuple("abc")),
+    )
+
     spe.validate(
         host_index,
         (
@@ -331,7 +339,11 @@ def test_event_duplicate():
     }
     assert dup == Event.from_mapping(dup_mapping)
     assert dup.to_mapping() == dup_mapping
-    assert dup.arity == 2
+
+    assert dup.outcomes(host_index) == (
+        Assoc(host="3", contents=tuple("abc")),
+        Assoc(host="3", contents=tuple("ab")),
+    )
 
     dup.validate(
         host_index,
@@ -380,9 +392,11 @@ def test_event_duplicate():
             ),
         )
 
-    assert "copy-divergence result host '2' differs from its parent host '3'" in str(
-        err.value
-    )
+    assert (
+        "divergence result child is "
+        "Associate(host='2', contents=('a', 'b')), "
+        "expected Associate(host='3', contents=('a', 'b'))"
+    ) in str(err.value)
 
     cut = Diverge(
         name="x",
@@ -403,7 +417,11 @@ def test_event_duplicate():
     }
     assert cut == Event.from_mapping(cut_mapping)
     assert cut.to_mapping() == cut_mapping
-    assert cut.arity == 2
+
+    assert cut.outcomes(host_index) == (
+        Assoc(host="3", contents=tuple("c")),
+        Assoc(host="3", contents=tuple("ab")),
+    )
 
     cut.validate(
         host_index,
@@ -430,7 +448,11 @@ def test_event_duplicate():
     }
     assert ucut == Event.from_mapping(ucut_mapping)
     assert ucut.to_mapping() == ucut_mapping
-    assert ucut.arity == 2
+
+    assert ucut.outcomes(host_index) == (
+        Assoc(host="3", contents=frozenset("c")),
+        Assoc(host="3", contents=frozenset("ab")),
+    )
 
     ucut.validate(
         host_index,
@@ -457,7 +479,8 @@ def test_event_duplicate():
     }
     assert fcut == Event.from_mapping(fcut_mapping)
     assert fcut.to_mapping() == fcut_mapping
-    assert fcut.arity == 1
+
+    assert fcut.outcomes(host_index) == (Assoc(host="3", contents=tuple("abc")),)
     fcut.validate(host_index, (Assoc(host="3", contents=tuple("abc")),))
 
     inv = Diverge(
@@ -523,7 +546,11 @@ def test_event_transfer():
     }
     assert tra == Event.from_mapping(tra_mapping)
     assert tra.to_mapping() == tra_mapping
-    assert tra.arity == 2
+
+    assert tra.outcomes(host_index) == (
+        Assoc(host="3", contents=tuple("abc")),
+        Assoc(host=TRANSFER_OUTCOME, contents=tuple("ab")),
+    )
 
     tra.validate(
         host_index,
@@ -542,9 +569,9 @@ def test_event_transfer():
             ),
         )
 
-    assert (
-        "transfer-divergence target host '1' is comparable to its origin host '3'"
-    ) in str(err.value)
+    assert ("transfer target host '1' is comparable to its origin host '3'") in str(
+        err.value
+    )
 
     ftra = Diverge(
         name="x",
@@ -566,8 +593,10 @@ def test_event_transfer():
     }
     assert ftra == Event.from_mapping(ftra_mapping)
     assert ftra.to_mapping() == ftra_mapping
-    assert ftra.arity == 1
 
+    assert ftra.outcomes(host_index) == (
+        Assoc(host=TRANSFER_OUTCOME, contents=tuple("abc")),
+    )
     ftra.validate(host_index, (Assoc(host="2", contents=tuple("abc")),))
 
 
@@ -584,7 +613,8 @@ def test_event_gain():
     }
     assert gain == Event.from_mapping(gain_mapping)
     assert gain.to_mapping() == gain_mapping
-    assert gain.arity == 1
+
+    assert gain.outcomes(host_index) == (Assoc(host="1", contents=tuple("abcb")),)
     gain.validate(host_index, (Assoc(host="1", contents=tuple("abcb")),))
 
     with pytest.raises(InvalidEvent) as err:
@@ -613,7 +643,8 @@ def test_event_gain():
     }
     assert ugain == Event.from_mapping(ugain_mapping)
     assert ugain.to_mapping() == ugain_mapping
-    assert ugain.arity == 1
+
+    assert ugain.outcomes(host_index) == (Assoc(host="1", contents=frozenset("abc")),)
     ugain.validate(host_index, (Assoc(host="1", contents=frozenset("abc")),))
 
     with pytest.raises(InvalidEvent) as err:
@@ -646,7 +677,8 @@ def test_event_loss():
     }
     assert loss == Event.from_mapping(loss_mapping)
     assert loss.to_mapping() == loss_mapping
-    assert loss.arity == 1
+
+    assert loss.outcomes(host_index) == (Assoc(host="1", contents=tuple("ac")),)
     loss.validate(host_index, (Assoc(host="1", contents=tuple("ac")),))
 
     with pytest.raises(InvalidEvent) as err:
@@ -675,7 +707,8 @@ def test_event_loss():
     }
     assert floss == Event.from_mapping(floss_mapping)
     assert floss.to_mapping() == floss_mapping
-    assert floss.arity == 0
+
+    assert floss.outcomes(host_index) == ()
     floss.validate(host_index, ())
 
     uloss = Loss(name="x", host="1", contents=frozenset("abc"), segment=frozenset("ab"))
@@ -688,7 +721,8 @@ def test_event_loss():
     }
     assert uloss == Event.from_mapping(uloss_mapping)
     assert uloss.to_mapping() == uloss_mapping
-    assert uloss.arity == 1
+
+    assert uloss.outcomes(host_index) == (Assoc(host="1", contents=frozenset("c")),)
     uloss.validate(host_index, (Assoc(host="1", contents=frozenset("c")),))
 
 
