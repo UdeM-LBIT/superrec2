@@ -101,7 +101,7 @@ def tex_compile(source: str, dest: IO = None) -> str:
     if shutil.which("xelatex") is not None:
         return _xelatex_compile(source, dest)
 
-    raise TeXError("No xelatex or tectonic binary found")
+    raise TeXError(127, "No xelatex or tectonic binary found")
 
 
 def escape(text: str) -> str:
