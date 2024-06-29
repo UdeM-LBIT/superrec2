@@ -26,7 +26,7 @@ def _xelatex_compile(source: str, dest: IO = None) -> str:
             source_file.write(source)
 
         result = subprocess.run(
-            ["xelatex", "-interaction", "batchmode", source_path],
+            ["xelatex", "-interaction", "nonstopmode", source_path],
             cwd=tmpdir,
             encoding="utf8",
             stdin=subprocess.DEVNULL,
