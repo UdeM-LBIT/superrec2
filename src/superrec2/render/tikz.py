@@ -115,8 +115,10 @@ def get_tikz_definitions(params: DrawParams):
                 minimum size={{{params.extant_gene_diameter}}},
                 label={{
                     [font={{\\color{{#1}}\\vphantom{{gb}}}},
-                        label distance=4pt,
-                        inner xsep=0pt, inner ysep=0pt,
+                        fill=host background color!35!white,
+                        rounded corners=2,
+                        label distance=2pt,
+                        inner xsep=2pt, inner ysep=1pt,
                         outer xsep=0pt, outer ysep=0pt,
                         limit width={{{params.event_label_width}em}}{{{
                             extant_label_align}}}]
