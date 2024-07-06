@@ -162,30 +162,42 @@ def get_tikz_definitions(params: DrawParams):
     style.extend(
         (
             f"""\
-            gain/.style 2 args={{
-                draw={{#1}}, fill=black,
-                semicircle, inner sep=1pt,
-                shape border rotate={{{unary_rotate}}},
-                label={{[%
-                    font={{\\scriptsize\\vphantom{{gb}}}},
-                    label distance=2pt,
-                    inner xsep=0pt, inner ysep=0pt,
-                    outer xsep=0pt, outer ysep=0pt,
-                    limit width={{{params.event_label_width}em}}{{{segment_align}}},
-                ]{segment_position}:#2}},
+            gain/.code 2 args={{
+                \\pgfkeysalso{{
+                    draw={{#1}}, fill=black,
+                    semicircle, inner sep=1pt,
+                    shape border rotate={{{unary_rotate}}},
+                }}
+                \\ifx#2\\empty\\else
+                    \\pgfkeysalso{{
+                        label={{[%
+                            font={{\\scriptsize\\vphantom{{gb}}}},
+                            label distance=2pt,
+                            inner xsep=0pt, inner ysep=0pt,
+                            outer xsep=0pt, outer ysep=0pt,
+                            limit width={{{params.event_label_width}em}}{{{segment_align}}},
+                        ]{segment_position}:#2}},
+                    }}
+                \\fi
             }}""",
             f"""\
-            loss/.style 2 args={{
-                draw={{#1}}, fill=black,
-                semicircle, inner sep=1pt,
-                shape border rotate={{180+{unary_rotate}}},
-                label={{[%
-                    font={{\\scriptsize\\vphantom{{gb}}}},
-                    label distance=2pt,
-                    inner xsep=0pt, inner ysep=0pt,
-                    outer xsep=0pt, outer ysep=0pt,
-                    limit width={{{params.event_label_width}em}}{{{segment_align}}},
-                ]{segment_position}:#2}},
+            loss/.code 2 args={{
+                \\pgfkeysalso{{
+                    draw={{#1}}, fill=black,
+                    semicircle, inner sep=1pt,
+                    shape border rotate={{180+{unary_rotate}}},
+                }}
+                \\ifx#2\\empty\\else
+                    \\pgfkeysalso{{
+                        label={{[%
+                            font={{\\scriptsize\\vphantom{{gb}}}},
+                            label distance=2pt,
+                            inner xsep=0pt, inner ysep=0pt,
+                            outer xsep=0pt, outer ysep=0pt,
+                            limit width={{{params.event_label_width}em}}{{{segment_align}}},
+                        ]{segment_position}:#2}},
+                    }}
+                \\fi
             }}""",
         )
     )
