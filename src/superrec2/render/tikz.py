@@ -224,7 +224,12 @@ def format_contents(
     )
 
 
-def render_event(event: Event, position: Position, params: DrawParams) -> str:
+def render_event(
+    event: Event | None,
+    position: Position,
+    params: DrawParams,
+    rounding: int = MAX_DIGITS,
+) -> str:
     """Generate the TikZ code for drawing an event node."""
     if event.contents is not None:
         label = format_contents(event.contents)
@@ -240,10 +245,12 @@ def render_event(event: Event, position: Position, params: DrawParams) -> str:
 
     match event:
         case Extant():
-            return rf"\node[extant={{black}}{{{label}}}] at ({position}) {{}};"
+            return (
+                rf"\node[extant={{black}}{{{label}}}] at ({position:{rounding}}) {{}};"
+            )
 
         case Codiverge():
-            return rf"\node[speciation] at ({position}) {{{label}}};"
+            return rf"\node[speciation] at ({position:{rounding}}) {{{label}}};"
 
         case Diverge(contents=contents, segment=segment, transfer=transfer, cut=cut):
             kind = "transfer" if transfer else "duplication"
@@ -265,11 +272,13 @@ def render_event(event: Event, position: Position, params: DrawParams) -> str:
                         ]
                     )
 
-            return rf"\node[{kind}] at ({position}) {{{label}}};"
+            return rf"\node[{kind}] at ({position:{rounding}}) {{{label}}};"
 
         case Gain(gained=gained):
             gained = format_contents(gained)
-            return rf"\node[gain={{black}}{{{gained}}}] at ({position}) {{}};"
+            return (
+                rf"\node[gain={{black}}{{{gained}}}] at ({position:{rounding}}) {{}};"
+            )
 
         case Loss(contents=contents, segment=segment):
             if segment is not None and segment != contents:
@@ -277,9 +286,11 @@ def render_event(event: Event, position: Position, params: DrawParams) -> str:
             else:
                 segment = ""
 
-            return rf"\node[loss={{black}}{{{segment}}}] at ({position}) {{}};"
+            return (
+                rf"\node[loss={{black}}{{{segment}}}] at ({position:{rounding}}) {{}};"
+            )
 
-    return rf"\node at ({position}) {{{label}{segment}}};"
+    return rf"\node at ({position:{rounding}}) {{{label}{segment}}};"
 
 
 def measure_events(events: Sequence[Event], params: DrawParams) -> dict[Event, Rect]:
@@ -311,7 +322,9 @@ class PathNode:
     node: str | None = None
 
 
-def _tikz_path(path: Sequence[PathNode], rounding: int, close: bool) -> str:
+def _tikz_path(
+    path: Sequence[PathNode], close: bool, rounding: int = MAX_DIGITS
+) -> str:
     """Generate TikZ code for drawing a sequence of nodes."""
     result = ""
 
@@ -377,7 +390,7 @@ def _render_host(
         )
 
     style = "host background" if sampled else "unsampled host background"
-    return rf"\path[{style}] {_tikz_path(path, MAX_DIGITS, close=True)};"
+    return rf"\path[{style}] {_tikz_path(path, close=True)};"
 
 
 def _render_branch(
@@ -389,7 +402,7 @@ def _render_branch(
 
     if math.isclose(start.x, end.x):
         path = (PathNode(start), PathNode(end))
-        return rf"\path[branch] {_tikz_path(path, MAX_DIGITS, close=True)};"
+        return rf"\path[branch] {_tikz_path(path, close=True)};"
 
     midpoint = start.meet_hv(end)
 
@@ -397,12 +410,12 @@ def _render_branch(
         tr_path = (PathNode(start), PathNode(midpoint))
         end_path = (PathNode(midpoint), PathNode(end))
         return (
-            rf"\path[transfer branch] {_tikz_path(tr_path, MAX_DIGITS, close=False)};"
-            rf"\path[branch] {_tikz_path(end_path, MAX_DIGITS, close=False)};"
+            f"\\path[transfer branch] {_tikz_path(tr_path, close=False)};\n"
+            f"\\path[branch] {_tikz_path(end_path, close=False)};"
         )
 
     path = (PathNode(start), PathNode(midpoint, rounded), PathNode(end, sharp))
-    return rf"\path[branch] {_tikz_path(path, MAX_DIGITS, close=False)};"
+    return rf"\path[branch] {_tikz_path(path, close=False)};"
 
 
 def render(
