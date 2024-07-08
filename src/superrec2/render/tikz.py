@@ -112,7 +112,7 @@ def get_tikz_definitions(params: DrawParams):
             extant/.style 2 args={{
                 circle, fill={{#1}},
                 outer sep=0pt, inner sep=0pt,
-                minimum size={{{params.extant_gene_diameter}}},
+                minimum size={{{params.extant_diameter}}},
                 label={{
                     [font={{\\color{{#1}}\\vphantom{{gb}}}},
                         fill=host background color!35!white,
@@ -231,6 +231,9 @@ def render_event(
     rounding: int = MAX_DIGITS,
 ) -> str:
     """Generate the TikZ code for drawing an event node."""
+    if event is None:
+        return ""
+
     if event.contents is not None:
         label = format_contents(event.contents)
     elif event.name is not None and isinstance(event, Extant):
@@ -356,23 +359,22 @@ def _render_host(
 
     if children:
         # Connect root with leftmost and rightmost children
-        # TODO: Connect to intermediate children for non-binary trees
-        fork_area = layout.fork_events_area
-        left_area = children[0].events_area
-        right_area = children[-1].events_area
+        fork_area = layout.fork_area
+        left_area = children[0].trunk_area
+        right_area = children[-1].trunk_area
         path = (
-            PathNode(left_area.top_left()),
+            PathNode(left_area.left()),
             PathNode(left_area.left().meet_vh(fork_area.top()), rounded),
-            PathNode(fork_area.top_left()),
-            PathNode(layout.events_area.top_left(), sharp),
-            PathNode(layout.events_area.top_right()),
-            PathNode(fork_area.top_right(), rounded),
+            PathNode(layout.trunk_area.left().meet_vh(fork_area.top())),
+            PathNode(layout.trunk_area.top_left(), sharp),
+            PathNode(layout.trunk_area.top_right()),
+            PathNode(layout.trunk_area.right().meet_vh(fork_area.top()), rounded),
             PathNode(right_area.right().meet_vh(fork_area.top())),
-            PathNode(right_area.top_right(), sharp),
-            PathNode(right_area.top_left()),
+            PathNode(right_area.right(), sharp),
+            PathNode(right_area.left()),
             PathNode(right_area.left().meet_vh(fork_area.bottom()), rounded),
             PathNode(left_area.right().meet_vh(fork_area.bottom())),
-            PathNode(left_area.top_right(), sharp),
+            PathNode(left_area.right(), sharp),
         )
     else:
         leaf_shift = Position(0, params.host_leaf_spacing)
@@ -402,7 +404,7 @@ def _render_branch(
 
     if math.isclose(start.x, end.x):
         path = (PathNode(start), PathNode(end))
-        return rf"\path[branch] {_tikz_path(path, close=True)};"
+        return rf"\path[branch] {_tikz_path(path, close=False)};"
 
     midpoint = start.meet_hv(end)
 
@@ -483,19 +485,19 @@ def render(
             f"rectangle ({host_layout.area.bottom_right()});",
         )
         layers["debug"].append(
-            rf"\draw[red, line width=.66pt] ({host_layout.events_area.top_left()}) "
-            f"rectangle ({host_layout.events_area.bottom_right()});",
+            rf"\draw[red, line width=.66pt] ({host_layout.trunk_area.top_left()}) "
+            f"rectangle ({host_layout.trunk_area.bottom_right()});",
         )
         layers["debug"].append(
             r"\draw[green, dashed, line width=.66pt] "
-            f"({host_layout.fork_events_area.top_left()}) rectangle "
-            f"({host_layout.fork_events_area.bottom_right()});",
+            f"({host_layout.fork_area.top_left()}) rectangle "
+            f"({host_layout.fork_area.bottom_right()});",
         )
 
         for event_node, event_layout in host_layout.events.items():
             event = event_node.data
 
-            for child in event_layout.in_children + event_layout.out_children:
+            for child in event_layout.children:
                 layers["branches"].append(
                     _render_branch(
                         event_layout.anchor,

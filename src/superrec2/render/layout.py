@@ -1,51 +1,61 @@
 """Compute layouts for reconciliations."""
 
-from typing import Callable
-from itertools import chain
 from sowing import traversal
+from sowing.node import Node
+from math import inf
 from .model import EventLayout, DrawParams, HostLayout, Layout, Orientation
 from ..model.history import Event, History
 from ..utils.geometry import Position, Rect, Size
 
 
-def _process_events(
+def _init_layout(
     history: History,
-    measure_events: Callable[[list[Event], DrawParams], dict[Event, Size]],
+    rects: dict[Event, Size],
     params: DrawParams,
 ) -> Layout:
     """
-    Measure event nodes and group them by their host.
+    Initialize the structures used for computing the layout of each host and event.
 
-    :param history: history containing the event tree to process
-    :param measure_events: callback to compute the sizes of a set of events
-    :param params: drawing settings
-    :returns: resulting layout
+    :param history: history to layout
+    :param rects: sizes for each event node of the history
+    :param params: layout parameters
+    :returns: initial layout information for each host node
     """
-    layout = {
-        host_name: HostLayout(
-            host=host_cursor.node.data,
-            children=[edge.node.data.name for edge in host_cursor.node.edges],
+    # Initialize host layout information
+    layout = {}
+
+    for cursor in traversal.depth(history.host_tree, preorder=False):
+        node = cursor.node
+        host = node.data
+        layout[host.name] = HostLayout(
+            params=params,
+            host=host,
+            children={
+                edge.node.data.name: layout[edge.node.data.name] for edge in node.edges
+            },
         )
-        for host_name, host_cursor in history.host_index.items()
-    }
 
-    rects = measure_events(
-        events=(cursor.node.data for cursor in traversal.depth(history.event_tree)),
-        params=params,
-    )
-
+    # Initialize event layout information
     for cursor in traversal.depth(history.event_tree):
         event = cursor.node.data
+        descendants = [
+            host.node.data.name for host in history.host_index[event.host].node.edges
+        ]
+
         in_children = []
-        out_children = []
+        desc_children = []
+        side_children = []
 
         for edge in cursor.node.edges:
             child = edge.node
+            host = child.data.host
 
-            if child.data.host == event.host:
+            if host == event.host:
                 in_children.append(child)
+            elif host in descendants:
+                desc_children.append(child)
             else:
-                out_children.append(child)
+                side_children.append(child)
 
         rect = rects[event]
 
@@ -57,255 +67,174 @@ def _process_events(
 
         host_layout = layout[event.host]
         host_layout.events[cursor.node] = EventLayout(
-            forking=bool(out_children) and not in_children,
             in_children=in_children,
-            out_children=out_children,
+            desc_children=desc_children,
+            side_children=side_children,
             area=rect - rect.top_left(),
             anchor=-rect.top_left(),
         )
 
+    # Add dummy events inside empty hosts
+    for host_layout in layout.values():
+        if not host_layout.events:
+            host_layout.events[Node()] = EventLayout(
+                in_children=[],
+                desc_children=[],
+                side_children=[],
+            )
+
     return layout
 
 
-def _layout_events(layout: Layout, params: DrawParams) -> Layout:
+def _layout_fork(host_layout: HostLayout, epoch_height: int) -> None:
     """
-    Compute the relative position of each event inside their host.
+    Position the events inside the fork of an host.
 
-    :param layout: layout including the size of each event
-    :param params: drawing settings
-    :returns: layout updated with event positions
+    :param host_layout: host layout information to update
+    :param epoch_height: total height on the main axis of the epochs below
     """
-    for host, host_layout in layout.items():
-        next_pos_main = 0
-        next_pos_cross = 0
+    params = host_layout.params
 
-        for node, event_layout in host_layout.events.items():
+    # Position forking and leaf events inside the fork
+    next_pos_main = -epoch_height - params.events_host_padding
+    next_pos_cross = params.events_host_padding
+
+    for node, event_layout in host_layout.events.items():
+        size = event_layout.area.size
+        event_layout += Position(next_pos_cross, next_pos_main - size.h)
+
+        if event_layout.forking:
+            next_pos_cross += size.w / 2 + params.events_spacing
+            next_pos_main -= size.h + params.events_spacing
+        elif event_layout.leaf:
+            next_pos_cross += params.events_spacing + size.w
+
+
+def _layout_inner(layout: Layout, host_layout: Layout) -> None:
+    """
+    Position the events inside the trunk of an host.
+
+    :param layout: layout of all hosts
+    :param host_layout: host layout information to update
+    """
+    params = host_layout.params
+
+    for node, event_layout in host_layout.events.items():
+        if not event_layout.forking and not event_layout.leaf:
+            event_layout -= event_layout.area.position
             anchor = event_layout.anchor
             size = event_layout.area.size
 
-            if event_layout.forking:
-                # Align forking nodes on the same diagonal
-                next_pos_main -= size.w
-                pos = Position(next_pos_main, next_pos_cross)
-                next_pos_main -= params.gene_branch_spacing
-                next_pos_cross += size.h + params.gene_branch_spacing
-            elif event_layout.in_children:
-                # Align internal nodes above the anchors of their children
-                children_area = Rect.fit(
-                    Position(
-                        host_layout.events[child].anchor.x,
-                        host_layout.events[child].area.top().y,
-                    )
-                    for child in event_layout.in_children
-                )
-                pos = children_area.top() + Position(
-                    -anchor.x,
-                    -params.species_branch_padding - size.h,
-                )
-            else:
-                # Align leaves across the same axis
-                next_pos_main -= size.w
-                pos = Position(next_pos_main, -size.h)
-                next_pos_main -= params.events_spacing
-
-            event_layout += pos
-
-        # Compute overall events area
-        host_layout.events_area = Rect.fit(
-            chain(
-                (Rect.zero(),),
-                (event.area for event in host_layout.events.values()),
+            # Center event above the anchors of its inner children
+            cross_area = Rect.fit(
+                layout[child.data.host].events[child].anchor
+                for child in event_layout.in_children
             )
-        ).grow(params.events_host_padding)
+            cross_offset = cross_area.center().x
 
-        # Make the upper-left corner be the origin
-        delta = host_layout.events_area.position
-        host_layout.events_area -= delta
-
-        for event_layout in host_layout.events.values():
-            event_layout -= delta
-
-    return layout
-
-
-def _layout_hosts(
-    layout: Layout,
-    epochs: dict[str, int],
-    params: DrawParams,
-):
-    """
-    Compute the overall size and position of each host subtree relative to its parent.
-
-    :param layout: layout including the position and size of each event
-    :param epochs: hosts listed by their epoch; all hosts of the same epoch will
-        be rendered at the same level in time
-    :param params: drawing settings
-    :returns: layout updated with host subtree sizes and positions
-    """
-    epochs_inv = {}
-    epochs_heights = {}
-
-    for host, epoch in epochs.items():
-        epochs_inv.setdefault(epoch, []).append(host)
-
-    for epoch, hosts in sorted(epochs_inv.items(), reverse=True):
-        # Compute minimum height to fit events across all hosts of the epoch
-        epoch_height = max(layout[host].events_area.size.h for host in hosts)
-        epoch_height += params.epoch_spacing
-        epochs_heights[epoch] = epoch_height
-
-        for host in hosts:
-            host_layout = layout[host]
-
-            # Grow events area to reach epoch height, if needed
-            grow = epoch_height - params.epoch_spacing - host_layout.events_area.size.h
-            host_layout.events_area = Rect(
-                position=host_layout.events_area.position,
-                size=Size(
-                    host_layout.events_area.size.w,
-                    host_layout.events_area.size.h + grow,
-                ),
+            # Position event above the anchors of its inner and outside children
+            # and above the current forking region
+            main_area = Rect.fit(
+                layout[child.data.host].events[child].area.top()
+                for child in event_layout.in_children + event_layout.side_children
+            )
+            main_offset = min(
+                main_area.top().y - params.events_spacing, host_layout.fork_area.top().y
             )
 
-            for event_layout in host_layout.events.values():
-                event_layout += Position(0, grow)
-
-            # Balance children hosts around the left and right of the fork
-            children_widths = []
-            total_children_width = 0
-
-            for child_host in host_layout.children:
-                child_layout = layout[child_host]
-                children_widths.append(child_layout.area.size.w)
-                total_children_width += child_layout.area.size.w
-
-            running_children_width = 0
-            split_at = 0
-
-            for split_at in range(len(host_layout.children)):
-                if running_children_width * 2 >= total_children_width:
-                    break
-
-                running_children_width += children_widths[split_at]
-
-            # Position left-side children
-            child_position = 0
-
-            for child_host in host_layout.children[:split_at]:
-                child_layout = layout[child_host]
-                child_size = child_layout.area.size
-                child_layout.area += Position(child_position - child_size.w, 0)
-
-                for child_epoch in range(epoch, epochs[child_host]):
-                    child_layout.area += Position(0, epochs_heights[child_epoch])
-
-                child_position -= child_size.w + params.min_subtree_spacing
-
-            # Position right-side children
-            child_position = host_layout.events_area.size.w
-
-            for child_host in host_layout.children[split_at:]:
-                child_layout = layout[child_host]
-                child_size = child_layout.area.size
-                child_layout.area += Position(child_position, 0)
-
-                for child_epoch in range(epoch, epochs[child_host]):
-                    child_layout.area += Position(0, epochs_heights[child_epoch])
-
-                child_position += child_size.w + params.min_subtree_spacing
-
-            # Compute overall area
-            forking_events = [
-                event.area for event in host_layout.events.values() if event.forking
-            ]
-
-            if forking_events:
-                forking_span = Rect.fit(forking_events).grow(params.events_host_padding)
-                host_layout.fork_events_area = Rect(
-                    Position(
-                        host_layout.events_area.position.x,
-                        forking_span.position.y,
-                    ),
-                    Size(
-                        host_layout.events_area.size.w,
-                        forking_span.size.h,
-                    ),
-                )
-            else:
-                host_layout.fork_events_area = host_layout.events_area
-
-            host_layout.area = Rect.fit(
-                chain(
-                    (host_layout.events_area,),
-                    (layout[child_host].area for child_host in host_layout.children),
-                )
-            )
-
-            # Recompute coordinates to be relative to the overall upper-left corner
-            delta_vec = host_layout.area.position
-            host_layout.area -= delta_vec
-            host_layout.events_area -= delta_vec
-            host_layout.fork_events_area -= delta_vec
-
-            for event in host_layout.events.values():
-                event -= delta_vec
-
-            for child_host in host_layout.children:
-                layout[child_host].area -= delta_vec
-
-    return layout
+            event_layout += Position(cross_offset - anchor.x, main_offset - size.h)
 
 
-def _layout_absolute(layout: Layout, epochs: dict[int, list[str]]) -> Layout:
+def _layout_children(host_layout: HostLayout) -> None:
     """
-    Make all positions in the layout absolute.
+    Position the children of an host along the cross axis.
 
-    :param layout: layout with relative positions
-    :param epochs: hosts listed by epoch; all hosts in the same epoch are
-        to be rendered at the same level in time
-    :returns: layout updated with absolute positions
+    :param host_layout: host layout information to update
     """
-    for epoch, hosts in sorted(epochs.items()):
-        for host in hosts:
-            host_layout = layout[host]
-            delta = host_layout.area.position
+    params = host_layout.params
+    children = list(host_layout.children.values())
 
-            # Make event positions absolute
-            host_layout.events_area += delta
-            host_layout.fork_events_area += delta
+    if not children:
+        return
 
-            for event_layout in host_layout.events.values():
-                event_layout += delta
+    # Reset current host cross axis position to zero
+    initial_offset = host_layout.trunk_area.left().x
 
-            # Make child host positions absolute
-            for child_host in host_layout.children:
-                layout[child_host].area += delta
+    for node, event_layout in host_layout.events.items():
+        event_layout += Position(-initial_offset, 0)
 
-    return layout
+    # Position children hosts along the cross axis
+    next_pos_cross = 0
+
+    for child_layout in children:
+        child_size = child_layout.area.size
+        child_layout += Position(-child_layout.area.left().x + next_pos_cross, 0)
+        next_pos_cross += child_size.w + params.subtree_spacing
+
+    # Shift last child to leave enough room for the current fork
+    leftmost_subfork = max(event.anchor.x for event in children[0].events.values())
+    rightmost_subfork = min(event.anchor.x for event in children[-1].events.values())
+    children_span = rightmost_subfork - leftmost_subfork
+    missing_space = host_layout.trunk_area.size.w - children_span
+
+    if missing_space > 0:
+        children[-1] += Position(missing_space, 0)
+        rightmost_subfork += missing_space
+
+    # Move fork events at the center above the children hosts
+    children_center = (leftmost_subfork + rightmost_subfork) / 2
+    offset = children_center - host_layout.trunk_area.size.w / 2
+
+    for node, event_layout in host_layout.events.items():
+        event_layout += Position(offset, 0)
 
 
 def compute(
     history: History,
-    measure_events: Callable[[list[Event], DrawParams], dict[Event, Size]],
+    rects: dict[Event, Size],
     params: DrawParams = DrawParams(),
 ) -> Layout:
     """
     Compute a layout for an evolutionary history.
 
     :param history: history to layout
-    :param measure_events: callback to compute the size of a set of events
+    :param rects: sizes for each event node of the history
     :param params: layout parameters
     :returns: layout information for each host node
     """
-    layout = _process_events(history, measure_events, params)
-    layout = _layout_events(layout, params)
-
     epochs = history.epochs()
-    epochs_inv = {}
 
-    for host, epoch in epochs.items():
-        epochs_inv.setdefault(epoch, []).append(host)
+    hosts_by_start = {}
+    hosts_by_end = {}
+    begin_epoch = inf
+    end_epoch = 0
 
-    layout = _layout_hosts(layout, epochs, params)
-    layout = _layout_absolute(layout, epochs_inv)
+    for host, (start, end) in epochs.items():
+        hosts_by_start.setdefault(start, []).append(host)
+        begin_epoch = min(begin_epoch, start)
+
+        hosts_by_end.setdefault(end, []).append(host)
+        end_epoch = max(end_epoch, end)
+
+    layout = _init_layout(history, rects, params)
+    epoch_height = 0
+
+    for epoch in range(end_epoch, begin_epoch - 1, -1):
+        # Position the forks of each host which ends in the current epoch
+        for host in hosts_by_end[epoch]:
+            _layout_fork(layout[host], epoch_height)
+
+        # Layout internal events inside each host which starts in the current epoch
+        for host in hosts_by_start[epoch]:
+            _layout_inner(layout, layout[host])
+
+        # Position the forks of each host which ends in the current epoch
+        for host in hosts_by_start[epoch]:
+            _layout_children(layout[host])
+
+        epoch_height = max(
+            layout[host].area.size.h
+            for host in hosts_by_start[epoch] + hosts_by_end[epoch]
+        )
+
     return layout

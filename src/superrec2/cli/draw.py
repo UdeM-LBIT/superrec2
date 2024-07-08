@@ -3,11 +3,12 @@
 import json
 import textwrap
 import sys
+from sowing import traversal
 from .util import add_arg_input, add_arg_output
 from ..model.history import History
 from ..render import layout, tikz
 from ..render.model import DrawParams, Orientation
-from superrec2.utils.tex import tex_compile, TeXError
+from ..utils.tex import tex_compile, TeXError
 
 
 def generate_tikz(args):
@@ -25,7 +26,13 @@ def generate_tikz(args):
         debug=args.debug,
         orientation=Orientation[args.orientation.title()],
     )
-    result = layout.compute(history, tikz.measure_events, params)
+
+    rects = tikz.measure_events(
+        events=(cursor.node.data for cursor in traversal.depth(history.event_tree)),
+        params=params,
+    )
+
+    result = layout.compute(history, rects, params)
     return tikz.render(result, params)
 
 
