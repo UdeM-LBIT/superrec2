@@ -16,7 +16,7 @@ from superrec2.model.history import (
     Loss,
     History,
 )
-from superrec2.model.graph import CycleError
+from superrec2.utils.graph import CycleError
 import pytest
 
 

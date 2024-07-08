@@ -1,5 +1,5 @@
 import pytest
-from superrec2.model.graph import CycleError, Edge, shortest_paths
+from superrec2.utils.graph import CycleError, Edge, shortest_paths
 
 
 def test_shortest_paths():

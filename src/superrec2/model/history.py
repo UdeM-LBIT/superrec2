@@ -7,7 +7,7 @@ from itertools import product
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields, asdict, replace
 from immutables import Map
-from .graph import Edge, shortest_paths
+from ..utils.graph import Edge, shortest_paths
 from sowing.comb.binary import binarize
 from sowing.node import Node
 from sowing.zipper import Zipper
