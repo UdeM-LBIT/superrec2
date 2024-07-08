@@ -791,7 +791,7 @@ class History:
         :returns: minimal dates for each host name
         :raises CycleError: if the history has no feasible datation
         """
-        root = self.host_tree.data.name
+        root = (self.host_tree.data.name, "start")
         leaves_sink = object()
         nodes = set([leaves_sink])
         edges = set()
@@ -799,16 +799,22 @@ class History:
         for host_name, host in self.host_index.items():
             # Leaves constraint: Sampled leaves must be contemporaneous
             if host.is_leaf() and host.node.data.sampled:
-                edges.add(Edge(start=leaves_sink, end=host_name, weight=0))
-                edges.add(Edge(start=host_name, end=leaves_sink, weight=0))
+                edges.add(Edge(start=leaves_sink, end=(host_name, "end"), weight=0))
+                edges.add(Edge(start=(host_name, "start"), end=leaves_sink, weight=0))
 
-            nodes.add(host_name)
+            nodes.add((host_name, "start"))
+            nodes.add((host_name, "end"))
+            edges.add(
+                Edge(start=(host_name, "start"), end=(host_name, "end"), weight=0)
+            )
 
             # Divergence constraint: Any host must come strictly before its descendants
             if not host.is_root():
                 parent = host.up().node.data.name
                 nodes.add(parent)
-                edges.add(Edge(start=parent, end=host_name, weight=-1))
+                edges.add(
+                    Edge(start=(parent, "end"), end=(host_name, "start"), weight=-1)
+                )
 
         # Transfer constraints: Transfers can only happen between coexisting species
         for cursor in traversal.depth(self.event_tree):
@@ -816,18 +822,17 @@ class History:
 
             if isinstance(event, Diverge) and event.transfer:
                 source = event.host
-                source_parent = self.host_index[source].up().node.data.name
+                target = cursor.down(event.result).node.data.host
 
-                result = cursor.down(event.result).node.data
-                target = result.host
-                target_parent = self.host_index[target].up().node.data.name
-
-                edges.add(Edge(start=target_parent, end=source, weight=-1))
-                edges.add(Edge(start=source_parent, end=target, weight=-1))
+                edges.add(Edge(start=(source, "start"), end=(target, "end"), weight=0))
+                edges.add(Edge(start=(target, "start"), end=(source, "end"), weight=0))
 
         # Assign minimum epochs, or detect cycles, using shortest paths
         epochs, _ = shortest_paths(root, nodes, edges)
-        return {host_name: -epochs[host_name] for host_name in self.host_index.keys()}
+        return {
+            host_name: (-epochs[(host_name, "start")], -epochs[(host_name, "end")])
+            for host_name in self.host_index.keys()
+        }
 
     def prune_unsampled(self) -> Self:
         """Remove unsampled species containing no non-extant events from the history."""

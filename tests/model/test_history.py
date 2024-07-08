@@ -894,13 +894,13 @@ def test_history_epochs():
     )
     simple.validate()
     assert simple.epochs() == {
-        "1": 3,
-        "2": 3,
-        "3": 3,
-        "4": 3,
-        "t": 2,
-        "s": 1,
-        "r": 0,
+        "1": (1, 3),
+        "2": (2, 3),
+        "3": (3, 3),
+        "4": (3, 3),
+        "t": (2, 2),
+        "s": (1, 1),
+        "r": (0, 0),
     }
 
     with_transfer = History(
@@ -926,13 +926,13 @@ def test_history_epochs():
     )
     with_transfer.validate()
     assert with_transfer.epochs() == {
-        "1": 3,
-        "2": 3,
-        "3": 3,
-        "4": 3,
-        "s": 2,
-        "t": 1,
-        "r": 0,
+        "1": (3, 3),
+        "2": (3, 3),
+        "3": (2, 3),
+        "4": (2, 3),
+        "s": (1, 2),
+        "t": (1, 1),
+        "r": (0, 0),
     }
 
     with_cycle = History(
@@ -981,7 +981,12 @@ def test_history_epochs():
     with pytest.raises(CycleError, match="negative-weight cycle exists") as err:
         with_cycle.epochs()
 
-    assert err.value.args[1] == ["s", "t"]
+    assert err.value.args[1] == [
+        ("2", "start"),
+        ("t", "end"),
+        ("3", "start"),
+        ("s", "end"),
+    ]
 
 
 def test_history_prune_unsampled():
