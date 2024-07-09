@@ -22,6 +22,8 @@ def generate_tikz(args):
     else:
         raise RuntimeError("No valid history found in input")
 
+    history.validate()
+
     params = DrawParams(
         debug=args.debug,
         orientation=Orientation[args.orientation.title()],
