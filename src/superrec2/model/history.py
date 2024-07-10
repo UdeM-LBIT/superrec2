@@ -7,7 +7,7 @@ from itertools import product
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields, asdict, replace
 from immutables import Map
-from ..utils.graph import Edge, shortest_paths
+from ..utils.graph import Edge, shortest_paths, CycleError
 from sowing.comb.binary import binarize
 from sowing.node import Node
 from sowing.zipper import Zipper
@@ -772,6 +772,34 @@ class Loss(Event):
 
 
 @dataclass(frozen=True, slots=True)
+class Epochs:
+    hosts: dict[Zipper[Host, None], tuple[int, int]]
+    events: dict[Zipper[Event, None], int]
+
+
+class InfeasibleEpochs(Exception):
+    def __init__(
+        self, cycle: list[tuple[Zipper[Host, None], str] | Zipper[Event, None]]
+    ):
+        message = "infeasible history because of epochs cycle: "
+        cycle_text = []
+
+        for item in cycle:
+            if isinstance(item, tuple):
+                cycle_text.append(f"{item[1]} of {item[0].node.data.name}")
+            elif isinstance(item.node.data, Diverge) and item.node.data.transfer:
+                source = item.node.data.host
+                target = item.down(item.node.data.result).node.data.host
+                cycle_text.append(f"transfer from {source} to {target}")
+
+        message += ", before ".join(cycle_text)
+        super().__init__(message)
+
+        self.cycle = cycle
+        self.cycle_text = cycle_text
+
+
+@dataclass(frozen=True, slots=True)
 @index_trees
 class History:
     """Evolutionary history of an associate phylogeny inside an host phylogeny."""
@@ -783,7 +811,7 @@ class History:
     # History tree, with event and associate information at each node
     event_tree: Node[Event, None]
 
-    def epochs(self) -> dict[str, int]:
+    def epochs(self) -> Epochs:
         """
         Compute minimum feasible dates for each host of this history, taking
         into account codivergence and horizontal transfer relations.
@@ -791,48 +819,81 @@ class History:
         :returns: minimal dates for each host name
         :raises CycleError: if the history has no feasible datation
         """
-        root = (self.host_tree.data.name, "start")
-        leaves_sink = object()
-        nodes = set([leaves_sink])
+
+        def host_start(host: Zipper[Host, None]) -> tuple[Zipper[Host, None], str]:
+            return (host, "start")
+
+        def host_end(host: Zipper[Host, None]) -> tuple[Zipper[Host, None], str]:
+            return (host, "end")
+
+        root = host_start(self.host_tree.unzip())
+        extant_sink = object()
+        nodes = set([extant_sink])
         edges = set()
 
-        for host_name, host in self.host_index.items():
-            # Leaves constraint: Sampled leaves must be contemporaneous
-            if host.is_leaf() and host.node.data.sampled:
-                edges.add(Edge(start=leaves_sink, end=(host_name, "end"), weight=0))
-                edges.add(Edge(start=(host_name, "start"), end=leaves_sink, weight=0))
+        for host in traversal.depth(self.host_tree):
+            nodes.add(host_start(host))
+            nodes.add(host_end(host))
 
-            nodes.add((host_name, "start"))
-            nodes.add((host_name, "end"))
-            edges.add(
-                Edge(start=(host_name, "start"), end=(host_name, "end"), weight=0)
-            )
+            host_data = host.node.data
 
-            # Divergence constraint: Any host must come strictly before its descendants
-            if not host.is_root():
-                parent = host.up().node.data.name
-                nodes.add(parent)
+            # Host intervals must not start after they end
+            edges.add(Edge(start=host_start(host), end=host_end(host), weight=0))
+
+            # Host intervals must end strictly before their descendants
+            for i in range(len(host.node.edges)):
                 edges.add(
-                    Edge(start=(parent, "end"), end=(host_name, "start"), weight=-1)
+                    Edge(start=host_end(host), end=host_start(host.down(i)), weight=-1)
                 )
 
-        # Transfer constraints: Transfers can only happen between coexisting species
-        for cursor in traversal.depth(self.event_tree):
-            event = cursor.node.data
+            # Sampled terminal hosts must be contemporaneous
+            if host.is_leaf() and host_data.sampled:
+                edges.add(Edge(start=extant_sink, end=host_end(host), weight=0))
+                edges.add(Edge(start=host_end(host), end=extant_sink, weight=0))
 
-            if isinstance(event, Diverge) and event.transfer:
-                source = event.host
-                target = cursor.down(event.result).node.data.host
+        for event in traversal.depth(self.event_tree):
+            nodes.add(event)
 
-                edges.add(Edge(start=(source, "start"), end=(target, "end"), weight=0))
-                edges.add(Edge(start=(target, "start"), end=(source, "end"), weight=0))
+            event_data = event.node.data
+            host = self.host_index[event_data.host]
+            host_data = host.node.data
 
-        # Assign minimum epochs, or detect cycles, using shortest paths
-        epochs, _ = shortest_paths(root, nodes, edges)
-        return {
-            host_name: (-epochs[(host_name, "start")], -epochs[(host_name, "end")])
-            for host_name in self.host_index.keys()
+            # Parents must not come after their children
+            for i in range(len(event.node.edges)):
+                nodes.add(event.down(i))
+                edges.add(Edge(start=event, end=event.down(i), weight=0))
+
+            # Transfers must go towards coexisting hosts
+            if isinstance(event_data, Diverge) and event_data.transfer:
+                target = self.host_index[event.down(event_data.result).node.data.host]
+                edges.add(Edge(start=host_start(target), end=event, weight=0))
+                edges.add(Edge(start=event, end=host_end(target), weight=0))
+
+            # Sampled leaves must be contemporaneous
+            if isinstance(event_data, Extant) and host_data.sampled:
+                edges.add(Edge(start=extant_sink, end=event, weight=0))
+                edges.add(Edge(start=event, end=extant_sink, weight=0))
+
+            # Host intervals must enclose all their events
+            edges.add(Edge(start=host_start(host), end=event, weight=0))
+            edges.add(Edge(start=event, end=host_end(host), weight=0))
+
+        # Assign minimum feasible epochs, if possible, using shortest paths
+        try:
+            epochs, _ = shortest_paths(root, nodes, edges)
+        except CycleError as err:
+            raise InfeasibleEpochs(err.args[1])
+
+        epochs = {key: -value for key, value in epochs.items()}
+        hosts_epochs = {
+            host: (epochs[host_start(host)], epochs[host_end(host)])
+            for host in traversal.depth(self.host_tree)
         }
+        events_epochs = {
+            event: epochs[event] for event in traversal.depth(self.event_tree)
+        }
+
+        return Epochs(hosts=hosts_epochs, events=events_epochs)
 
     def prune_unsampled(self) -> Self:
         """Remove unsampled species containing no non-extant events from the history."""

@@ -14,13 +14,6 @@ class Edge(Generic[T]):
     weight: float
 
 
-def _smallest_rotation(sequence: list[T]) -> list[T]:
-    """Rotate a list until the smallest element is in front."""
-    smallest = min(sequence)
-    index = sequence.index(smallest)
-    return sequence[index:] + sequence[:index]
-
-
 def shortest_paths(
     source: T, nodes: Iterable[T], edges: Iterable[Edge[T]]
 ) -> tuple[dict[T, float], dict[T, T]]:
@@ -67,13 +60,14 @@ def shortest_paths(
                 cycle = [start]
                 item = predecessor[start]
 
-                while item != start:
+                while True:
                     cycle = [item] + cycle
+
+                    if item == start:
+                        break
+
                     item = predecessor[item]
 
-                raise CycleError(
-                    "negative-weight cycle exists",
-                    _smallest_rotation(cycle),
-                )
+                raise CycleError("negative-weight cycle exists", cycle)
 
     return distance, predecessor

@@ -48,4 +48,4 @@ def test_shortest_paths():
     with pytest.raises(CycleError, match="negative-weight cycle exists") as err:
         shortest_paths("s", nodes, edges)
 
-    assert err.value.args[1] == ["t", "y", "x"]
+    assert err.value.args[1] == ["y", "x", "t", "y"]

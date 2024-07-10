@@ -14,10 +14,15 @@ from superrec2.model.history import (
     Diverge,
     Gain,
     Loss,
+    Epochs,
+    InfeasibleEpochs,
     History,
 )
-from superrec2.utils.graph import CycleError
 import pytest
+
+
+def _is_circular_equal(first, second):
+    return any(first[i:] + first[:i] == second for i in range(len(first)))
 
 
 def test_associate():
@@ -893,17 +898,27 @@ def test_history_epochs():
         ),
     )
     simple.validate()
-    assert simple.epochs() == {
-        "1": (1, 3),
-        "2": (2, 3),
-        "3": (3, 3),
-        "4": (3, 3),
-        "t": (2, 2),
-        "s": (1, 1),
-        "r": (0, 0),
-    }
+    simple_events = simple.event_tree.unzip()
+    assert simple.epochs() == Epochs(
+        hosts={
+            simple.host_index["1"]: (1, 3),
+            simple.host_index["2"]: (2, 3),
+            simple.host_index["3"]: (3, 3),
+            simple.host_index["4"]: (3, 3),
+            simple.host_index["t"]: (2, 2),
+            simple.host_index["s"]: (1, 1),
+            simple.host_index["r"]: (0, 0),
+        },
+        events={
+            simple_events: 0,
+            simple_events.down(0): 3,
+            simple_events.down(1): 1,
+            simple_events.down(1).down(0): 2,
+            simple_events.down(1).down(1): 3,
+        },
+    )
 
-    with_transfer = History(
+    transfer = History(
         host_tree=parse_tree(Host, "((1,2)s,(3,4)t)r;"),
         event_tree=parse_tree(
             Event,
@@ -924,18 +939,100 @@ def test_history_epochs():
             """,
         ),
     )
-    with_transfer.validate()
-    assert with_transfer.epochs() == {
-        "1": (3, 3),
-        "2": (3, 3),
-        "3": (2, 3),
-        "4": (2, 3),
-        "s": (1, 2),
-        "t": (1, 1),
-        "r": (0, 0),
-    }
+    transfer.validate()
+    transfer_events = transfer.event_tree.unzip()
+    assert transfer.epochs() == Epochs(
+        hosts={
+            transfer.host_index["1"]: (3, 3),
+            transfer.host_index["2"]: (3, 3),
+            transfer.host_index["3"]: (2, 3),
+            transfer.host_index["4"]: (2, 3),
+            transfer.host_index["s"]: (1, 2),
+            transfer.host_index["t"]: (1, 1),
+            transfer.host_index["r"]: (0, 0),
+        },
+        events={
+            transfer_events: 0,
+            transfer_events.down(0): 2,
+            transfer_events.down(0).down(0): 2,
+            transfer_events.down(0).down(1): 3,
+            transfer_events.down(0).down(1).down(0): 3,
+            transfer_events.down(0).down(1).down(1): 3,
+            transfer_events.down(1): 1,
+            transfer_events.down(1).down(0): 2,
+            transfer_events.down(1).down(1): 3,
+        },
+    )
 
-    with_cycle = History(
+    multi = History(
+        host_tree=parse_tree(Host, "((X,Y)XY,Z)XYZ;"),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              (
+                'x_1'[&host=X,kind=extant],
+                'y_1'[&host=Y,kind=extant]
+              )[&host=XY,kind=codiverge],
+              (
+                'z_1'[&host=Z,kind=extant],
+                'y_2'[&host=Y,kind=extant]
+              )[&host=Z,kind=diverge,transfer=True,result=1]
+            )[&host=Z,kind=diverge,transfer=True];
+            """,
+        ),
+    )
+    multi.validate()
+    multi_events = multi.event_tree.unzip()
+    assert multi.epochs() == Epochs(
+        hosts={
+            multi.host_index["XYZ"]: (0, 0),
+            multi.host_index["XY"]: (1, 1),
+            multi.host_index["X"]: (2, 2),
+            multi.host_index["Y"]: (2, 2),
+            multi.host_index["Z"]: (1, 2),
+        },
+        events={
+            multi_events: 1,
+            multi_events.down(0): 1,
+            multi_events.down(0).down(0): 2,
+            multi_events.down(0).down(1): 2,
+            multi_events.down(1): 2,
+            multi_events.down(1).down(0): 2,
+            multi_events.down(1).down(1): 2,
+        },
+    )
+
+    multi_inverted = History(
+        host_tree=parse_tree(Host, "((X,Y)XY,Z)XYZ;"),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              (
+                (
+                  'x_1'[&host=X,kind=extant],
+                  'y_1'[&host=Y,kind=extant]
+                )[&host=XY,kind=codiverge],
+                'z_1'[&host=Z,kind=extant]
+              )[&host=Z,kind=diverge,transfer=True],
+              'y_2'[&host=Y,kind=extant]
+            )[&host=Z,kind=diverge,transfer=True,result=1];
+            """,
+        ),
+    )
+    multi_inverted.validate()
+
+    with pytest.raises(InfeasibleEpochs) as err:
+        multi_inverted.epochs()
+
+    assert "infeasible history because of epochs cycle" in str(err.value)
+    assert _is_circular_equal(
+        err.value.cycle_text[:-1],
+        ["transfer from Z to Y", "transfer from Z to XY", "end of XY", "start of Y"],
+    )
+
+    cyclic = History(
         host_tree=parse_tree(Host, "((1,2)s,(3,4)t)r;"),
         event_tree=parse_tree(
             Event,
@@ -976,17 +1073,23 @@ def test_history_epochs():
             """,
         ),
     )
-    with_cycle.validate()
+    cyclic.validate()
 
-    with pytest.raises(CycleError, match="negative-weight cycle exists") as err:
-        with_cycle.epochs()
+    with pytest.raises(InfeasibleEpochs) as err:
+        cyclic.epochs()
 
-    assert err.value.args[1] == [
-        ("2", "start"),
-        ("t", "end"),
-        ("3", "start"),
-        ("s", "end"),
-    ]
+    assert "infeasible history because of epochs cycle" in str(err.value)
+    assert _is_circular_equal(
+        err.value.cycle_text[:-1],
+        [
+            "transfer from 2 to t",
+            "end of t",
+            "start of 3",
+            "transfer from 3 to s",
+            "end of s",
+            "start of 2",
+        ],
+    )
 
 
 def test_history_prune_unsampled():
