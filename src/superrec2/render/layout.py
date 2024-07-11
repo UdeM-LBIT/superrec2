@@ -2,6 +2,7 @@
 
 from sowing import traversal
 from sowing.node import Node
+from itertools import chain
 from .model import EventLayout, DrawParams, HostLayout, Layout, Orientation
 from ..model.history import Event, History
 from ..utils.geometry import Position, Rect, Size
@@ -137,8 +138,17 @@ def _layout_inner(layout: Layout, event: Event) -> None:
     # Position event above the anchors of its inner and outside children
     # and above the current forking region
     main_area = Rect.fit(
-        layout[child.data.host].events[child].area.top()
-        for child in event_layout.in_children + event_layout.side_children
+        chain(
+            (
+                host_layout.events[child].area.top()
+                for child in event_layout.in_children
+            ),
+            (
+                layout[child.data.host].events[child].area.top()
+                + Position(0, event_layout.anchor.y - event_layout.area.top().y)
+                for child in event_layout.side_children
+            ),
+        )
     )
     main_offset = min(
         main_area.top().y - params.events_spacing, host_layout.fork_area.top().y
