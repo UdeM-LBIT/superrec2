@@ -2,7 +2,6 @@
 
 from sowing import traversal
 from sowing.node import Node
-from math import inf
 from .model import EventLayout, DrawParams, HostLayout, Layout, Orientation
 from ..model.history import Event, History
 from ..utils.geometry import Position, Rect, Size

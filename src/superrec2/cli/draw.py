@@ -30,7 +30,10 @@ def generate_tikz(args):
     )
 
     rects = tikz.measure_events(
-        events=(cursor.node.data for cursor in traversal.depth(history.event_tree)),
+        events=(
+            (cursor.node.data, history.host_index[cursor.node.data.host].node.data)
+            for cursor in traversal.depth(history.event_tree)
+        ),
         params=params,
     )
 

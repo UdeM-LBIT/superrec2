@@ -1,12 +1,12 @@
 """Generate a TikZ drawing from a reconciliation layout."""
 
-from typing import Callable, Sequence
+from typing import Any, Callable, Sequence
 from dataclasses import dataclass
 from textwrap import indent, dedent
 import math
 import re
 from .model import DrawParams, Orientation, HostLayout, Layout
-from ..model.history import Event, Extant, Codiverge, Diverge, Gain, Loss
+from ..model.history import Host, Event, Extant, Codiverge, Diverge, Gain, Loss
 from ..utils import tex
 from ..utils.tex import measure_tikz
 from ..utils.geometry import Position, Rect
@@ -18,6 +18,18 @@ DIGITS = re.compile(r"([0-9]+)")
 
 # Round all coordinates to this number of decimal places in generated TikZ code
 MAX_DIGITS = 4
+
+
+# LaTeX preamble necessary to compile the produced output
+PREAMBLE = dedent(
+    r"""
+    \usepackage{varwidth}
+    \usepackage{tikz}
+    \usetikzlibrary{patterns.meta}
+    \usetikzlibrary{arrows.meta}
+    \usetikzlibrary{shapes}
+    """
+)
 
 
 def get_tikz_definitions(params: DrawParams):
@@ -127,6 +139,14 @@ def get_tikz_definitions(params: DrawParams):
             }}""",
             "extant/.default={black}{}",
             f"""\
+            unsampled/.style={{
+                circle, fill={{#1}},
+                outer sep=0pt, inner sep=0pt,
+                minimum size={{{params.extant_diameter}}},
+            }}
+            """,
+            "unsampled/.default={black!40}",
+            f"""\
             speciation/.style={{
                 event={{#1}}, rectangle, rounded corners,
                 inner xsep=4pt,
@@ -226,6 +246,7 @@ def format_contents(
 
 def render_event(
     event: Any,
+    host: Host,
     position: Position,
     params: DrawParams,
     rounding: int = MAX_DIGITS,
@@ -248,9 +269,13 @@ def render_event(
 
     match event:
         case Extant():
-            return (
-                rf"\node[extant={{black}}{{{label}}}] at ({position:{rounding}}) {{}};"
-            )
+            if host.sampled:
+                return (
+                    f"\\node[extant={{black}}{{{label}}}] "
+                    f"at ({position:{rounding}}) {{}};"
+                )
+            else:
+                return f"\\node[unsampled] at ({position:{rounding}}) {{}};"
 
         case Codiverge():
             return rf"\node[speciation] at ({position:{rounding}}) {{{label}}};"
@@ -296,7 +321,9 @@ def render_event(
     return rf"\node at ({position:{rounding}}) {{{label}{segment}}};"
 
 
-def measure_events(events: Sequence[Event], params: DrawParams) -> dict[Event, Rect]:
+def measure_events(
+    events: Sequence[tuple[Event, Host]], params: DrawParams
+) -> dict[Event, Rect]:
     """
     Measure the overall space occupied by each node in a set of nodes.
 
@@ -306,7 +333,9 @@ def measure_events(events: Sequence[Event], params: DrawParams) -> dict[Event, R
     """
     events = list(events)
     results = measure_tikz(
-        nodes=(render_event(event, Position(0, 0), params) for event in events),
+        nodes=(
+            render_event(event, host, Position(0, 0), params) for event, host in events
+        ),
         preamble=(
             r"\usepackage{varwidth}"
             r"\usepackage{tikz}"
@@ -315,7 +344,7 @@ def measure_events(events: Sequence[Event], params: DrawParams) -> dict[Event, R
             r"\usetikzlibrary{shapes}" + get_tikz_definitions(params)
         ),
     )
-    return {event: result for event, result in zip(events, results)}
+    return {event: result for (event, _), result in zip(events, results)}
 
 
 @dataclass(frozen=True)
@@ -508,7 +537,9 @@ def render(
                 )
 
             layers["events"].append(
-                render_event(event_node.data, event_layout.anchor, params)
+                render_event(
+                    event_node.data, host_layout.host, event_layout.anchor, params
+                )
             )
             layers["debug"].append(
                 rf"\draw[blue, densely dotted, line width=.66pt] "
