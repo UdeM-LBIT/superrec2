@@ -233,8 +233,8 @@ def compute(
             _layout_children(layout[host])
 
         epoch_height = max(
-            layout[host].area.size.h
-            for host in hosts_by_start[epoch] + hosts_by_end[epoch]
+            abs(layout[cursor.node.data.name].area.top().y)
+            for cursor in epochs.hosts_at(start=epoch)
         )
 
     return layout
