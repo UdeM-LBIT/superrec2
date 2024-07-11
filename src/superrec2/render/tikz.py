@@ -66,8 +66,10 @@ def get_tikz_definitions(params: DrawParams):
             }}""",
             """\
             unsampled host background/.style={
-                pattern={Lines[angle=45, distance=3pt, line width=2pt]},
-                pattern color=host background color!50,
+                preaction={fill=host background color},
+                draw=host background color,
+                pattern={Lines[angle=45, distance=3pt, line width=1.5pt]},
+                pattern color=white,
             }""",
         )
     )
@@ -484,6 +486,7 @@ def render(
     """
     layers: dict[str, list[str]] = {
         "hosts": [],
+        "unsampled hosts": [],
         "branches": [],
         "gene transfers": [],
         "events": [],
@@ -500,7 +503,9 @@ def render(
         return f"{color_prefix}{len(colors) - 1}"
 
     for host, host_layout in layout.items():
-        layers["hosts"].append(
+        sampled = host_layout.host.sampled
+
+        layers["hosts" if sampled else "unsampled hosts"].append(
             _render_host(
                 host_layout,
                 [layout[child] for child in host_layout.children],
