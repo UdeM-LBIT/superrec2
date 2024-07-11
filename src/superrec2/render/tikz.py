@@ -145,8 +145,7 @@ def get_tikz_definitions(params: DrawParams):
                 circle, fill={{#1}},
                 outer sep=0pt, inner sep=0pt,
                 minimum size={{{params.extant_diameter}}},
-            }}
-            """,
+            }}""",
             "unsampled/.default={black!40}",
             f"""\
             speciation/.style={{
@@ -192,7 +191,7 @@ def get_tikz_definitions(params: DrawParams):
                     semicircle, inner sep=1pt,
                     shape border rotate={{{unary_rotate}}},
                 }}
-                \\ifx#2\\empty\\else
+                \\def\\cmp{{#2}}\\ifx\\cmp\\empty\\else
                     \\pgfkeysalso{{
                         label={{[%
                             font={{\\scriptsize\\vphantom{{gb}}}},
@@ -211,7 +210,7 @@ def get_tikz_definitions(params: DrawParams):
                     semicircle, inner sep=1pt,
                     shape border rotate={{180+{unary_rotate}}},
                 }}
-                \\ifx#2\\empty\\else
+                \\def\\cmp{{#2}}\\ifx\\cmp\\empty\\else
                     \\pgfkeysalso{{
                         label={{[%
                             font={{\\scriptsize\\vphantom{{gb}}}},
