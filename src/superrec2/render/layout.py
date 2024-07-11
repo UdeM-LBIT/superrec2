@@ -74,9 +74,11 @@ def _init_layout(
             anchor=-rect.top_left(),
         )
 
-    # Add dummy events inside empty hosts
+    # Add dummy events inside hosts with empty forks
     for host_layout in layout.values():
-        if not host_layout.events:
+        if not any(
+            layout.forking or layout.leaf for layout in host_layout.events.values()
+        ):
             host_layout.events[Node(object())] = EventLayout(
                 in_children=[],
                 desc_children=[],
@@ -129,11 +131,14 @@ def _layout_inner(layout: Layout, event: Event) -> None:
     size = event_layout.area.size
 
     # Center event above the anchors of its inner children
-    cross_area = Rect.fit(
-        layout[child.data.host].events[child].anchor
-        for child in event_layout.in_children
-    )
-    cross_offset = cross_area.center().x
+    if event_layout.in_children:
+        cross_area = Rect.fit(
+            layout[child.data.host].events[child].anchor
+            for child in event_layout.in_children
+        )
+        cross_offset = cross_area.center().x
+    else:
+        cross_offset = 0
 
     # Position event above the anchors of its inner and outside children
     # and above the current forking region

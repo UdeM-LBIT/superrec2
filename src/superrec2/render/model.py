@@ -173,10 +173,7 @@ class HostLayout:
         """Overall area of the host, including its children."""
         return Rect.fit(
             chain(
-                (
-                    self.fork_area,
-                    self.trunk_area,
-                ),
+                (self.trunk_area,),
                 (layout.area for layout in self.children.values()),
             )
         )
