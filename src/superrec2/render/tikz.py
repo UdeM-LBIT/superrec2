@@ -225,13 +225,13 @@ def format_contents(
 
 
 def render_event(
-    event: Event | None,
+    event: Any,
     position: Position,
     params: DrawParams,
     rounding: int = MAX_DIGITS,
 ) -> str:
     """Generate the TikZ code for drawing an event node."""
-    if event is None:
+    if not isinstance(event, Event):
         return ""
 
     if event.contents is not None:

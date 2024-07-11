@@ -77,7 +77,7 @@ def _init_layout(
     # Add dummy events inside empty hosts
     for host_layout in layout.values():
         if not host_layout.events:
-            host_layout.events[Node()] = EventLayout(
+            host_layout.events[Node(object())] = EventLayout(
                 in_children=[],
                 desc_children=[],
                 side_children=[],
@@ -110,39 +110,54 @@ def _layout_fork(host_layout: HostLayout, epoch_height: int) -> None:
             next_pos_cross += params.events_spacing + size.w
 
 
-def _layout_inner(layout: Layout, host_layout: Layout) -> None:
+def _layout_inner(layout: Layout, event: Event) -> None:
     """
-    Position the events inside the trunk of an host.
+    Position an event inside the trunk of an host.
 
     :param layout: layout of all hosts
-    :param host_layout: host layout information to update
+    :param event_layout: event layout information to update
     """
+    host_layout = layout[event.data.host]
+    event_layout = host_layout.events[event]
     params = host_layout.params
 
-    for node, event_layout in host_layout.events.items():
-        if not event_layout.forking and not event_layout.leaf:
-            event_layout -= event_layout.area.position
-            anchor = event_layout.anchor
-            size = event_layout.area.size
+    if event_layout.forking or event_layout.leaf:
+        return
 
-            # Center event above the anchors of its inner children
-            cross_area = Rect.fit(
-                layout[child.data.host].events[child].anchor
-                for child in event_layout.in_children
-            )
-            cross_offset = cross_area.center().x
+    event_layout -= event_layout.area.position
+    anchor = event_layout.anchor
+    size = event_layout.area.size
 
-            # Position event above the anchors of its inner and outside children
-            # and above the current forking region
-            main_area = Rect.fit(
-                layout[child.data.host].events[child].area.top()
-                for child in event_layout.in_children + event_layout.side_children
-            )
-            main_offset = min(
-                main_area.top().y - params.events_spacing, host_layout.fork_area.top().y
-            )
+    # Center event above the anchors of its inner children
+    cross_area = Rect.fit(
+        layout[child.data.host].events[child].anchor
+        for child in event_layout.in_children
+    )
+    cross_offset = cross_area.center().x
 
-            event_layout += Position(cross_offset - anchor.x, main_offset - size.h)
+    # Position event above the anchors of its inner and outside children
+    # and above the current forking region
+    main_area = Rect.fit(
+        layout[child.data.host].events[child].area.top()
+        for child in event_layout.in_children + event_layout.side_children
+    )
+    main_offset = min(
+        main_area.top().y - params.events_spacing, host_layout.fork_area.top().y
+    )
+
+    event_layout += Position(cross_offset - anchor.x, main_offset - size.h)
+
+    # Add dummy events at the transfer location of outside children
+    for child in event_layout.side_children:
+        child_anchor = layout[child.data.host].events[child].anchor
+        position = event_layout.anchor.meet_hv(child_anchor)
+        layout[child.data.host].events[Node(object())] = EventLayout(
+            in_children=[child],
+            desc_children=[],
+            side_children=[],
+            area=Rect.fit((position,)),
+            anchor=position,
+        )
 
 
 def _layout_children(host_layout: HostLayout) -> None:
@@ -203,34 +218,22 @@ def compute(
     :returns: layout information for each host node
     """
     epochs = history.epochs()
-
-    hosts_by_start = {}
-    hosts_by_end = {}
-    begin_epoch = inf
-    end_epoch = 0
-
-    for host, (start, end) in epochs.items():
-        hosts_by_start.setdefault(start, []).append(host)
-        begin_epoch = min(begin_epoch, start)
-
-        hosts_by_end.setdefault(end, []).append(host)
-        end_epoch = max(end_epoch, end)
-
     layout = _init_layout(history, rects, params)
     epoch_height = 0
 
-    for epoch in range(end_epoch, begin_epoch - 1, -1):
-        # Position the forks of each host which ends in the current epoch
-        for host in hosts_by_end[epoch]:
-            _layout_fork(layout[host], epoch_height)
+    for epoch in reversed(epochs.range()):
+        # Position the forks of each ending host along the main axis
+        for cursor in epochs.hosts_at(end=epoch):
+            _layout_fork(layout[cursor.node.data.name], epoch_height)
 
-        # Layout internal events inside each host which starts in the current epoch
-        for host in hosts_by_start[epoch]:
-            _layout_inner(layout, layout[host])
+        # Layout internal events of the current epoch in post-order
+        for cursor in traversal.depth(history.event_tree, preorder=False):
+            if epochs.events[cursor] == epoch:
+                _layout_inner(layout, cursor.node)
 
-        # Position the forks of each host which ends in the current epoch
-        for host in hosts_by_start[epoch]:
-            _layout_children(layout[host])
+        # Position the children of each starting host along the cross axis
+        for cursor in epochs.hosts_at(start=epoch):
+            _layout_children(layout[cursor.node.data.name])
 
         epoch_height = max(
             abs(layout[cursor.node.data.name].area.top().y)

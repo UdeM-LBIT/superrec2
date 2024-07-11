@@ -776,6 +776,21 @@ class Epochs:
     hosts: dict[Zipper[Host, None], tuple[int, int]]
     events: dict[Zipper[Event, None], int]
 
+    def range(self):
+        start = min(before for before, _ in self.hosts.values())
+        end = max(after for _, after in self.hosts.values())
+        return range(start, end + 1)
+
+    def hosts_at(
+        self, start: int | None = None, end: int | None = None
+    ) -> Iterable[Zipper[Host, None]]:
+        return (
+            host
+            for host, (host_start, host_end) in self.hosts.items()
+            if (start is None or start == host_start)
+            and (end is None or end == host_end)
+        )
+
 
 class InfeasibleEpochs(Exception):
     def __init__(
