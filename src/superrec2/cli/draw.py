@@ -11,8 +11,8 @@ from ..render.model import DrawParams, Orientation
 from ..utils.tex import tex_compile, TeXError
 
 
-def generate_tikz(args):
-    """Generate TikZ code corresponding to the given reconciliation."""
+def generate_tex(args) -> str:
+    """Generate TeX code corresponding to the given reconciliation."""
     for line in args.input:
         try:
             history = History.from_mapping(json.loads(line))
@@ -41,13 +41,13 @@ def generate_tikz(args):
     return tikz.render(result, params)
 
 
-def output(args, tikz_code):
+def output(args, tex_code) -> int:
     """Generate output."""
     output_type = args.output_type
 
     if output_type is None:
         if args.output.name == "-" or args.output.name.endswith(".tex"):
-            output_type = "tikz"
+            output_type = "tex"
         elif args.output.name.endswith(".pdf"):
             output_type = "pdf"
         else:
@@ -58,34 +58,13 @@ def output(args, tikz_code):
             )
             return 1
 
-    if output_type == "tikz":
-        args.output.write(tikz_code.encode())
+    if output_type == "tex":
+        args.output.write(tex_code.encode())
     elif output_type == "pdf":
         try:
-            tex_compile(
-                source=textwrap.dedent(
-                    r"""
-                    \documentclass[crop, tikz, border=20pt]{standalone}
-                    \usepackage{varwidth}
-                    \usepackage{tikz}
-                    \usetikzlibrary{patterns.meta}
-                    \usetikzlibrary{arrows.meta}
-                    \usetikzlibrary{shapes}
-                    \begin{document}
-                    \scrollmode
-                    """
-                ).lstrip()
-                + tikz_code
-                + textwrap.dedent(
-                    r"""
-                    \batchmode
-                    \end{document}
-                    """
-                ).lstrip(),
-                dest=args.output,
-            )
+            tex_compile(source=tex_code, dest=args.output)
         except TeXError as err:
-            print(f"XeLaTeX returned an error (code: {err.code})")
+            print(f"TeX compiler returned an error (code: {err.code})")
             print("Output from the compiler:")
 
             for line in err.message.splitlines():
@@ -98,8 +77,8 @@ def output(args, tikz_code):
 
 def draw(args):
     """Run the drawing subcommand with the given arguments."""
-    tikz_code = generate_tikz(args)
-    return output(args, tikz_code)
+    tex_code = generate_tex(args)
+    return output(args, tex_code)
 
 
 def add_args(parser):
@@ -113,9 +92,9 @@ def add_args(parser):
         "output_type",
         metavar="TYPE",
         nargs="?",
-        choices=("tikz", "pdf"),
+        choices=("tex", "pdf"),
         help="kind of output to generate (default: guess based on output file \
-extension, or 'tikz' for output to stdout)",
+extension, or 'tex' for output to stdout)",
     )
 
     subparser.add_argument(

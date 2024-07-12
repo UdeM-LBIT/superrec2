@@ -20,7 +20,7 @@ DIGITS = re.compile(r"([0-9]+)")
 MAX_DIGITS = 4
 
 
-# LaTeX preamble necessary to compile the produced output
+# TeX preamble necessary to compile the produced output
 PREAMBLE = dedent(
     r"""
     \usepackage{varwidth}
@@ -29,7 +29,7 @@ PREAMBLE = dedent(
     \usetikzlibrary{arrows.meta}
     \usetikzlibrary{shapes}
     """
-)
+).strip()
 
 
 def get_tikz_definitions(params: DrawParams):
@@ -333,17 +333,10 @@ def measure_events(
     :returns: list of measurements, in the same order as the node sequence
     """
     events = list(events)
+    origin = Position(0, 0)
     results = measure_tikz(
-        nodes=(
-            render_event(event, host, Position(0, 0), params) for event, host in events
-        ),
-        preamble=(
-            r"\usepackage{varwidth}"
-            r"\usepackage{tikz}"
-            r"\usetikzlibrary{patterns.meta}"
-            r"\usetikzlibrary{arrows.meta}"
-            r"\usetikzlibrary{shapes}" + get_tikz_definitions(params)
-        ),
+        nodes=(render_event(event, host, origin, params) for event, host in events),
+        preamble=PREAMBLE + get_tikz_definitions(params),
     )
     return {event: result for (event, _), result in zip(events, results)}
 
@@ -455,33 +448,11 @@ def render(
     params: DrawParams = DrawParams(),
 ) -> str:
     r"""
-    Generate TikZ code for drawing a history using layout information.
-
-    The `tikz` LaTeX package and the following TikZ libraries are required
-    to be loaded for the generated code to compile:
-
-    - `shapes`
-    - `arrows.meta`
-
-    Here’s a basic skeleton in which the generated code can be inserted:
-
-    ```
-    \documentclass[crop, tikz, border=20pt]{standalone}
-
-    \usepackage{varwidth}
-    \usepackage{tikz}
-    \usetikzlibrary{patterns.meta}
-    \usetikzlibrary{arrows.meta}
-    \usetikzlibrary{shapes}
-
-    \begin{document}
-        <generated code>
-    \end{document}
-    ```
+    Generate TeX code for drawing a history using layout information.
 
     :param layout: layout to render
     :param params: rendering parameters
-    :returns: generated TikZ code
+    :returns: generated TeX code
     """
     layers: dict[str, list[str]] = {
         "hosts": [],
@@ -540,33 +511,40 @@ def render(
                     )
                 )
 
-            layers["events"].append(
-                render_event(
-                    event_node.data, host_layout.host, event_layout.anchor, params
-                )
+            event_code = render_event(
+                event_node.data, host_layout.host, event_layout.anchor, params
             )
+
+            if event_code:
+                layers["events"].append(event_code)
+
             layers["debug"].append(
                 rf"\draw[blue, densely dotted, line width=.66pt] "
                 f"({event_layout.area.top_left()}) rectangle "
                 f"({event_layout.area.bottom_right()});"
             )
 
-    result = [get_tikz_definitions(params)]
+    result = []
+    result.append(r"\documentclass[crop, tikz, border=20pt]{standalone}")
+    result.append(PREAMBLE)
+    result.append(get_tikz_definitions(params))
 
     # Define colors used in the rendering
     for i, html in enumerate(colors):
         result.append(rf"\definecolor{{{color_prefix}{i}}}{{HTML}}{{{html}}}")
 
     # Append layers in order
+    result.append(r"\begin{document}")
+    result.append(r"\begin{tikzpicture}")
+
     if not params.debug:
         del layers["debug"]
-
-    result.append(r"\begin{tikzpicture}")
 
     for name, layer in layers.items():
         result.append(f"% {name}")
         result.extend(layer)
 
     result.append(r"\end{tikzpicture}")
+    result.append(r"\end{document}")
     result.append("")
     return "\n".join(result)
