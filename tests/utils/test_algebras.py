@@ -1,3 +1,5 @@
+import pytest
+from math import inf
 from typing import TypeVar, Sequence, NamedTuple
 from collections import defaultdict
 from immutables import Map
@@ -17,6 +19,32 @@ from sowing.node import Node
 
 
 T = TypeVar("T")
+
+
+def test_metaclasses():
+    assert MinPlus._pool is not MaxPlus._pool
+    assert MinPlus._pool is not Boolean._pool
+
+    assert MinPlus.zero is MinPlus(MinPlus._zero)
+    assert MinPlus.one is MinPlus(MinPlus._one)
+
+    assert Boolean.zero is Boolean(Boolean._zero)
+    assert Boolean.one is Boolean(Boolean._one)
+
+
+def test_selection():
+    minplus_counter = MinPlus * Counter
+
+    assert minplus_counter.__name__ == "(MinPlus * Counter)"
+    assert minplus_counter.zero == minplus_counter((inf, 0))
+    assert minplus_counter.one == minplus_counter((0, 1))
+    assert minplus_counter((2, 5)) + minplus_counter((3, 2)) == minplus_counter((2, 5))
+    assert minplus_counter((3, 5)) + minplus_counter((2, 2)) == minplus_counter((2, 2))
+    assert minplus_counter((2, 5)) + minplus_counter((2, 2)) == minplus_counter((2, 7))
+    assert minplus_counter((2, 5)) * minplus_counter((3, 2)) == minplus_counter((5, 10))
+
+    with pytest.raises(AssertionError, match="left argument must be ordered"):
+        Counter * MinPlus
 
 
 def edit_distance(

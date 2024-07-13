@@ -1,7 +1,6 @@
 """Draw a representation of the (super-)reconciliation of two trees."""
 
 import json
-import textwrap
 import sys
 from sowing import traversal
 from .util import add_arg_input, add_arg_output

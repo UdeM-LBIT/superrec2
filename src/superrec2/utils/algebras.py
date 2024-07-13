@@ -120,18 +120,21 @@ class SemiRingType(type):
         """
         Create a semiring that is the selection product of two semirings.
 
+        The first semiring must be ordered.
+
         Values of the selection product are tuples (A, B) from the first and
-        second semiring, such that A is minimum (as defined by the addition
-        operation of the first semiring) and B is the sum of all encountered
-        values associated to A.
+        second semiring, such that A is minimum and B is the sum of all
+        encountered values associated to A.
 
         This operation is non-commutative and non-associative.
         """
 
+        assert issubclass(first, OrderedSemiRing), "left argument must be ordered"
+
         def _add(x, y):
-            if x[0] == y[0]:
-                return (x[0], second._add(x[1], y[1]))
-            elif x[0] == first._add(x[0], y[0]):
+            if first._eq(x[0], y[0]):
+                return (first._add(x[0], y[0]), second._add(x[1], y[1]))
+            elif first._le(x[0], y[0]):
                 return (x[0], x[1])
             else:
                 return (y[0], y[1])
@@ -229,8 +232,12 @@ class SemiRing(Box[T], metaclass=SemiRingType):
 
     def __init_subclass__(cls) -> None:
         cls._pool = {}
-        cls.zero = cls(cls._zero)
-        cls.one = cls(cls._one)
+
+        if hasattr(cls, "_zero"):
+            cls.zero = cls(cls._zero)
+
+        if hasattr(cls, "_one"):
+            cls.one = cls(cls._one)
 
     def __add__(self, other: Any) -> Self:
         if isinstance(other, self.__class__):
@@ -247,6 +254,29 @@ class SemiRing(Box[T], metaclass=SemiRingType):
             value = other
 
         return self.__class__(self.__class__._mul(self.value, value))
+
+
+class OrderedSemiRing(SemiRing):
+    """Semiring equiped with a total ordering relation."""
+
+    _eq: Callable[[T, T], bool]
+    _le: Callable[[T, T], bool]
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, self.__class__):
+            value = other.value
+        else:
+            value = other
+
+        return self.__class__._eq(self.value, value)
+
+    def __le__(self, other: Any) -> bool:
+        if isinstance(other, self.__class__):
+            value = other.value
+        else:
+            value = other
+
+        return self.__class__._le(self.value, value)
 
 
 class Structure(Generic[T, P]):
@@ -300,25 +330,31 @@ class Structure(Generic[T, P]):
         return Structure(first.semiring @ second.semiring, morphism)
 
 
-class MinPlus(SemiRing[int | float]):
+class MinPlus(OrderedSemiRing[int | float]):
     _zero = inf
     _one = 0
     _add = min
     _mul = operator.add
+    _eq = operator.eq
+    _le = operator.le
 
 
-class MaxPlus(SemiRing[int | float]):
+class MaxPlus(OrderedSemiRing[int | float]):
     _zero = -inf
     _one = 0
     _add = max
     _mul = operator.add
+    _eq = operator.eq
+    _le = operator.ge
 
 
-class Viterbi(SemiRing[float]):
+class Viterbi(OrderedSemiRing[float]):
     _zero = 0
     _one = 1
     _add = max
     _mul = operator.mul
+    _eq = operator.eq
+    _le = operator.ge
 
 
 class Boolean(SemiRing[bool]):
