@@ -826,13 +826,29 @@ class History:
     # History tree, with event and associate information at each node
     event_tree: Node[Event, None]
 
+    def validate(self) -> None:
+        """
+        Check that this history is valid.
+
+        A history is valid if each node is labeled with an event and
+        if this labeling follows the constraints for that event.
+
+        :raises InvalidReconciliation: if any node is invalid
+        """
+        for cursor in traversal.depth(self.event_tree, preorder=False):
+            node = cursor.node
+            event = node.data
+
+            children = tuple(edge.node.data.anon_associate() for edge in node.edges)
+            event.validate(self.host_index, children)
+
     def epochs(self) -> Epochs:
         """
-        Compute minimum feasible dates for each host of this history, taking
-        into account codivergence and horizontal transfer relations.
+        Compute minimum feasible dates for each host and event of this history,
+        taking into account codivergence and horizontal transfer relations.
 
-        :returns: minimal dates for each host name
-        :raises CycleError: if the history has no feasible datation
+        :returns: minimal dates for each host and event
+        :raises InfeasibleEpochs: if the history has no feasible datation
         """
 
         def host_start(host: Zipper[Host, None]) -> tuple[Zipper[Host, None], str]:
@@ -1042,21 +1058,34 @@ class History:
             ),
         )
 
-    def validate(self) -> None:
+    def transfer_distance(self) -> int:
         """
-        Check that this history is valid.
+        Compute the total transfer distance of this history.
 
-        A history is valid if each node is labeled with an event and
-        if this labeling follows the constraints for that event.
+        The distance of a single transfer event is the number of edges between
+        the transfer origin and its destination in the host tree. The total
+        transfer distance is the sum of the distances of all transfer events.
 
-        :raises InvalidReconciliation: if any node is invalid
+        :returns: the total transfer distance
         """
-        for cursor in traversal.depth(self.event_tree, preorder=False):
+
+        def count_distance(
+            cursor: Zipper[Event, None]
+        ) -> Zipper[tuple[int, Event], None]:
             node = cursor.node
             event = node.data
 
-            children = tuple(edge.node.data.anon_associate() for edge in node.edges)
-            event.validate(self.host_index, children)
+            if isinstance(event, Diverge) and event.transfer:
+                _, child = cursor.down(event.result).node.data
+                delta = self.host_index.distance(event.host, child.host)
+            else:
+                delta = 0
+
+            below = sum(edge.node.data[0] for edge in node.edges)
+            return cursor.replace(node=Node((below + delta, event)))
+
+        result = traversal.fold(count_distance, traversal.depth(self.event_tree))
+        return result.data[0]
 
     @staticmethod
     def from_mapping(data: Mapping) -> Self:

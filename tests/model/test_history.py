@@ -1172,7 +1172,15 @@ def test_history_prune_unsampled():
                 (
                   [&host=1U,contents='{"a"}'],
                   [&host=4,contents='{"b"}']
-                )[&kind=diverge,transfer=True,cut=True,host=1U,contents='{"a","b"}',segment='{"b"}',result=1],
+                )[&
+                  kind=diverge,
+                  transfer=True,
+                  cut=True,
+                  host=1U,
+                  contents='{"a","b"}',
+                  segment='{"b"}',
+                  result=1
+                ],
                 x[&host=1,contents='{"a","b"}']
               )[&kind=codiverge,host=1P,contents='{"a","b"}'],
               (
@@ -1202,7 +1210,15 @@ def test_history_prune_unsampled():
                 (
                   [&host=1U,contents='{"a"}'],
                   [&host=4,contents='{"b"}']
-                )[&kind=diverge,transfer=True,cut=True,host=1U,contents='{"a","b"}',segment='{"b"}',result=1],
+                )[&
+                  kind=diverge,
+                  transfer=True,
+                  cut=True,
+                  host=1U,
+                  contents='{"a","b"}',
+                  segment='{"b"}',
+                  result=1
+                ],
                 x[&host=1,contents='{"a","b"}']
               )[&kind=codiverge,host=1P,contents='{"a","b"}'],
               (
@@ -1230,15 +1246,36 @@ def test_history_prune_unsampled():
                     x[&host=1,contents='{"a","b"}']
                   )[&kind=codiverge,host=1P,contents='{"a","b"}'],
                   [&host=2,contents='{"a"}']
-                )[&kind=diverge,host=1P,transfer=True,contents='{"a","b"}',segment='{"a"}',result=1],
+                )[&
+                  kind=diverge,
+                  host=1P,
+                  transfer=True,
+                  contents='{"a","b"}',
+                  segment='{"a"}',
+                  result=1
+                ],
                 [&host=3,contents='{"a"}']
-              )[&kind=diverge,host=1P,transfer=True,contents='{"a","b"}',segment='{"a"}',result=1],
+              )[&
+                kind=diverge,
+                host=1P,
+                transfer=True,
+                contents='{"a","b"}',
+                segment='{"a"}',
+                result=1
+              ],
               (
                 [&host=sU,contents='{"a","b"}'],
                 (
                   (
                     [&host=2,contents='{"a","b"}']
-                  )[&kind=diverge,host=tP,transfer=True,cut=True,contents='{"a","b"}',segment='{"a","b"}'],
+                  )[&
+                    kind=diverge,
+                    host=tP,
+                    transfer=True,
+                    cut=True,
+                    contents='{"a","b"}',
+                    segment='{"a","b"}'
+                  ],
                   (
                     [&host=2U,contents='{"a","b"}'],
                     y[&host=2,contents='{"a","b"}']
@@ -1259,13 +1296,34 @@ def test_history_prune_unsampled():
                 (
                   x[&host=1,contents='{"a","b"}'],
                   [&host=2,contents='{"a"}']
-                )[&kind=diverge,host=1,transfer=True,contents='{"a","b"}',segment='{"a"}',result=1],
+                )[&
+                  kind=diverge,
+                  host=1,
+                  transfer=True,
+                  contents='{"a","b"}',
+                  segment='{"a"}',
+                  result=1
+                ],
                 [&host=3,contents='{"a"}']
-              )[&kind=diverge,host=1,transfer=True,contents='{"a","b"}',segment='{"a"}',result=1],
+              )[&
+                kind=diverge,
+                host=1,
+                transfer=True,
+                contents='{"a","b"}',
+                segment='{"a"}',
+                result=1
+              ],
               (
                 (
                   [&host=2,contents='{"a","b"}']
-                )[&kind=diverge,host=t,transfer=True,cut=True,contents='{"a","b"}',segment='{"a","b"}'],
+                )[&
+                  kind=diverge,
+                  host=t,
+                  transfer=True,
+                  cut=True,
+                  contents='{"a","b"}',
+                  segment='{"a","b"}'
+                ],
                 y[&host=2,contents='{"a","b"}']
               )[&kind=codiverge,host=s,contents='{"a","b"}']
             )[&kind=codiverge,host=r,contents='{"a","b"}'];
@@ -1288,7 +1346,14 @@ def test_history_prune_unsampled():
                 (
                   (
                     [&host=2,contents='{"a","b"}']
-                  )[&kind=diverge,host=tP,transfer=True,cut=True,contents='{"a","b"}',segment='{"a","b"}'],
+                  )[&
+                    kind=diverge,
+                    host=tP,
+                    transfer=True,
+                    cut=True,
+                    contents='{"a","b"}',
+                    segment='{"a","b"}'
+                  ],
                   (
                     [&host=2U,contents='{"a","b"}'],
                     y[&host=2,contents='{"a","b"}']
@@ -1309,7 +1374,14 @@ def test_history_prune_unsampled():
               (
                 (
                   [&host=2,contents='{"a","b"}']
-                )[&kind=diverge,host=t,transfer=True,cut=True,contents='{"a","b"}',segment='{"a","b"}'],
+                )[&
+                  kind=diverge,
+                  host=t,
+                  transfer=True,
+                  cut=True,
+                  contents='{"a","b"}',
+                  segment='{"a","b"}'
+                ],
                 y[&host=2,contents='{"a","b"}']
               )[&kind=codiverge,host=s,contents='{"a","b"}']
             )[&kind=codiverge,host=r,contents='{"a","b"}'];
@@ -1322,3 +1394,103 @@ def test_history_prune_unsampled():
         full_loss_in_unsampled_parent.prune_unsampled()
         == full_loss_in_unsampled_parent_pruned
     )
+
+
+def test_history_transfer_distance():
+    simple = History(
+        host_tree=parse_tree(Host, "(1,(2,(3,4)t)s)r;"),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              x[&host=1,contents='{"a","b"}'],
+              (
+                [&kind=loss,host=t,contents='{"a","b"}',segment='{"a","b"}'],
+                y[&host=2,contents='{"a","b"}']
+              )[&kind=codiverge,host=s,contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    assert simple.transfer_distance() == 0
+
+    transfers = History(
+        host_tree=parse_tree(Host, "((X,Y)XY,Z)XYZ;"),
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              (
+                'x_1'[&host=X,kind=extant],
+                'y_1'[&host=Y,kind=extant]
+              )[&host=XY,kind=codiverge],
+              (
+                'z_1'[&host=Z,kind=extant],
+                'y_2'[&host=Y,kind=extant]
+              )[&host=Z,kind=diverge,transfer=True,result=1]
+            )[&host=Z,kind=diverge,transfer=True];
+            """,
+        ),
+    )
+    assert transfers.transfer_distance() == 5
+
+    host_tree = parse_tree(
+        Host,
+        """
+        (
+          (1U[&sampled=False],1)1P,
+          (
+            sU[&sampled=False],
+            (
+              (2U[&sampled=False],2)2P,
+              (
+                tU[&sampled=False],
+                (
+                  (3U[&sampled=False],3)3P,
+                  (4U[&sampled=False],4)4P
+                )t
+              )tP
+            )s
+          )sP
+        )r;
+        """,
+    )
+    unsampled = History(
+        host_tree=host_tree,
+        event_tree=parse_tree(
+            Event,
+            """
+            (
+              (
+                (
+                  [&host=1U,contents='{"a"}'],
+                  [&host=4,contents='{"b"}']
+                )[&
+                  kind=diverge,
+                  transfer=True,
+                  cut=True,
+                  host=1U,
+                  contents='{"a","b"}',
+                  segment='{"b"}',
+                  result=1
+                ],
+                x[&host=1,contents='{"a","b"}']
+              )[&kind=codiverge,host=1P,contents='{"a","b"}'],
+              (
+                [&host=sU,contents='{"a","b"}'],
+                (
+                  (
+                    [&host=tU,contents='{"a","b"}'],
+                    [&kind=loss,host=t,contents='{"a","b"}',segment='{"a","b"}']
+                  )[&kind=codiverge,host=tP,contents='{"a","b"}'],
+                  (
+                    [&host=2U,contents='{"a","b"}'],
+                    y[&host=2,contents='{"a","b"}']
+                  )[&kind=codiverge,host=2P,contents='{"a","b"}']
+                )[&kind=codiverge,host=s,contents='{"a","b"}']
+              )[&kind=codiverge,host=sP,contents='{"a","b"}']
+            )[&kind=codiverge,host=r,contents='{"a","b"}'];
+            """,
+        ),
+    )
+    assert unsampled.transfer_distance() == 8

@@ -1,4 +1,6 @@
+from math import inf
 from sowing.node import Node
+from sowing.indexed import IndexedTree
 from typing import NamedTuple, TypeVar, Self, Mapping
 from .recurrence import solve_binary
 from .contents import propagate_contents
@@ -6,6 +8,7 @@ from ...utils.algebras import (
     vector,
     UnitMagma,
     SemiRing,
+    OrderedSemiRing,
     Structure,
     Counter,
     MinPlus,
@@ -14,6 +17,7 @@ from ...utils.algebras import (
     projector_of,
 )
 from ...model.history import (
+    Host,
     Reconciliation,
     History,
     Event,
@@ -288,3 +292,84 @@ def pareto_all(setting: Reconciliation) -> Mapping[EventCounts, frozenset[Histor
         )
         for vector, solutions in result.items()
     }
+
+
+def min_transfer_dist_of(
+    host_index: IndexedTree[Host, None]
+) -> type[OrderedSemiRing[tuple[int, frozenset[Event]]]]:
+    """
+    Make a semiring that computes the minimum possible transfer distance of a
+    history over a given indexed host tree.
+    """
+
+    class MinTransferDist(OrderedSemiRing[tuple[int, frozenset[Event]]]):
+        _zero = (inf, frozenset())
+        _one = (0, frozenset())
+
+        def _eq(left, right):
+            return left[0] == right[0]
+
+        def _le(left, right):
+            return left[0] <= right[0]
+
+        def _add(left, right):
+            left_dist, left_events = left
+            right_dist, right_events = right
+
+            if left_dist == right_dist:
+                return (left_dist, left_events | right_events)
+            elif left_dist < right_dist:
+                return left
+            else:
+                return right
+
+        def _mul(left, right):
+            left_dist, left_events = left
+            right_dist, right_events = right
+
+            best_delta = inf
+            best_events = frozenset()
+
+            for left_event in left_events:
+                if isinstance(left_event, Diverge) and left_event.transfer:
+                    delta = min(
+                        (
+                            host_index.distance(left_event.host, right_event.host)
+                            for right_event in right_events
+                        ),
+                        default=inf,
+                    )
+                else:
+                    delta = 0
+
+                if delta < best_delta:
+                    best_delta = delta
+                    best_events = frozenset({left_event})
+                elif delta == best_delta:
+                    best_events |= {left_event}
+
+            return (left_dist + right_dist + best_delta, best_events)
+
+    return MinTransferDist
+
+
+def hom_min_transfer_dist(event: Event) -> tuple[int, frozenset[Event]]:
+    return (0, frozenset({event}))
+
+
+def min_distance_single(
+    setting: Reconciliation, costs: EventCosts
+) -> tuple[int, int, int, History]:
+    """ """
+    min_cost = Structure(MinPlus, costs.morphism)
+
+    MinTransferDist = min_transfer_dist_of(setting.host_index)
+    min_transfer_dist = Structure(MinTransferDist, hom_min_transfer_dist)
+
+    structure = min_cost * (min_transfer_dist * (history_counter + history_projector))
+    result = solve(setting, structure).value
+
+    cost, (dist, (count, solution)) = result
+    history = make_history(solution.value, setting)
+
+    return cost, dist[0], count, history

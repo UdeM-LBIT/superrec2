@@ -78,6 +78,16 @@ def pareto_all(setting, _, output):
         print(file=output)
 
 
+@register_method
+def min_distance_single(setting, costs, output):
+    """ """
+    cost, dist, count, history = synesth.min_distance_single(setting, costs)
+    print(f"cost={cost}", file=output)
+    print(f"dist={dist}", file=output)
+    print(f"count={count}", file=output)
+    json.dump(history.to_mapping(), output)
+
+
 def reconcile(args):
     """Run the reconcile subcommand with the given arguments."""
     costs_dict: dict[str, float] = {}

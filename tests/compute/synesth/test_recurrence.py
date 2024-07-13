@@ -17,6 +17,8 @@ from superrec2.compute.synesth import (
     PartialHistoryBuilder,
     history_generator,
     partial_history_generator,
+    min_transfer_dist_of,
+    hom_min_transfer_dist,
 )
 
 
@@ -616,3 +618,61 @@ def test_reconcile_partial():
 
     assert frozenset(classified.keys()) == tree_set
     assert reduce(operator.or_, classified.values(), frozenset()) == all_histories
+
+
+def test_reconcile_min_distance():
+    host_tree = parse_tree(Host, "(((A,B)ab,C)abc,(X,(Y,Z)yz)xyz)root;")
+    unsampled_host_tree = graft_unsampled_hosts(host_tree)
+
+    associate_tree = parse_tree(
+        Associate,
+        """
+        (
+          (
+            1[&contents='{"a"}',host=A],
+            (
+              2[&contents='{"a"}',host=X],
+              (
+                3[&contents='{"a"}',host=Y],
+                4[&contents='{"a"}',host=Z]
+              )
+            )
+          ),
+          5[&contents='{"a"}',host=Z]
+        );
+        """,
+    )
+    setting = Reconciliation(unsampled_host_tree, associate_tree)
+
+    result = solve_binary(setting, min_unit_cost * history_generator).value
+
+    all_cost, all_solutions = result
+    all_histories = {
+        History(
+            host_tree=setting.host_tree,
+            event_tree=solution.value,
+        )
+        for solution in all_solutions
+    }
+    all_dist = min(history.transfer_distance() for history in all_histories)
+
+    MinTransferDist = min_transfer_dist_of(setting.host_index)
+    min_transfer_dist = Structure(MinTransferDist, hom_min_transfer_dist)
+
+    structure = min_unit_cost * (min_transfer_dist * history_generator)
+    result = solve_binary(setting, structure).value
+
+    sel_cost, ((sel_dist, _), sel_solutions) = result
+    sel_histories = {
+        History(
+            host_tree=setting.host_tree,
+            event_tree=solution.value,
+        )
+        for solution in sel_solutions
+    }
+
+    assert sel_dist == min(history.transfer_distance() for history in sel_histories)
+    assert all_dist == sel_dist
+    assert sel_histories == {
+        history for history in all_histories if history.transfer_distance() == all_dist
+    }
