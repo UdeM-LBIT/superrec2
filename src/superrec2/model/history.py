@@ -796,7 +796,7 @@ class InfeasibleEpochs(Exception):
     def __init__(
         self, cycle: list[tuple[Zipper[Host, None], str] | Zipper[Event, None]]
     ):
-        message = "infeasible history because of epochs cycle: "
+        transfers = []
         cycle_text = []
 
         for item in cycle:
@@ -805,12 +805,16 @@ class InfeasibleEpochs(Exception):
             elif isinstance(item.node.data, Diverge) and item.node.data.transfer:
                 source = item.node.data.host
                 target = item.down(item.node.data.result).node.data.host
+                transfers.append(item)
                 cycle_text.append(f"transfer from {source} to {target}")
 
-        message += ", before ".join(cycle_text)
-        super().__init__(message)
+        super().__init__(
+            "infeasible history because of epochs cycle: "
+            + ", before ".join(cycle_text)
+        )
 
         self.cycle = cycle
+        self.transfers = transfers
         self.cycle_text = cycle_text
 
 
@@ -842,11 +846,12 @@ class History:
             children = tuple(edge.node.data.anon_associate() for edge in node.edges)
             event.validate(self.host_index, children)
 
-    def epochs(self) -> Epochs:
+    def epochs(self, ignore: Iterable[Zipper[Event, None]] = frozenset()) -> Epochs:
         """
         Compute minimum feasible dates for each host and event of this history,
         taking into account codivergence and horizontal transfer relations.
 
+        :param ignore: transfer events to ignore when computing the dates
         :returns: minimal dates for each host and event
         :raises InfeasibleEpochs: if the history has no feasible datation
         """
@@ -889,17 +894,6 @@ class History:
             host = self.host_index[event_data.host]
             host_data = host.node.data
 
-            # Parents must not come after their children
-            for i in range(len(event.node.edges)):
-                edges.append(Edge(start=event, end=event.down(i), weight=0))
-
-            # Transfers must go towards coexisting hosts
-            if isinstance(event_data, Diverge) and event_data.transfer:
-                result = event.down(event_data.result)
-                target = self.host_index[result.node.data.host]
-                edges.append(Edge(start=host_start(target), end=event, weight=0))
-                edges.append(Edge(start=event, end=host_end(target), weight=0))
-
             # Sampled leaves must be contemporaneous
             if isinstance(event_data, Extant) and host_data.sampled:
                 edges.append(Edge(start=extant_sink, end=event, weight=0))
@@ -908,6 +902,18 @@ class History:
             # Host intervals must enclose all their events
             edges.append(Edge(start=host_start(host), end=event, weight=0))
             edges.append(Edge(start=event, end=host_end(host), weight=0))
+
+            if event not in ignore:
+                # Parents must not come after their children
+                for i in range(len(event.node.edges)):
+                    edges.append(Edge(start=event, end=event.down(i), weight=0))
+
+                # Transfers must go towards coexisting hosts
+                if isinstance(event_data, Diverge) and event_data.transfer:
+                    result = event.down(event_data.result)
+                    target = self.host_index[result.node.data.host]
+                    edges.append(Edge(start=host_start(target), end=event, weight=0))
+                    edges.append(Edge(start=event, end=host_end(target), weight=0))
 
         # Assign minimum feasible epochs, if possible, using shortest paths
         try:

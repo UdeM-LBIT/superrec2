@@ -1027,9 +1027,32 @@ def test_history_epochs():
         multi_inverted.epochs()
 
     assert "infeasible history because of epochs cycle" in str(err.value)
-    assert _is_circular_equal(
-        err.value.cycle_text[:-1],
-        ["transfer from Z to Y", "transfer from Z to XY", "end of XY", "start of Y"],
+    assert err.value.cycle_text == [
+        "end of XY",
+        "start of Y",
+        "transfer from Z to Y",
+        "transfer from Z to XY",
+        "end of XY",
+    ]
+
+    multi_inverted_events = multi_inverted.event_tree.unzip()
+    assert multi_inverted.epochs(ignore={err.value.transfers[0]}) == Epochs(
+        hosts={
+            multi_inverted.host_index["XYZ"]: (0, 0),
+            multi_inverted.host_index["XY"]: (1, 1),
+            multi_inverted.host_index["X"]: (2, 2),
+            multi_inverted.host_index["Y"]: (2, 2),
+            multi_inverted.host_index["Z"]: (1, 2),
+        },
+        events={
+            multi_inverted_events: 1,
+            multi_inverted_events.down(0): 1,
+            multi_inverted_events.down(0).down(0): 1,
+            multi_inverted_events.down(0).down(0).down(0): 2,
+            multi_inverted_events.down(0).down(0).down(1): 2,
+            multi_inverted_events.down(0).down(1): 2,
+            multi_inverted_events.down(1): 2,
+        },
     )
 
     cyclic = History(
@@ -1079,17 +1102,15 @@ def test_history_epochs():
         cyclic.epochs()
 
     assert "infeasible history because of epochs cycle" in str(err.value)
-    assert _is_circular_equal(
-        err.value.cycle_text[:-1],
-        [
-            "transfer from 2 to t",
-            "end of t",
-            "start of 3",
-            "transfer from 3 to s",
-            "end of s",
-            "start of 2",
-        ],
-    )
+    assert err.value.cycle_text == [
+        "end of s",
+        "start of 2",
+        "transfer from 2 to t",
+        "end of t",
+        "start of 3",
+        "transfer from 3 to s",
+        "end of s",
+    ]
 
 
 def test_history_prune_unsampled():
