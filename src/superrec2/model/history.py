@@ -859,31 +859,31 @@ class History:
 
         root = host_start(self.host_tree.unzip())
         extant_sink = object()
-        nodes = set([extant_sink])
-        edges = set()
+        nodes = [extant_sink]
+        edges = []
 
         for host in traversal.depth(self.host_tree):
-            nodes.add(host_start(host))
-            nodes.add(host_end(host))
+            nodes.append(host_start(host))
+            nodes.append(host_end(host))
 
             host_data = host.node.data
 
             # Host intervals must not start after they end
-            edges.add(Edge(start=host_start(host), end=host_end(host), weight=0))
+            edges.append(Edge(start=host_start(host), end=host_end(host), weight=0))
 
             # Host intervals must end strictly before their descendants
             for i in range(len(host.node.edges)):
-                edges.add(
+                edges.append(
                     Edge(start=host_end(host), end=host_start(host.down(i)), weight=-1)
                 )
 
             # Sampled terminal hosts must be contemporaneous
             if host.is_leaf() and host_data.sampled:
-                edges.add(Edge(start=extant_sink, end=host_end(host), weight=0))
-                edges.add(Edge(start=host_end(host), end=extant_sink, weight=0))
+                edges.append(Edge(start=extant_sink, end=host_end(host), weight=0))
+                edges.append(Edge(start=host_end(host), end=extant_sink, weight=0))
 
         for event in traversal.depth(self.event_tree):
-            nodes.add(event)
+            nodes.append(event)
 
             event_data = event.node.data
             host = self.host_index[event_data.host]
@@ -891,23 +891,23 @@ class History:
 
             # Parents must not come after their children
             for i in range(len(event.node.edges)):
-                nodes.add(event.down(i))
-                edges.add(Edge(start=event, end=event.down(i), weight=0))
+                edges.append(Edge(start=event, end=event.down(i), weight=0))
 
             # Transfers must go towards coexisting hosts
             if isinstance(event_data, Diverge) and event_data.transfer:
-                target = self.host_index[event.down(event_data.result).node.data.host]
-                edges.add(Edge(start=host_start(target), end=event, weight=0))
-                edges.add(Edge(start=event, end=host_end(target), weight=0))
+                result = event.down(event_data.result)
+                target = self.host_index[result.node.data.host]
+                edges.append(Edge(start=host_start(target), end=event, weight=0))
+                edges.append(Edge(start=event, end=host_end(target), weight=0))
 
             # Sampled leaves must be contemporaneous
             if isinstance(event_data, Extant) and host_data.sampled:
-                edges.add(Edge(start=extant_sink, end=event, weight=0))
-                edges.add(Edge(start=event, end=extant_sink, weight=0))
+                edges.append(Edge(start=extant_sink, end=event, weight=0))
+                edges.append(Edge(start=event, end=extant_sink, weight=0))
 
             # Host intervals must enclose all their events
-            edges.add(Edge(start=host_start(host), end=event, weight=0))
-            edges.add(Edge(start=event, end=host_end(host), weight=0))
+            edges.append(Edge(start=host_start(host), end=event, weight=0))
+            edges.append(Edge(start=event, end=host_end(host), weight=0))
 
         # Assign minimum feasible epochs, if possible, using shortest paths
         try:
