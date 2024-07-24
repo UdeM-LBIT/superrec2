@@ -148,27 +148,42 @@ def get_tikz_definitions(params: DrawParams):
             }}""",
             "unsampled/.default={black!40}",
             f"""\
-            speciation/.style={{
+            speciation/.style 2 args={{
                 event={{#1}}, rectangle, rounded corners,
                 inner xsep=4pt,
                 minimum width={{{params.speciation_size}}},
                 minimum height={{{params.speciation_size}}},
+                execute at begin node={{#2}},
             }}""",
             f"""\
-            duplication/.style={{
+            duplication/.style 2 args={{
                 event={{#1}}, rectangle,
                 inner xsep=4pt,
                 minimum width={{{params.duplication_size}}},
                 minimum height={{{params.duplication_size}}},
+                execute at begin node={{#2}},
             }}""",
             f"""\
-            transfer/.style={{
-                event={{#1}}, chamfered rectangle,
-                chamfered rectangle sep={{{params.transfer_size} / 2.4}},
-                inner xsep=2pt,
-                inner ysep=-1pt,
-                minimum width={{{params.transfer_size}}},
-                minimum height={{{params.transfer_size}}},
+            transfer/.code 2 args={{
+                \\pgfkeysalso{{
+                    event={{#1}},
+                }}
+                \\def\\cmp{{#2}}\\ifx\\cmp\\empty
+                    \\pgfkeysalso{{
+                        diamond,
+                        inner sep=1.5pt,
+                    }}
+                \\else
+                    \\pgfkeysalso{{
+                        chamfered rectangle,
+                        chamfered rectangle sep={{{params.transfer_size} / 2.4}},
+                        inner xsep=2pt,
+                        inner ysep=-1pt,
+                        minimum width={{{params.transfer_size}}},
+                        minimum height={{{params.transfer_size}}},
+                        execute at begin node={{#2}},
+                    }}
+                \\fi
             }}""",
         )
     )
@@ -279,7 +294,10 @@ def render_event(
                 return f"\\node[unsampled] at ({position:{rounding}}) {{}};"
 
         case Codiverge():
-            return rf"\node[speciation] at ({position:{rounding}}) {{{label}}};"
+            return (
+                f"\\node[speciation={{black}}{{{label}}}] "
+                f"at ({position:{rounding}}) {{}};"
+            )
 
         case Diverge(contents=contents, segment=segment, transfer=transfer, cut=cut):
             kind = "transfer" if transfer else "duplication"
@@ -301,7 +319,9 @@ def render_event(
                         ]
                     )
 
-            return rf"\node[{kind}] at ({position:{rounding}}) {{{label}}};"
+            return (
+                rf"\node[{kind}={{black}}{{{label}}}] at ({position:{rounding}}) {{}};"
+            )
 
         case Gain(gained=gained):
             gained = format_contents(gained)
