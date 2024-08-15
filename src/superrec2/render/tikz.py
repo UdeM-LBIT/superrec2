@@ -104,6 +104,8 @@ def get_tikz_definitions(params: DrawParams):
             """\
             invalid transfer branch/.style={
                 transfer branch={red!80!black},
+                out distance=20,
+                in distance=20,
             }""",
             f"""\
             event/.style={{
@@ -462,12 +464,16 @@ def _render_branch(
             return f"\\path[transfer branch] {_tikz_path(tr_path, close=False)};"
         else:
             # Use curved backwards edges for time-inconsistent transfers
-            if (start.anchor.x < end.anchor.x) == (
-                params.orientation == Orientation.Vertical
-            ):
-                bend = "bend left"
+            if params.orientation == Orientation.Vertical:
+                if start.anchor.x < end.anchor.x:
+                    bend = "out=0, in=180"
+                else:
+                    bend = "out=180, in=0"
             else:
-                bend = "bend right"
+                if start.anchor.x < end.anchor.x:
+                    bend = "out=-90, in=90"
+                else:
+                    bend = "out=90, in=-90"
 
             midpoint = end.area.top()
             tr_path = (PathNode(start.anchor), PathNode(end.anchor, style=bend))
