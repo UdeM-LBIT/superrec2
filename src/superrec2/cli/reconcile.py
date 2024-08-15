@@ -1,6 +1,10 @@
 """Compute a minimum-cost (super-)reconciliation of two trees."""
 
 import argparse
+import sys
+from datetime import datetime
+from functools import partial
+import time
 import json
 import inspect
 from ast import literal_eval
@@ -24,21 +28,20 @@ def min_cost_single(setting, costs, output):
     of co-optimal solutions.
     """
     cost, count, history = synesth.min_cost_single(setting, costs)
-    print(f"cost={cost}", file=output)
-    print(f"count={count}", file=output)
-    json.dump(history.to_mapping(), output)
+    output(f"# cost: {cost}")
+    output(f"# count: {count}")
+    output(json.dumps(history.to_mapping()))
 
 
 @register_method
 def min_cost_all(setting, costs, output):
     """Report all minimum-cost histories (may be exponentially slow!)."""
     cost, histories = synesth.min_cost_all(setting, costs)
-    print(f"cost={cost}", file=output)
-    print(f"count={len(histories)}", file=output)
+    output(f"# cost: {cost}")
+    output(f"# count: {len(histories)}")
 
     for history in histories:
-        json.dump(history.to_mapping(), output)
-        print(file=output)
+        output(json.dumps(history.to_mapping()))
 
 
 @register_method
@@ -49,13 +52,14 @@ def pareto_single(setting, _, output):
     for each event count vector.
     """
     result = synesth.pareto_single(setting)
+    output()
 
     for key in sorted(result.keys(), key=tuple):
         count, history = result[key]
-        print(f"events={key}", file=output)
-        print(f"count={count}", file=output)
-        json.dump(history.to_mapping(), output)
-        print("\n", file=output)
+        output(f"# events: {key}")
+        output(f"# count: {count}")
+        output(json.dumps(history.to_mapping()))
+        output()
 
 
 @register_method
@@ -65,27 +69,27 @@ def pareto_all(setting, _, output):
     having that event count vector (may be exponentially slow!).
     """
     result = synesth.pareto_all(setting)
+    output()
 
     for key in sorted(result.keys(), key=tuple):
         histories = result[key]
-        print(f"events={key}", file=output)
-        print(f"count={len(histories)}", file=output)
+        output(f"# events: {key}")
+        output(f"# count: {len(histories)}")
 
         for history in histories:
-            json.dump(history.to_mapping(), output)
-            print(file=output)
+            output(json.dumps(history.to_mapping()))
 
-        print(file=output)
+        output()
 
 
 @register_method
 def min_distance_single(setting, costs, output):
     """ """
     cost, dist, count, history = synesth.min_distance_single(setting, costs)
-    print(f"cost={cost}", file=output)
-    print(f"dist={dist}", file=output)
-    print(f"count={count}", file=output)
-    json.dump(history.to_mapping(), output)
+    output(f"# cost: {cost}")
+    output(f"# dist: {dist}")
+    output(f"# count: {count}")
+    output(json.dumps(history.to_mapping()))
 
 
 def reconcile(args):
@@ -108,7 +112,17 @@ def reconcile(args):
         )
 
     setting.validate()
-    methods[args.method](setting, costs, args.output)
+    output = partial(print, file=args.output)
+
+    output("# cmdline:", " ".join(sys.argv[2:]))
+    output("# start:", datetime.today().astimezone().isoformat())
+
+    start_time = time.time()
+    methods[args.method](setting, costs, output)
+    end_time = time.time()
+
+    output("# end:", datetime.today().astimezone().isoformat())
+    output("# duration:", end_time - start_time)
 
 
 def add_args(parser):
