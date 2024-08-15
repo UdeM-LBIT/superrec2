@@ -4,9 +4,24 @@ from enum import Enum, auto
 from dataclasses import dataclass, field
 from typing import Mapping, Self
 from sowing.node import Node
+from sowing.indexed import IndexedTree
 from itertools import chain
-from ..model.history import Host, Event
+from ..model.history import Associate, Host, Event
 from ..utils.geometry import Position, Rect
+
+
+class Waypoint(Event):
+    """Null event inserted into histories for layout purposes."""
+
+    def outcomes(self, host_index: IndexedTree[Host, None]) -> tuple[Associate, ...]:
+        return ()
+
+    def validate(
+        self,
+        host_index: IndexedTree[Host, None],
+        children: tuple[Associate, ...],
+    ) -> None:
+        Event.validate(self, host_index, children)
 
 
 class Orientation(Enum):
@@ -99,6 +114,9 @@ class EventLayout:
 
     # Children of this event in parallel hosts
     side_children: list[Node[Event, None]]
+
+    # True if the transfer edges to side children can be drawn horizontally
+    side_horizontal: bool = False
 
     # Area spanned by this event’s node
     area: Rect = Rect.zero()

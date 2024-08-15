@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from textwrap import indent, dedent
 import math
 import re
-from .model import DrawParams, Orientation, HostLayout, Layout
+from .model import Waypoint, DrawParams, Orientation, HostLayout, EventLayout, Layout
 from ..model.history import Host, Event, Extant, Codiverge, Diverge, Gain, Loss
 from ..utils import tex
 from ..utils.tex import measure_tikz
-from ..utils.geometry import Position, Rect
+from ..utils.geometry import Position, Rect, Size
 
 
 # Regex to match digit groups in a string
@@ -100,6 +100,10 @@ def get_tikz_definitions(params: DrawParams):
                 branch={#1},
                 densely dashed,
                 -{Latex[length=0pt 8]},
+            }""",
+            """\
+            invalid transfer branch/.style={
+                transfer branch={red!80!black},
             }""",
             f"""\
             event/.style={{
@@ -268,7 +272,7 @@ def render_event(
     rounding: int = MAX_DIGITS,
 ) -> str:
     """Generate the TikZ code for drawing an event node."""
-    if not isinstance(event, Event):
+    if isinstance(event, Waypoint):
         return ""
 
     if event.contents is not None:
@@ -382,7 +386,7 @@ def _tikz_path(
         else:
             style_str = f"[{node.style}] " if node.style is not None else ""
             node_str = f"{node.node} " if node.node is not None else ""
-            result += f" {style_str}-- {node_str}{coords_str}"
+            result += f" {style_str}to {node_str}{coords_str}"
 
     if close:
         result += " -- cycle"
@@ -439,27 +443,43 @@ def _render_host(
 
 
 def _render_branch(
-    start: Position, end: Position, transfer: bool, params: DrawParams
+    start: EventLayout, end: EventLayout, transfer: bool, params: DrawParams
 ) -> str:
     """Draw a branch connecting two locations of the associate tree."""
     rounded = f"rounded corners={{{params.branch_border_radius}}}"
     sharp = "sharp corners"
 
-    if math.isclose(start.x, end.x):
-        path = (PathNode(start), PathNode(end))
+    if math.isclose(start.anchor.x, end.anchor.x):
+        path = (PathNode(start.anchor), PathNode(end.anchor))
         return rf"\path[branch] {_tikz_path(path, close=False)};"
 
-    midpoint = start.meet_hv(end)
+    midpoint = start.anchor.meet_hv(end.anchor)
 
     if transfer:
-        tr_path = (PathNode(start), PathNode(midpoint))
-        end_path = (PathNode(midpoint), PathNode(end))
-        return (
-            f"\\path[transfer branch] {_tikz_path(tr_path, close=False)};\n"
-            f"\\path[branch] {_tikz_path(end_path, close=False)};"
-        )
+        if start.side_horizontal:
+            # Make the transfer edge horizontal
+            tr_path = (PathNode(start.anchor), PathNode(midpoint))
+            return f"\\path[transfer branch] {_tikz_path(tr_path, close=False)};"
+        else:
+            # Use curved backwards edges for time-inconsistent transfers
+            if (start.anchor.x < end.anchor.x) == (
+                params.orientation == Orientation.Vertical
+            ):
+                bend = "bend left"
+            else:
+                bend = "bend right"
 
-    path = (PathNode(start), PathNode(midpoint, rounded), PathNode(end, sharp))
+            midpoint = end.area.top()
+            tr_path = (PathNode(start.anchor), PathNode(end.anchor, style=bend))
+            return (
+                f"\\path[invalid transfer branch] {_tikz_path(tr_path, close=False)};"
+            )
+
+    path = (
+        PathNode(start.anchor),
+        PathNode(midpoint, rounded),
+        PathNode(end.anchor, sharp),
+    )
     return rf"\path[branch] {_tikz_path(path, close=False)};"
 
 
@@ -524,8 +544,8 @@ def render(
             for child in event_layout.children:
                 layers["branches"].append(
                     _render_branch(
-                        event_layout.anchor,
-                        layout[child.data.host].events[child].anchor,
+                        event_layout,
+                        layout[child.data.host].events[child],
                         transfer=(isinstance(event, Diverge) and event.transfer),
                         params=params,
                     )
@@ -538,11 +558,17 @@ def render(
             if event_code:
                 layers["events"].append(event_code)
 
-            layers["debug"].append(
-                rf"\draw[blue, densely dotted, line width=.66pt] "
-                f"({event_layout.area.top_left()}) rectangle "
-                f"({event_layout.area.bottom_right()});"
-            )
+            if event_layout.area.size == Size.zero():
+                layers["debug"].append(
+                    f"\\draw[blue, densely dotted, line width=.66pt] "
+                    f"({event_layout.area.center()}) circle (1.33pt);"
+                )
+            else:
+                layers["debug"].append(
+                    f"\\draw[blue, densely dotted, line width=.66pt] "
+                    f"({event_layout.area.top_left()}) rectangle "
+                    f"({event_layout.area.bottom_right()});"
+                )
 
     result = []
     result.append(r"\documentclass[crop, tikz, border=20pt]{standalone}")

@@ -1,16 +1,18 @@
 """Compute layouts for reconciliations."""
 
 from sowing import traversal
-from sowing.node import Node
+from sowing.node import Node, Zipper
+from dataclasses import replace
 from itertools import chain
-from .model import EventLayout, DrawParams, HostLayout, Layout, Orientation
-from ..model.history import Event, History
+from .model import Waypoint, EventLayout, DrawParams, HostLayout, Layout, Orientation
+from ..model.history import Event, Diverge, History, InfeasibleEpochs
 from ..utils.geometry import Position, Rect, Size
 
 
 def _init_layout(
     history: History,
     rects: dict[Event, Size],
+    time_cycle: set[Zipper[Event, None]],
     params: DrawParams,
 ) -> Layout:
     """
@@ -18,6 +20,7 @@ def _init_layout(
 
     :param history: history to layout
     :param rects: sizes for each event node of the history
+    :param time_cycle: set of events in time cycles, if the history is cyclic
     :param params: layout parameters
     :returns: initial layout information for each host node
     """
@@ -57,7 +60,7 @@ def _init_layout(
             else:
                 side_children.append(child)
 
-        rect = rects[event]
+        rect = rects.get(event, Rect.zero())
 
         if params.orientation == Orientation.Horizontal:
             rect = Rect(
@@ -70,6 +73,7 @@ def _init_layout(
             in_children=in_children,
             desc_children=desc_children,
             side_children=side_children,
+            side_horizontal=cursor not in time_cycle,
             area=rect - rect.top_left(),
             anchor=-rect.top_left(),
         )
@@ -79,7 +83,7 @@ def _init_layout(
         if not any(
             layout.forking or layout.leaf for layout in host_layout.events.values()
         ):
-            host_layout.events[Node(object())] = EventLayout(
+            host_layout.events[Node(Waypoint())] = EventLayout(
                 in_children=[],
                 desc_children=[],
                 side_children=[],
@@ -112,14 +116,13 @@ def _layout_fork(host_layout: HostLayout, epoch_height: int) -> None:
             next_pos_cross += params.events_spacing + size.w
 
 
-def _layout_inner(layout: Layout, event: Event) -> None:
+def _layout_inner(layout: Layout, host_layout: HostLayout, event: Event) -> None:
     """
     Position an event inside the trunk of an host.
 
     :param layout: layout of all hosts
     :param event_layout: event layout information to update
     """
-    host_layout = layout[event.data.host]
     event_layout = host_layout.events[event]
     params = host_layout.params
 
@@ -146,32 +149,27 @@ def _layout_inner(layout: Layout, event: Event) -> None:
         chain(
             (
                 host_layout.events[child].area.top()
+                - Position(0, params.events_spacing)
                 for child in event_layout.in_children
             ),
             (
                 layout[child.data.host].events[child].area.top()
                 + Position(0, event_layout.anchor.y - event_layout.area.top().y)
                 for child in event_layout.side_children
+                if event_layout.side_horizontal
             ),
         )
     )
-    main_offset = min(
-        main_area.top().y - params.events_spacing, host_layout.fork_area.top().y
-    )
-
+    main_offset = min(main_area.top().y, host_layout.fork_area.top().y)
     event_layout += Position(cross_offset - anchor.x, main_offset - size.h)
 
-    # Add dummy events at the transfer location of outside children
-    for child in event_layout.side_children:
-        child_anchor = layout[child.data.host].events[child].anchor
-        position = event_layout.anchor.meet_hv(child_anchor)
-        layout[child.data.host].events[Node(object())] = EventLayout(
-            in_children=[child],
-            desc_children=[],
-            side_children=[],
-            area=Rect.fit((position,)),
-            anchor=position,
-        )
+    # Adjust the recipient children position to make the transfer horizontal
+    if event_layout.side_horizontal:
+        for child in event_layout.side_children:
+            child_layout = layout[child.data.host].events[child]
+            position = event_layout.anchor.meet_hv(child_layout.anchor)
+            child_layout.area = Rect.fit((position,))
+            child_layout.anchor = position
 
 
 def _layout_children(host_layout: HostLayout) -> None:
@@ -231,8 +229,39 @@ def compute(
     :param params: layout parameters
     :returns: layout information for each host node
     """
-    epochs = history.epochs()
-    layout = _init_layout(history, rects, params)
+
+    # Insert unary recipient nodes after transfers
+    def insert_recipients(zipper):
+        event = zipper.node.data
+
+        if isinstance(event, Diverge) and event.transfer:
+            children = [child.node for child in zipper.children()]
+            result = children[event.result]
+            children[event.result] = Node(Waypoint(host=result.data.host)).add(result)
+            return zipper.replace(node=Node(event).extend(children))
+
+        return zipper
+
+    event_tree = traversal.fold(insert_recipients, traversal.depth(history.event_tree))
+    history = replace(history, event_tree=event_tree)
+
+    # Assign epochs to events, breaking time cycles arbitrarily
+    # if the history is time-inconsistent
+    time_cycle = set()
+
+    while True:
+        try:
+            epochs = history.epochs(time_cycle)
+            break
+        except InfeasibleEpochs as err:
+            for transfer in err.transfers:
+                if transfer not in time_cycle:
+                    time_cycle.add(transfer)
+                    break
+            else:
+                raise err
+
+    layout = _init_layout(history, rects, time_cycle, params)
     epoch_height = 0
 
     for epoch in reversed(epochs.range()):
@@ -243,7 +272,7 @@ def compute(
         # Layout internal events of the current epoch in post-order
         for cursor in traversal.depth(history.event_tree, preorder=False):
             if epochs.events[cursor] == epoch:
-                _layout_inner(layout, cursor.node)
+                _layout_inner(layout, layout[cursor.node.data.host], cursor.node)
 
         # Position the children of each starting host along the cross axis
         for cursor in epochs.hosts_at(start=epoch):
