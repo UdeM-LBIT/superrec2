@@ -134,7 +134,7 @@ class EventLayout:
 
     @property
     def leaf(self) -> bool:
-        return not self.children
+        return not self.children or not (self.in_children or self.side_horizontal)
 
     def __iadd__(self, shift: Position) -> Self:
         """Shift the event position by adding the given vector."""
